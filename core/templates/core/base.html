@@ -1,0 +1,191 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>
+
+        MITSol
+
+    </title>
+
+    <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+    rel="stylesheet">
+
+    <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link
+    rel="stylesheet"
+    href="{% static 'core/css/style.css' %}">
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+
+    <div class="container">
+
+        <a
+            class="navbar-brand d-flex align-items-center"
+                href="/">
+
+                    <img
+                        src="{% static 'core/images/logo.png' %}"
+
+                        alt="MITSol Logo"
+
+                        class="navbar-logo me-2">
+
+                            <div>
+
+                                <span class="fw-bold fs-4">
+
+                                    MITSol
+
+                                </span>
+
+                                    <small
+                                        class="d-block text-info">
+
+                                        Technology Solutions
+
+                                    </small>
+
+                            </div>
+
+        </a>
+
+        <button
+        class="navbar-toggler"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav">
+
+            <span class="navbar-toggler-icon"></span>
+
+        </button>
+
+        <div
+        class="collapse navbar-collapse"
+        id="navbarNav">
+
+            <ul class="navbar-nav ms-auto">
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                    href="/">
+
+                        Home
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                    href="#">
+
+                        About
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                    href="#">
+
+                        Services
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                    href="#">
+
+                        Portfolio
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</nav>
+
+{% block content %}
+
+{% endblock %}
+
+<footer class="bg-dark text-white py-4 mt-5">
+
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <h5>
+
+                    MITSol
+
+                </h5>
+
+                <p>
+
+                    Magadulla Information Technology Solution.
+
+                    Software Engineering,
+                    Cybersecurity,
+                    IT Services,
+                    Retail Stationery.
+
+                </p>
+
+            </div>
+
+            <div class="col-md-6 text-md-end">
+
+                <p>
+
+                    © 2026 MITSol.
+
+                    All Rights Reserved.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</footer>
+
+<script
+src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js">
+</script>
+
+</body>
+
+</html>
