@@ -1,0 +1,121 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section
+class="hero py-5">
+
+    <div class="container text-center">
+
+        <h1 class="fw-bold">
+
+            Contact MITSOL
+
+        </h1>
+
+        <p class="lead mt-3">
+
+            Reach out for software,
+            cybersecurity,
+            IT consultancy,
+            training,
+            and business solutions.
+
+        </p>
+
+    </div>
+
+</section>
+
+<section class="py-5">
+
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-lg-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <h3 class="mb-4">
+
+                            Contact Information
+
+                        </h3>
+
+                        <p>
+
+                            <strong>Email:</strong>
+
+                            info@mitsol.com.se
+
+                        </p>
+
+                        <p>
+
+                            <strong>Location:</strong>
+
+                            Tanzania
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <h3 class="mb-4">
+
+                            Send Message
+
+                        </h3>
+
+                        {% if success %}
+
+                        <div
+                        class="alert alert-success">
+
+                            Message sent successfully.
+
+                        </div>
+
+                        {% endif %}
+
+                        <form method="POST">
+
+                            {% csrf_token %}
+
+                            {{ form.as_p }}
+
+                            <button
+                            type="submit"
+                            class="btn btn-primary">
+
+                                Send Message
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

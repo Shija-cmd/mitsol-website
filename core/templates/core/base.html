@@ -12,7 +12,7 @@
 
     <title>
 
-        MITSol
+        MITSOL
 
     </title>
 
@@ -38,7 +38,7 @@
 
         <a
             class="navbar-brand d-flex align-items-center"
-                href="/">
+                href="{% url 'home' %}">
 
                     <img
                         src="{% static 'core/images/logo.png' %}"
@@ -51,7 +51,7 @@
 
                                 <span class="fw-bold fs-4">
 
-                                    MITSol
+                                    MITSOL
 
                                 </span>
 
@@ -84,7 +84,7 @@
                 <li class="nav-item">
 
                     <a class="nav-link"
-                    href="/">
+                    href="{% url 'home' %}">
 
                         Home
 
@@ -94,10 +94,11 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
-                    href="#">
+                    <a
+                        class="nav-link {% if 'about' in request.path %}active-link{% endif %}"
+                            href="{% url 'about' %}">
 
-                        About
+                            About
 
                     </a>
 
@@ -106,7 +107,7 @@
                 <li class="nav-item">
 
                     <a class="nav-link"
-                    href="#">
+                    href="{% url 'services' %}">
 
                         Services
 
@@ -117,13 +118,24 @@
                 <li class="nav-item">
 
                     <a class="nav-link"
-                    href="#">
+                    href="{% url 'portfolio' %}">
 
                         Portfolio
 
                     </a>
 
                 </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                        href="{% url 'contact' %}">
+
+                            Contact
+
+                        </a>
+
+                    </li>
 
             </ul>
 
@@ -147,7 +159,7 @@
 
                 <h5>
 
-                    MITSol
+                    MITSOL
 
                 </h5>
 
@@ -168,7 +180,7 @@
 
                 <p>
 
-                    © 2026 MITSol.
+                    © 2026 MITSOL.
 
                     All Rights Reserved.
 
