@@ -23,15 +23,29 @@ DEBUG = config(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config(
+
     'DEBUG',
+
+    default=False,
+
     cast=bool
+
 )
 
 
-ALLOWED_HOSTS = config(
-    'ALLOWED_HOSTS',
-    cast=lambda v: [s.strip() for s in v.split(',')]
-)
+ALLOWED_HOSTS = [
+
+    'mitsol.com.se',
+
+    'www.mitsol.com.se',
+
+    '.onrender.com',
+
+    '127.0.0.1',
+
+    'localhost',
+
+]
 
 
 # Application definition
@@ -49,6 +63,7 @@ INSTALLED_APPS = [
     'portfolio',
     'contact',
     'about',
+    'django.contrib.sitemaps',
 ]
 
 MIDDLEWARE = [
@@ -130,7 +145,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = (
     'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -170,11 +185,52 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Security settings
 SECURE_BROWSER_XSS_FILTER = True
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 X_FRAME_OPTIONS = 'DENY'
 
-SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
+SECURE_SSL_REDIRECT = not DEBUG
+
+SESSION_COOKIE_SECURE = not DEBUG
+
+CSRF_COOKIE_SECURE = not DEBUG
+
+SECURE_PROXY_SSL_HEADER = (
+
+    'HTTP_X_FORWARDED_PROTO',
+
+    'https'
+
+)
+
+CSRF_TRUSTED_ORIGINS = [
+
+    'https://mitsol.com.se',
+
+    'https://www.mitsol.com.se',
+
+    'https://*.onrender.com',
+
+]
+
+SECURE_HSTS_SECONDS = (
+
+    31536000
+
+    if not DEBUG
+
+    else 0
+
+)
+
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+
+SECURE_HSTS_PRELOAD = not DEBUG
 
 JAZZMIN_SETTINGS = {
 
@@ -217,5 +273,23 @@ JAZZMIN_SETTINGS = {
         "contact.Contact":
             "fas fa-envelope",
 
-    }
+    },
+    
+    "order_with_respect_to": [
+
+            "auth",
+
+            "portfolio",
+
+            "services",
+
+            "contact",
+
+        ],
+    
+    "hide_apps": [
+
+    "sessions",
+
+    ]
 }

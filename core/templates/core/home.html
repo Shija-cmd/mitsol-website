@@ -4,55 +4,75 @@
 
 <!-- HERO -->
 
-<section
-class="hero py-5">
+<section class="hero py-5">
 
     <div class="container">
 
         <div class="row align-items-center">
 
-            <div class="col-lg-7">
+            <div class="col-lg-6">
 
                 <h1 class="display-4 fw-bold">
 
-                    Transforming Businesses Through Technology Solutions
+                    Empowering Innovation Through
+                    Technology Solutions
 
                 </h1>
 
-            <p class="lead mt-4">
+                <p class="lead mt-4">
 
-            Software Engineering,
-            Cybersecurity,
-            IT Services,
-            Software Development,
-            Retail Stationery.
+                    MITSOL delivers software engineering,
+                    cybersecurity, IT consultancy,
+                    computer training, and digital
+                    transformation solutions for
+                    businesses, institutions,
+                    and organizations.
 
-            </p>
+                </p>
 
-            <a
-                href="#services"
-                class="btn btn-primary btn-lg">
+                <div class="mt-4">
 
-                    Explore Services
+                    <a
+                    href="{% url 'services' %}"
 
-            </a>
+                    class="btn btn-primary btn-lg me-3">
 
-        </div>
+                        Explore Services
 
-        <div class="col-lg-5 text-center">
+                    </a>
+
+                    <a
+                    href="{% url 'contact' %}"
+
+                    class="btn btn-outline-dark btn-lg">
+
+                        Contact Us
+
+                    </a>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-6 text-center">
 
             <img
-                src="{% static 'core/images/hero.jpg' %}"
-                alt="MITSOL Technology"
-                class="img-fluid hero-image">
+
+                    src="{% static 'core/images/hero.jpg' %}"
+
+                    class="hero-image img-fluid"
+
+                    alt="Technology Solutions">
+
+                </div>
+
+            </div>
 
         </div>
 
-        </div>
     </div>
 
 </section>
-
 
 <!-- ABOUT -->
 
@@ -197,111 +217,93 @@ class="bg-light py-5">
 
 <!-- WHY CHOOSE US -->
 
-<section class="py-5">
+<section class="py-5 bg-light">
 
     <div class="container">
 
-        <h2 class="text-center fw-bold mb-5">
+        <div class="text-center mb-5">
 
-            Why Choose MITSOL
+            <h2 class="fw-bold">
 
-        </h2>
+                Why Choose MITSOL?
 
-        <div class="row">
+            </h2>
 
-            <div class="col-md-3 mb-4">
+            <p class="text-muted">
 
-                <div class="card h-100 shadow-sm">
+                Delivering innovative, secure,
+                and practical technology solutions.
 
-                    <div class="card-body text-center">
+            </p>
 
-                        <h5>
+        </div>
 
-                            Innovation
+        <div class="row text-center">
 
-                        </h5>
+            <div class="col-md-4 mb-4">
 
-                        <p>
+                <i
+                class="fas fa-lightbulb fa-3x text-primary mb-3">
+                </i>
 
-                            Modern technology solutions for businesses.
+                <h4>
 
-                        </p>
+                    Innovation
 
-                    </div>
+                </h4>
 
-                </div>
+                <p>
 
-            </div>
+                    Modern digital solutions
+                    driven by software engineering,
+                    AI, and emerging technologies.
 
-            <div class="col-md-3 mb-4">
-
-                <div class="card h-100 shadow-sm">
-
-                    <div class="card-body text-center">
-
-                        <h5>
-
-                            Security
-
-                        </h5>
-
-                        <p>
-
-                            Reliable and security-focused systems.
-
-                        </p>
-
-                    </div>
-
-                </div>
+                </p>
 
             </div>
 
-            <div class="col-md-3 mb-4">
+            <div class="col-md-4 mb-4">
 
-                <div class="card h-100 shadow-sm">
+                <i
+                class="fas fa-lock fa-3x text-primary mb-3">
+                </i>
 
-                    <div class="card-body text-center">
+                <h4>
 
-                        <h5>
+                    Security & Reliability
 
-                            Professional Support
+                </h4>
 
-                        </h5>
+                <p>
 
-                        <p>
+                    Strong emphasis on cybersecurity,
+                    information protection,
+                    and dependable systems.
 
-                            Dedicated IT and technical assistance.
-
-                        </p>
-
-                    </div>
-
-                </div>
+                </p>
 
             </div>
 
-            <div class="col-md-3 mb-4">
+            <div class="col-md-4 mb-4">
 
-                <div class="card h-100 shadow-sm">
+                <i
+                class="fas fa-chart-line fa-3x text-primary mb-3">
+                </i>
 
-                    <div class="card-body text-center">
+                <h4>
 
-                        <h5>
+                    Digital Growth
 
-                            Scalable Solutions
+                </h4>
 
-                        </h5>
+                <p>
 
-                        <p>
+                    Supporting institutions,
+                    organizations,
+                    and businesses through
+                    digital transformation.
 
-                            Solutions designed to grow with your business.
-
-                        </p>
-
-                    </div>
-
-                </div>
+                </p>
 
             </div>
 
@@ -313,63 +315,66 @@ class="bg-light py-5">
 
 <!-- PORTFOLIO -->
 
-<section
-class="bg-light py-5">
+<section class="py-5">
 
     <div class="container">
 
-        <h2 class="text-center fw-bold mb-5">
+        <div class="text-center mb-5">
 
-            Featured Projects
+            <h2 class="fw-bold">
 
-        </h2>
+                Featured Projects
+
+            </h2>
+
+            <p class="text-muted">
+
+                Innovative technology solutions
+                and digital systems developed by MITSOL.
+
+            </p>
+
+        </div>
 
         <div class="row">
 
-            <div class="col-md-6 mb-4">
+            {% for project in projects|slice:":3" %}
+
+            <div class="col-lg-4 mb-4">
 
                 <div class="card shadow-sm h-100">
 
+                    {% if project.image %}
+
+                    <img
+                    src="{{ project.image.url }}"
+                    class="card-img-top"
+                    alt="{{ project.title }}">
+
+                    {% endif %}
+
                     <div class="card-body">
 
-                        <h4>
+                        <h5>
 
-                            Hospital Management System
+                            {{ project.title }}
 
-                        </h4>
+                        </h5>
 
                         <p>
 
-                            A role-based healthcare management platform
-                            supporting patient workflows,
-                            appointments,
-                            pharmacy inventory,
-                            billing,
-                            audit logs,
-                            and AI chatbot integration.
+                            {{ project.description|truncatewords:18 }}
 
                         </p>
 
-                        <span
-                        class="badge bg-primary">
+                        <a
+                        href="{% url 'portfolio' %}"
 
-                            Django
+                        class="btn btn-outline-primary">
 
-                        </span>
+                            View Portfolio
 
-                        <span
-                        class="badge bg-success">
-
-                            PostgreSQL
-
-                        </span>
-
-                        <span
-                        class="badge bg-dark">
-
-                            Bootstrap
-
-                        </span>
+                        </a>
 
                     </div>
 
@@ -377,38 +382,221 @@ class="bg-light py-5">
 
             </div>
 
-            <div class="col-md-6 mb-4">
+            {% endfor %}
 
-                <div class="card shadow-sm h-100">
+        </div>
 
-                    <div class="card-body">
+    </div>
 
-                        <h4>
+</section>
 
-                            Digital Business Solutions
+<!--Professional Homepage Metrics Section-->
+<section class="py-5 bg-light">
 
-                        </h4>
+    <div class="container">
 
-                        <p>
+        <div class="text-center mb-5">
 
-                            Custom software,
-                            automation systems,
-                            IT consulting,
-                            and secure digital solutions
-                            tailored for modern organizations.
+            <h2 class="fw-bold">
 
-                        </p>
+                MITSOL at a Glance
 
-                        <span
-                        class="badge bg-primary">
+            </h2>
 
-                            Software Engineering
+            <p class="text-muted">
 
-                        </span>
+                Experience, innovation,
+                and technology-driven solutions.
 
-                    </div>
+            </p>
 
-                </div>
+        </div>
+
+        <div class="row text-center">
+
+            <div class="col-md-3 mb-4">
+
+                <h1
+                class="display-5 fw-bold text-primary">
+
+                    8+
+
+                </h1>
+
+                <h5>
+
+                    Years Experience
+
+                </h5>
+
+                <p class="text-muted">
+
+                    Professional experience in
+                    technology, education,
+                    and institutional systems.
+
+                </p>
+
+            </div>
+
+            <div class="col-md-3 mb-4">
+
+                <h1
+                class="display-5 fw-bold text-primary">
+
+                    AI
+
+                </h1>
+
+                <h5>
+
+                    Research & Innovation
+
+                </h5>
+
+                <p class="text-muted">
+
+                    Applied machine learning,
+                    research publication,
+                    and intelligent systems development.
+
+                </p>
+
+            </div>
+
+            <div class="col-md-3 mb-4">
+
+                <h1
+                class="display-5 fw-bold text-primary">
+
+                    5+
+
+                </h1>
+
+                <h5>
+
+                    Technology Services
+
+                </h5>
+
+                <p class="text-muted">
+
+                    Software engineering,
+                    cybersecurity,
+                    consultancy,
+                    training, and digital solutions.
+
+                </p>
+
+            </div>
+
+            <div class="col-md-3 mb-4">
+
+                <h1
+                class="display-5 fw-bold text-primary">
+
+                    24/7
+
+                </h1>
+
+                <h5>
+
+                    Innovation Mindset
+
+                </h5>
+
+                <p class="text-muted">
+
+                    Commitment to continuous
+                    digital transformation
+                    and technology excellence.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="py-5">
+
+    <div class="container">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                Leadership & Vision
+
+            </h2>
+
+            <p class="text-muted">
+
+                Driving innovation through
+                technology,
+                cybersecurity,
+                and digital transformation.
+
+            </p>
+
+        </div>
+
+        <div class="row align-items-center">
+
+            <div class="col-lg-4 text-center mb-4">
+
+                <img
+
+                src="{% static 'core/images/founder.jpg' %}"
+
+                class="img-fluid rounded-circle shadow"
+
+                style="max-width:260px;"
+
+                alt="Founder">
+
+            </div>
+
+            <div class="col-lg-8">
+
+                <h3>
+
+                    Juma M. Shija
+
+                </h3>
+
+                <h5 class="text-primary">
+
+                    Founder & Technology Lead
+
+                </h5>
+
+                <p class="mt-3">
+
+                    Information Systems and
+                    Cybersecurity professional
+                    with expertise in software
+                    engineering,
+                    digital systems,
+                    AI-driven innovation,
+                    and institutional ICT operations.
+
+                </p>
+
+                <p>
+
+                    Leading MITSOL's mission to
+                    deliver secure,
+                    practical,
+                    and innovative technology
+                    solutions for businesses,
+                    institutions,
+                    and organizations.
+
+                </p>
 
             </div>
 
