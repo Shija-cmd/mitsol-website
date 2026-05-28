@@ -31,7 +31,7 @@ def robots_txt(request):
 
         "Allow: /",
 
-        "Sitemap: https://mitsol.com.se/sitemap.xml",
+        "Sitemap: https://www.mitsol.com.se/sitemap.xml",
 
     ]
 
