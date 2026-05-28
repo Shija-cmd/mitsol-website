@@ -37,6 +37,7 @@ ALLOWED_HOSTS = config(
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -174,3 +175,47 @@ SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+JAZZMIN_SETTINGS = {
+
+    "site_title": "MITSOL Admin",
+
+    "site_header": "MITSOL",
+
+    "site_brand": "MITSOL",
+
+    "welcome_sign": "Welcome to MITSOL Management Portal",
+
+    "site_logo": "core/images/logo.png",
+    
+    "login_logo": "core/images/small_logo.png",
+
+    "site_logo_classes":
+        "img-circle elevation-3",
+
+    "copyright":
+        "MITSOL 2026",
+        
+    "navigation_expanded": True,
+
+    "show_sidebar": True,
+
+    "theme": "darkly",
+    
+
+    "icons": {
+
+        "auth":
+            "fas fa-users-cog",
+
+        "portfolio.Project":
+            "fas fa-code",
+
+        "services.Service":
+            "fas fa-briefcase",
+
+        "contact.Contact":
+            "fas fa-envelope",
+
+    }
+}
