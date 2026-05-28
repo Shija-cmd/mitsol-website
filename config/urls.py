@@ -5,7 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from core.sitemaps import StaticViewSitemap
-from core.views import health_check
+from core.views import health_check, robots_txt
 
 sitemaps = {
 
@@ -57,6 +57,16 @@ urlpatterns = [
         {'sitemaps': sitemaps},
 
         name='django.contrib.sitemaps.views.sitemap'
+
+    ),
+    
+    path(
+
+        'robots.txt',
+
+        robots_txt,
+
+        name='robots'
 
     ),
     
