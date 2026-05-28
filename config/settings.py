@@ -16,11 +16,6 @@ SECRET_KEY = config(
     'SECRET_KEY'
 )
 
-DEBUG = config(
-    'DEBUG',
-    cast=bool
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config(
 
@@ -194,7 +189,7 @@ X_FRAME_OPTIONS = 'DENY'
 
 SECURE_REFERRER_POLICY = 'same-origin'
 
-SECURE_SSL_REDIRECT = not DEBUG
+SECURE_SSL_REDIRECT = False
 
 SESSION_COOKIE_SECURE = not DEBUG
 
@@ -218,9 +213,15 @@ CSRF_TRUSTED_ORIGINS = [
 
 ]
 
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+SECURE_HSTS_SECONDS = (
+
+    31536000
+
+    if not DEBUG
+
+    else 0
+
+)
 
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 
