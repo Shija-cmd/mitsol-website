@@ -293,3 +293,43 @@ JAZZMIN_SETTINGS = {
 
     ]
 }
+
+LOGGING = {
+
+    'version': 1,
+
+    'disable_existing_loggers': False,
+
+    'handlers': {
+
+        'console': {
+
+            'class': 'logging.StreamHandler',
+
+        },
+
+    },
+
+    'root': {
+
+        'handlers': ['console'],
+
+        'level': 'INFO',
+
+    },
+
+}
+
+ADMINS = [
+
+    (
+
+        'Juma Shija',
+
+        'info@mitsol.com.se'
+
+    ),
+
+]
+
+SERVER_EMAIL = 'info@mitsol.com.se'

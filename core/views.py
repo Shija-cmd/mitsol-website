@@ -2,6 +2,7 @@ from django.shortcuts import render
 
 from portfolio.models import Project
 from django.http import HttpResponse
+from django.http import JsonResponse
 
 
 def home(request):
@@ -39,5 +40,19 @@ def robots_txt(request):
         "\n".join(lines),
 
         content_type="text/plain"
+
+    )
+    
+def health_check(request):
+
+    return JsonResponse(
+
+        {
+
+            'status': 'healthy',
+
+            'service': 'MITSOL',
+
+        }
 
     )
