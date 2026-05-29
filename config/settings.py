@@ -178,7 +178,7 @@ DEFAULT_FROM_EMAIL=config(
 
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = '/var/data/media'
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True
@@ -189,7 +189,11 @@ X_FRAME_OPTIONS = 'DENY'
 
 SECURE_REFERRER_POLICY = 'same-origin'
 
-SECURE_SSL_REDIRECT = not DEBUG
+SECURE_SSL_REDIRECT = config(
+    'SECURE_SSL_REDIRECT',
+    default=True,
+    cast=bool
+)
 
 SESSION_COOKIE_SECURE = not DEBUG
 
