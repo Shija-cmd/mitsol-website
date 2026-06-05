@@ -8,20 +8,24 @@ from .forms import ContactForm
 def contact_page(request):
 
     success = False
+    error = False
 
     if request.method == 'POST':
-
         form = ContactForm(request.POST)
+    else:
+        form = ContactForm()
 
-        if form.is_valid():
+    if form.is_valid():
 
-            message = form.save()
+        message = form.save()
 
-            send_mail(
+    try:
 
-                subject=f'New Contact Message — {message.name}',
+        send_mail(
 
-                message=f'''
+            subject=f'New Contact Message — {message.name}',
+
+            message=f'''
 Name: {message.name}
 
 Email: {message.email}
@@ -31,19 +35,23 @@ Message:
 {message.message}
 ''',
 
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=settings.DEFAULT_FROM_EMAIL,
 
-                recipient_list=[
-                    'info@mitsol.com.se'
-                ],
+            recipient_list=[
+                'info@mitsol.com.se'
+            ],
 
-                fail_silently=False
+            fail_silently=False
 
-            )
+        )
 
-            success = True
+        success = True
 
-            form = ContactForm()
+        form = ContactForm()
+
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+        error = True
 
     else:
 
@@ -54,6 +62,7 @@ Message:
         'contact/contact.html',
         {
             'form': form,
-            'success': success
+            'success': success,
+            'error': error
         }
     )

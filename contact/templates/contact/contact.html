@@ -90,6 +90,16 @@ class="hero py-5">
 
                         {% endif %}
 
+                        {% if error %}
+
+                        <div class="alert alert-danger">
+
+                            Unable to send your message. Please try again.
+
+                        </div>
+
+                        {% endif %}
+
                         <form method="POST">
 
                             {% csrf_token %}
@@ -98,6 +108,7 @@ class="hero py-5">
 
                             <button
                             type="submit"
+                            id="submitBtn"
                             class="btn btn-primary">
 
                                 Send Message
@@ -117,5 +128,21 @@ class="hero py-5">
     </div>
 
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const form = document.querySelector('form');
+    const btn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', function () {
+
+        btn.disabled = true;
+        btn.innerText = 'Sending...';
+
+    });
+
+});
+</script>
 
 {% endblock %}
