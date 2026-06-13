@@ -35,7 +35,7 @@ python manage.py runserver
 Visit:
 
 ```text
-http://127.0.0.1:8000/
+https://www.mitsol.com.se
 ```
 
 ## Deployment
