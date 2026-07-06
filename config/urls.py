@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from core.sitemaps import StaticViewSitemap
 from core.views import health_check, robots_txt
+from software_store.urls import api_urlpatterns
 
 sitemaps = {
 
@@ -46,6 +47,16 @@ urlpatterns = [
     path(
         'about/',
         include('about.urls')
+    ),
+
+    path(
+        'software/',
+        include('software_store.urls')
+    ),
+
+    path(
+        'api/',
+        include(api_urlpatterns)
     ),
     
     path(

@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="py-5">
+
+    <div class="container">
+
+        <h1 class="fw-bold">
+
+            {{ product.name }}
+
+        </h1>
+
+        <p class="text-muted">
+
+            Version {{ product.version }}
+
+        </p>
+
+        <div class="mb-4">
+
+            <h2 class="h5">
+
+                Release Notes
+
+            </h2>
+
+            <p>
+
+                {{ product.release_notes|linebreaksbr }}
+
+            </p>
+
+        </div>
+
+        <div class="alert alert-info">
+
+            License key:
+            <strong>{{ license.license_key }}</strong>
+
+        </div>
+
+        <a
+            class="btn btn-primary btn-lg"
+            href="{{ product.proton_drive_link }}"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            Download
+
+        </a>
+
+    </div>
+
+</section>
+
+{% endblock %}

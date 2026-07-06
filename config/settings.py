@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'portfolio',
     'contact',
     'about',
+    'software_store',
     'django.contrib.sitemaps',
 ]
 
@@ -272,6 +273,15 @@ JAZZMIN_SETTINGS = {
         "contact.Contact":
             "fas fa-envelope",
 
+        "software_store.SoftwareProduct":
+            "fas fa-box",
+
+        "software_store.SoftwareOrder":
+            "fas fa-receipt",
+
+        "software_store.SoftwareLicense":
+            "fas fa-key",
+
     },
     
     "order_with_respect_to": [
@@ -283,6 +293,8 @@ JAZZMIN_SETTINGS = {
             "services",
 
             "contact",
+
+            "software_store",
 
         ],
     

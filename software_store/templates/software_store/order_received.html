@@ -1,0 +1,45 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="py-5">
+
+    <div class="container">
+
+        <div class="alert alert-success shadow-sm">
+
+            <h1 class="h4">
+
+                Order received
+
+            </h1>
+
+            <p class="mb-0">
+
+                Your order has been received.
+                After payment confirmation,
+                your license and download link will be activated.
+
+            </p>
+
+        </div>
+
+        <p>
+
+            Product:
+            <strong>{{ product.name }}</strong>
+
+        </p>
+
+        <p>
+
+            Order status:
+            <strong>{{ order.payment_status }}</strong>
+
+        </p>
+
+    </div>
+
+</section>
+
+{% endblock %}
