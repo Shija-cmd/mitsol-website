@@ -6,50 +6,119 @@
 
     <div class="container">
 
-        <h1 class="fw-bold">
+        <div class="row justify-content-center">
 
-            {{ product.name }}
+            <div class="col-lg-8">
 
-        </h1>
+                <div class="card shadow">
 
-        <p class="text-muted">
+                    <div class="card-body p-5">
 
-            Version {{ product.version }}
+                        <h1 class="fw-bold text-primary">
 
-        </p>
+                            {{ product.name }}
 
-        <div class="mb-4">
+                        </h1>
 
-            <h2 class="h5">
+                        <p class="text-muted mb-4">
 
-                Release Notes
+                            Version {{ product.version }}
 
-            </h2>
+                        </p>
 
-            <p>
+                        <hr>
 
-                {{ product.release_notes|linebreaksbr }}
+                        <h4 class="mb-3">
 
-            </p>
+                            Release Notes
+
+                        </h4>
+
+                        <div class="mb-4">
+
+                            {{ product.release_notes|linebreaksbr }}
+
+                        </div>
+
+                        <div class="alert alert-info">
+
+                            <h5 class="mb-3">
+
+                                License Information
+
+                            </h5>
+
+                            <p class="mb-1">
+
+                                <strong>License Key:</strong>
+
+                                {{ license.license_key }}
+
+                            </p>
+
+                            <p class="mb-0">
+
+                                <strong>Customer:</strong>
+
+                                {{ license.customer_name }}
+
+                            </p>
+
+                        </div>
+
+                        {% if product.proton_drive_password %}
+
+                        <div class="alert alert-warning">
+
+                            <strong>Download Password:</strong>
+
+                            {{ product.proton_drive_password }}
+
+                        </div>
+
+                        {% endif %}
+
+                        <div class="d-grid gap-2">
+
+                            <a
+                                class="btn btn-primary btn-lg"
+                                href="{{ product.proton_drive_link }}"
+                                target="_blank"
+                                rel="noopener noreferrer">
+
+                                Download MITSOL Pharmacy Pro
+
+                            </a>
+
+                        </div>
+
+                        <hr class="my-4">
+
+                        <small class="text-muted">
+
+                            After downloading:
+
+                            <ol class="mt-2">
+
+                                <li>Run the installer.</li>
+
+                                <li>Complete the installation.</li>
+
+                                <li>Open the software.</li>
+
+                                <li>Enter your license key when prompted.</li>
+
+                            </ol>
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
 
         </div>
-
-        <div class="alert alert-info">
-
-            License key:
-            <strong>{{ license.license_key }}</strong>
-
-        </div>
-
-        <a
-            class="btn btn-primary btn-lg"
-            href="{{ product.proton_drive_link }}"
-            target="_blank"
-            rel="noopener noreferrer">
-
-            Download
-
-        </a>
 
     </div>
 

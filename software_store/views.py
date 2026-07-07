@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
+from .models import PaymentSetting
 
 from .forms import SoftwareOrderForm
 from .models import (
@@ -68,12 +69,15 @@ def order_product(request, product_slug):
 
         form = SoftwareOrderForm()
 
+    payment_settings = PaymentSetting.objects.first()
+
     return render(
         request,
         'software_store/order_form.html',
         {
             'form': form,
             'product': product,
+            'payment_settings': payment_settings,
         }
     )
 
@@ -135,6 +139,21 @@ def activate_license(request):
     device_id = data.get(
         'device_id'
     )
+    
+    device_name = data.get(
+        'device_name',
+        ''
+    )
+
+    windows_user = data.get(
+        'windows_user',
+        ''
+    )
+
+    os_name = data.get(
+        'os_name',
+        ''
+    )
 
     if not license_key or not device_id:
 
@@ -152,13 +171,22 @@ def activate_license(request):
 
         return invalid_response(error_message)
 
-    activation_exists = license_obj.activations.filter(
-        device_id=device_id
-    ).exists()
+    existing_activation = license_obj.activations.filter(
+        device_id=device_id,
+        is_active=True
+    ).first()
 
-    if not activation_exists:
+    if existing_activation:
+        existing_activation.device_name = device_name
+        existing_activation.windows_user = windows_user
+        existing_activation.os_name = os_name
+        existing_activation.save()
 
-        activated_devices = license_obj.activations.count()
+    else:
+
+        activated_devices = license_obj.activations.filter(
+            is_active=True
+        ).count()
 
         if activated_devices >= license_obj.allowed_devices:
 
@@ -166,7 +194,10 @@ def activate_license(request):
 
         LicenseActivation.objects.create(
             license=license_obj,
-            device_id=device_id
+            device_id=device_id,
+            device_name=device_name,
+            windows_user=windows_user,
+            os_name=os_name
         )
 
     return JsonResponse(
@@ -214,10 +245,13 @@ def verify_license(request):
         return invalid_response(error_message)
 
     if not license_obj.activations.filter(
-        device_id=device_id
+        device_id=device_id,
+        is_active=True
     ).exists():
 
-        return invalid_response('This device is not activated for this license')
+        return invalid_response(
+            'This device is not activated for this license'
+        )
 
     return JsonResponse(
         {

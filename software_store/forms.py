@@ -39,11 +39,18 @@ class SoftwareOrderForm(forms.ModelForm):
                     'class': 'form-control',
                 }
             ),
-            'payment_method': forms.TextInput(
+            'payment_method': forms.Select(
                 attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Bank transfer, mobile money, cash, etc.',
-                }
+                    'class': 'form-select',
+                },
+                choices=[
+                    ('', 'Select Payment Method'),
+                    ('M-Pesa', 'M-Pesa'),
+                    ('Airtel Money', 'Airtel Money'),
+                    ('Mixx by Yas', 'Mixx by Yas'),
+                    ('Bank Transfer', 'Bank Transfer'),
+                    ('Cash', 'Cash'),
+                ]
             ),
             'payment_reference': forms.TextInput(
                 attrs={

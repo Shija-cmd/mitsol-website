@@ -1,4 +1,9 @@
 from django.contrib import admin
+from .models import PaymentSetting
+from django.urls import reverse
+from django.utils.html import format_html
+from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import (
     LicenseActivation,
@@ -48,6 +53,7 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
         'amount',
         'payment_method',
         'payment_status',
+        'download_link',
         'created_at',
     )
 
@@ -69,7 +75,95 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
     readonly_fields = (
         'created_at',
         'updated_at',
+        'download_link',
     )
+
+    def save_model(self, request, obj, form, change):
+        old_status = None
+
+        if obj.pk:
+            old_order = SoftwareOrder.objects.filter(pk=obj.pk).first()
+            if old_order:
+                old_status = old_order.payment_status
+
+        super().save_model(request, obj, form, change)
+
+        if obj.payment_status == SoftwareOrder.PaymentStatus.PAID:
+            license_obj, created = SoftwareLicense.objects.get_or_create(
+                order=obj,
+                defaults={
+                    "product": obj.product,
+                    "customer_name": obj.customer_name,
+                    "customer_email": obj.customer_email,
+                }
+            )
+
+            if old_status != SoftwareOrder.PaymentStatus.PAID:
+                self.send_license_email(obj, license_obj)
+
+    def download_link(self, obj):
+        license_obj = obj.licenses.first()
+
+        if not license_obj:
+            return "No license yet"
+
+        url = reverse(
+            "download_software",
+            args=[license_obj.license_key]
+        )
+
+        full_url = f"https://www.mitsol.com.se{url}"
+
+        return format_html(
+            '<a href="{}" target="_blank">Open Download Page</a><br>'
+            '<small>{}</small>',
+            full_url,
+            full_url
+        )
+
+    download_link.short_description = "Download Link"
+    
+    def send_license_email(self, order, license_obj):
+        download_url = reverse(
+            "download_software",
+            args=[license_obj.license_key]
+        )
+
+        full_url = f"https://www.mitsol.com.se{download_url}"
+
+        subject = f"Your {order.product.name} License is Ready"
+
+        message = f"""
+            Dear {order.customer_name},
+
+            Thank you for purchasing {order.product.name}.
+
+            Your payment has been confirmed.
+
+            Product: {order.product.name}
+            Version: {order.product.version}
+
+            License Key:
+            {license_obj.license_key}
+
+            Download Software:
+            {full_url}
+
+            Please keep this license key safe. You will need it to activate the software after installation.
+
+            Thank you for choosing MITSOL Company Limited.
+
+            Support:
+            info@mitsol.com.se
+            """
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [order.customer_email],
+            fail_silently=False,
+        )
 
 
 @admin.register(SoftwareLicense)
@@ -107,26 +201,36 @@ class SoftwareLicenseAdmin(admin.ModelAdmin):
 
 @admin.register(LicenseActivation)
 class LicenseActivationAdmin(admin.ModelAdmin):
-
     list_display = (
-        'license',
-        'device_id',
-        'activated_at',
+        "license",
+        "device_name",
+        "windows_user",
+        "os_name",
+        "is_active",
+        "activated_at",
     )
 
     list_filter = (
-        'activated_at',
+        "is_active",
+        "os_name",
+        "activated_at",
     )
 
     search_fields = (
-        'license__license_key',
-        'device_id',
-        'license__customer_email',
+        "license__customer_name",
+        "device_id",
+        "device_name",
+        "windows_user",
     )
 
-    readonly_fields = (
-        'activated_at',
-    )
+    actions = [
+        "deactivate_devices",
+    ]
+
+    def deactivate_devices(self, request, queryset):
+        queryset.update(is_active=False)
+
+    deactivate_devices.short_description = "Deactivate selected devices"
 
 
 @admin.register(SoftwareDownloadLog)
@@ -153,4 +257,15 @@ class SoftwareDownloadLogAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         'downloaded_at',
+    )
+
+
+@admin.register(PaymentSetting)
+class PaymentSettingAdmin(admin.ModelAdmin):
+    list_display = (
+        "mpesa_business_number",
+        "airtel_money_number",
+        "mixx_number",
+        "bank_name",
+        "updated_at",
     )

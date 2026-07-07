@@ -35,6 +35,11 @@ class SoftwareProduct(models.Model):
         max_length=1000,
         blank=True
     )
+    
+    proton_drive_password = models.CharField(
+        max_length=255,
+        blank=True
+    )
 
     release_notes = models.TextField(
         blank=True
@@ -207,6 +212,11 @@ class LicenseActivation(models.Model):
         max_length=255
     )
 
+    device_name = models.CharField(max_length=255, blank=True)
+    windows_user = models.CharField(max_length=255, blank=True)
+    os_name = models.CharField(max_length=255, blank=True)
+    is_active = models.BooleanField(default=True)
+    
     activated_at = models.DateTimeField(
         auto_now_add=True
     )
@@ -266,3 +276,62 @@ class SoftwareDownloadLog(models.Model):
     def __str__(self):
 
         return f'{self.customer_email} - {self.product.name}'
+
+
+class PaymentSetting(models.Model):
+
+    mpesa_business_number = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    mpesa_account_name = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    airtel_money_number = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    airtel_money_name = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    mixx_number = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    mixx_name = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    bank_name = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    bank_account_number = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    bank_account_name = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    instructions = models.TextField(
+        blank=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return "Payment Settings"

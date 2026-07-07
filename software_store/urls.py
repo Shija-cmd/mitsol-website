@@ -22,6 +22,12 @@ urlpatterns = [
         views.download_software,
         name='software_download'
     ),
+    
+    path(
+        "download/<uuid:license_key>/",
+        views.download_software,
+        name="download_software"
+    ),
 
 ]
 

@@ -23,6 +23,53 @@
 
                 </p>
 
+                {% if payment_settings %}
+                    <div class="alert alert-warning mb-4">
+
+                        <h5>Payment Instructions</h5>
+
+                            {% if payment_settings.mpesa_business_number %}
+                                <p>
+                                    <strong>M-Pesa</strong><br>
+                                        Business Number: <strong>{{ payment_settings.mpesa_business_number }}</strong><br>
+                                        Account Name: <strong>{{ payment_settings.mpesa_account_name }}</strong>
+                                </p>
+                            {% endif %}
+
+                {% if payment_settings.airtel_money_number %}
+                    <p>
+                        <strong>Airtel Money</strong><br>
+                        Number: <strong>{{ payment_settings.airtel_money_number }}</strong><br>
+                        Name: <strong>{{ payment_settings.airtel_money_name }}</strong>
+                    </p>
+                {% endif %}
+
+                {% if payment_settings.mixx_number %}
+                <p>
+        <strong>Mixx by Yas</strong><br>
+        Number: <strong>{{ payment_settings.mixx_number }}</strong><br>
+        Name: <strong>{{ payment_settings.mixx_name }}</strong>
+    </p>
+    {% endif %}
+
+    {% if payment_settings.bank_account_number %}
+    <p>
+        <strong>Bank Transfer</strong><br>
+        Bank: <strong>{{ payment_settings.bank_name }}</strong><br>
+        Account Number: <strong>{{ payment_settings.bank_account_number }}</strong><br>
+        Account Name: <strong>{{ payment_settings.bank_account_name }}</strong>
+    </p>
+    {% endif %}
+
+    {% if payment_settings.instructions %}
+    <p class="mb-0">
+        {{ payment_settings.instructions|linebreaksbr }}
+    </p>
+    {% endif %}
+
+</div>
+{% endif %}
+
                 <form method="post" class="card shadow-sm">
 
                     {% csrf_token %}
