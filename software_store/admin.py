@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import PaymentSetting
 from django.urls import reverse
 from django.utils.html import format_html
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.conf import settings
 
 from .models import (
@@ -133,7 +134,18 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
 
         subject = f"Your {order.product.name} License is Ready"
 
-        message = f"""
+        context = {
+            "customer_name": order.customer_name,
+            "product_name": order.product.name,
+            "product_version": order.product.version,
+            "license_key": license_obj.license_key,
+            "download_url": full_url,
+            "support_email": "info@mitsol.com.se",
+            "company_name": "MITSOL Company Limited",
+            "website_url": settings.SITE_URL,
+        }
+
+        text_message = f"""
             Dear {order.customer_name},
 
             Thank you for purchasing {order.product.name}.
@@ -144,26 +156,50 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
             Version: {order.product.version}
 
             License Key:
-            {license_obj.license_key}
+                {license_obj.license_key}
 
             Download Software:
-            {full_url}
+                {full_url}
 
             Please keep this license key safe. You will need it to activate the software after installation.
 
-            Thank you for choosing MITSOL Company Limited.
-
             Support:
             info@mitsol.com.se
+
+            MITSOL Company Limited
+            Website: 
+            {settings.SITE_URL}
             """
 
-        send_mail(
+        html_message = render_to_string(
+            "software_store/emails/license_ready.html",
+            context
+        )
+
+        email = EmailMultiAlternatives(
             subject,
-            message,
+            text_message,
             settings.DEFAULT_FROM_EMAIL,
             [order.customer_email],
-            fail_silently=False,
         )
+
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+
+        html_message = render_to_string(
+        "software_store/emails/license_ready.html",
+        context
+        )
+
+        email = EmailMultiAlternatives(
+            subject,
+            text_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [order.customer_email],
+        )
+
+        email.attach_alternative(html_message, "text/html")
+        email.send()
 
 
 @admin.register(SoftwareLicense)
