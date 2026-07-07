@@ -177,6 +177,11 @@ DEFAULT_FROM_EMAIL=config(
     'DEFAULT_FROM_EMAIL'
 )
 
+SITE_URL = config(
+    'SITE_URL',
+    default='https://www.mitsol.com.se'
+)
+
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = '/var/data/media'

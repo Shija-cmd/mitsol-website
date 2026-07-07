@@ -112,7 +112,7 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
             args=[license_obj.license_key]
         )
 
-        full_url = f"https://www.mitsol.com.se{url}"
+        full_url = f"{settings.SITE_URL}{url}"
 
         return format_html(
             '<a href="{}" target="_blank">Open Download Page</a><br>'
@@ -129,7 +129,7 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
             args=[license_obj.license_key]
         )
 
-        full_url = f"https://www.mitsol.com.se{download_url}"
+        full_url = f"{settings.SITE_URL}{download_url}"
 
         subject = f"Your {order.product.name} License is Ready"
 
