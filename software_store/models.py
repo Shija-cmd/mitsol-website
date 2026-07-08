@@ -126,6 +126,10 @@ class SoftwareOrder(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
+    
+    license_email_sent = models.BooleanField(
+        default=False
+    )
 
     class Meta:
 

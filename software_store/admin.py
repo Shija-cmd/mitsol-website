@@ -77,6 +77,7 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
         'created_at',
         'updated_at',
         'download_link',
+        'license_email_sent',
     )
 
     def save_model(self, request, obj, form, change):
@@ -99,8 +100,13 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
                 }
             )
 
-            if old_status != SoftwareOrder.PaymentStatus.PAID:
+            if (
+                old_status != SoftwareOrder.PaymentStatus.PAID
+                and not obj.license_email_sent
+            ):
                 self.send_license_email(obj, license_obj)
+                obj.license_email_sent = True
+                obj.save(update_fields=["license_email_sent"])
 
     def download_link(self, obj):
         license_obj = obj.licenses.first()
