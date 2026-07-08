@@ -54,6 +54,7 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
         'amount',
         'payment_method',
         'payment_status',
+        'license_email_sent',
         'download_link',
         'created_at',
     )
@@ -81,32 +82,29 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        old_status = None
-
-        if obj.pk:
-            old_order = SoftwareOrder.objects.filter(pk=obj.pk).first()
-            if old_order:
-                old_status = old_order.payment_status
-
         super().save_model(request, obj, form, change)
 
-        if obj.payment_status == SoftwareOrder.PaymentStatus.PAID:
-            license_obj, created = SoftwareLicense.objects.get_or_create(
-                order=obj,
-                defaults={
-                    "product": obj.product,
-                    "customer_name": obj.customer_name,
-                    "customer_email": obj.customer_email,
-                }
-            )
+        if obj.payment_status != SoftwareOrder.PaymentStatus.PAID:
+            return
 
-            if (
-                old_status != SoftwareOrder.PaymentStatus.PAID
-                and not obj.license_email_sent
-            ):
-                self.send_license_email(obj, license_obj)
-                obj.license_email_sent = True
-                obj.save(update_fields=["license_email_sent"])
+        license_obj, created = SoftwareLicense.objects.get_or_create(
+            order=obj,
+            defaults={
+                "product": obj.product,
+                "customer_name": obj.customer_name,
+                "customer_email": obj.customer_email,
+            }
+        )
+
+        updated = SoftwareOrder.objects.filter(
+            pk=obj.pk,
+            license_email_sent=False
+        ).update(
+            license_email_sent=True
+        )
+
+        if updated:
+            self.send_license_email(obj, license_obj)
 
     def download_link(self, obj):
         license_obj = obj.licenses.first()
@@ -180,21 +178,6 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
         html_message = render_to_string(
             "software_store/emails/license_ready.html",
             context
-        )
-
-        email = EmailMultiAlternatives(
-            subject,
-            text_message,
-            settings.DEFAULT_FROM_EMAIL,
-            [order.customer_email],
-        )
-
-        email.attach_alternative(html_message, "text/html")
-        email.send()
-
-        html_message = render_to_string(
-        "software_store/emails/license_ready.html",
-        context
         )
 
         email = EmailMultiAlternatives(
