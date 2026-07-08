@@ -56,6 +56,21 @@ class SoftwareProduct(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
+    
+    youtube_overview_url = models.URLField(
+        max_length=1000,
+        blank=True
+    )
+
+    youtube_installation_url = models.URLField(
+        max_length=1000,
+        blank=True
+    )
+
+    youtube_activation_url = models.URLField(
+        max_length=1000,
+        blank=True
+    )
 
     class Meta:
 
