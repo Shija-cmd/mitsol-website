@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load humanize %}
 
 {% block content %}
 
@@ -6,67 +7,61 @@
 
     <div class="container text-center">
 
-        <h1 class="fw-bold">
-
-            Software Store
-
+        <h1 class="display-4 fw-bold">
+            MITSOL Software Store
         </h1>
 
-        <p class="lead mt-3">
-
-            Business software products,
-            licensed downloads,
-            and managed updates.
-
+        <p class="lead mt-3 mb-0">
+            Professional software solutions for businesses, institutions and organizations.
         </p>
 
     </div>
 
 </section>
 
-<section class="py-5">
+<section class="py-5 bg-light">
 
     <div class="container">
 
-        <div class="row">
+        <div class="row g-4">
 
             {% for product in products %}
 
-            <div class="col-md-4 mb-4">
+            <div class="col-lg-4 col-md-6">
 
-                <div class="card h-100 shadow-sm">
+                <div class="card h-100 border-0 shadow rounded-4">
 
-                    <div class="card-body d-flex flex-column">
+                    <div class="card-body d-flex flex-column p-4">
 
-                        <h4>
-
-                            {{ product.name }}
-
-                        </h4>
-
-                        <p class="text-muted mb-2">
-
+                        <span class="badge bg-success align-self-start mb-3">
                             Version {{ product.version }}
+                        </span>
 
+                        <h3 class="fw-bold text-primary">
+                            {{ product.name }}
+                        </h3>
+
+                        <p class="text-muted flex-grow-1">
+                            {{ product.description|truncatewords:30 }}
                         </p>
 
-                        <p>
+                        <div class="my-3">
 
-                            {{ product.description }}
+                            <h2 class="fw-bold text-success mb-0">
+                                TSh {{ product.price|floatformat:0|intcomma }}
+                            </h2>
 
-                        </p>
+                            <small class="text-muted">
+                                One-time purchase • Lifetime license
+                            </small>
 
-                        <p class="fw-bold mt-auto">
-
-                            {{ product.price }}
-
-                        </p>
+                        </div>
 
                         <a
-                            class="btn btn-primary"
+                            class="btn btn-primary btn-lg mt-3"
                             href="{% url 'software_order' product.slug %}">
 
-                            Buy
+                            Buy Now
 
                         </a>
 
@@ -78,13 +73,20 @@
 
             {% empty %}
 
-            <div class="col-12 text-center">
+            <div class="col-12">
 
-                <p class="text-muted">
+                <div class="alert alert-info text-center">
 
-                    No software products are available yet.
+                    <h5 class="mb-2">
+                        No software available
+                    </h5>
 
-                </p>
+                    <p class="mb-0">
+                        Software products will appear here once they are published.
+
+                    </p>
+
+                </div>
 
             </div>
 

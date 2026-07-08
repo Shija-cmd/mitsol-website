@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'about',
     'software_store',
     'django.contrib.sitemaps',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
