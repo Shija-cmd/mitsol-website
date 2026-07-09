@@ -30,6 +30,12 @@ urlpatterns = [
     ),
 
     path(
+        'download/<str:license_key>/',
+        views.download_software_fallback,
+        name='software_download_fallback'
+    ),
+
+    path(
         '<slug:product_slug>/',
         views.product_detail,
         name='software_product_detail'

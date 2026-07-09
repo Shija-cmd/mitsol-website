@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -141,6 +142,34 @@ def download_software(request, license_key):
             'license': license_obj,
             'product': license_obj.product,
         }
+    )
+
+
+def download_software_fallback(request, license_key):
+
+    try:
+
+        parsed_license_key = uuid.UUID(
+            str(license_key)
+        )
+
+    except ValueError:
+
+        return render(
+            request,
+            'software_store/download_error.html',
+            {
+                'error_message': (
+                    'The download link is not valid. Please copy the full '
+                    'license download link from your email or contact MITSOL support.'
+                ),
+            },
+            status=404
+        )
+
+    return download_software(
+        request,
+        parsed_license_key
     )
 
 
@@ -373,6 +402,10 @@ def get_license_error(license_obj):
     if license_obj.product.delivery_type != SoftwareProduct.DeliveryType.DESKTOP:
 
         return 'Downloads are only available for desktop software products'
+
+    if not license_obj.product.proton_drive_link:
+
+        return 'Download link is not configured yet. Please contact MITSOL support.'
 
     return ''
 

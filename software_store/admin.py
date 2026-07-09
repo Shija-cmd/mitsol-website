@@ -143,40 +143,44 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
             }
         )
 
-        self.send_license_email(obj, license_obj)
+        self.send_license_email(request, obj, license_obj)
 
     def download_link(self, obj):
         if obj.product.delivery_type == SoftwareProduct.DeliveryType.WEB_APP:
             return "Web application - no download link"
 
+        if obj.payment_status != SoftwareOrder.PaymentStatus.PAID:
+            return "Payment is not approved yet"
+
         license_obj = obj.licenses.first()
 
         if not license_obj:
-            return "No license yet"
+            return "No license generated yet"
 
         url = reverse(
             "download_software",
             args=[license_obj.license_key]
         )
 
-        full_url = f"{settings.SITE_URL}{url}"
-
         return format_html(
             '<a href="{}" target="_blank">Open Download Page</a><br>'
             '<small>{}</small>',
-            full_url,
-            full_url
+            url,
+            url
         )
 
     download_link.short_description = "Download Link"
     
-    def send_license_email(self, order, license_obj):
+    def send_license_email(self, request, order, license_obj):
         download_url = reverse(
             "download_software",
             args=[license_obj.license_key]
         )
 
-        full_url = f"{settings.SITE_URL}{download_url}"
+        full_url = self.build_absolute_url(
+            request,
+            download_url
+        )
 
         subject = f"Your {order.product.name} License is Ready"
 
@@ -231,6 +235,14 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
 
         email.attach_alternative(html_message, "text/html")
         email.send()
+
+    def build_absolute_url(self, request, path):
+        if request:
+            return request.build_absolute_uri(
+                path
+            )
+
+        return f"{settings.SITE_URL}{path}"
 
     def send_web_app_deployment_email(self, order):
         subject = (
