@@ -185,7 +185,10 @@ SITE_URL = config(
 
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT = '/var/data/media'
+MEDIA_ROOT = config(
+    'MEDIA_ROOT',
+    default=str(BASE_DIR / 'media')
+)
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True
