@@ -11,8 +11,32 @@ from .models import (
     SoftwareDownloadLog,
     SoftwareLicense,
     SoftwareOrder,
+    SoftwareProductFAQ,
+    SoftwareProductFeature,
+    SoftwareProductScreenshot,
     SoftwareProduct,
 )
+
+
+class SoftwareProductFeatureInline(admin.TabularInline):
+
+    model = SoftwareProductFeature
+
+    extra = 1
+
+
+class SoftwareProductScreenshotInline(admin.TabularInline):
+
+    model = SoftwareProductScreenshot
+
+    extra = 1
+
+
+class SoftwareProductFAQInline(admin.TabularInline):
+
+    model = SoftwareProductFAQ
+
+    extra = 1
 
 
 @admin.register(SoftwareProduct)
@@ -20,6 +44,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
 
     list_display = (
         'name',
+        'delivery_type',
         'version',
         'price',
         'is_active',
@@ -27,6 +52,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
     )
 
     list_filter = (
+        'delivery_type',
         'is_active',
         'created_at',
     )
@@ -42,6 +68,12 @@ class SoftwareProductAdmin(admin.ModelAdmin):
             'name',
         )
     }
+
+    inlines = (
+        SoftwareProductFeatureInline,
+        SoftwareProductScreenshotInline,
+        SoftwareProductFAQInline,
+    )
 
 
 @admin.register(SoftwareOrder)
@@ -62,6 +94,7 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
     list_filter = (
         'payment_status',
         'payment_method',
+        'product__delivery_type',
         'product',
         'created_at',
     )
@@ -87,6 +120,20 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
         if obj.payment_status != SoftwareOrder.PaymentStatus.PAID:
             return
 
+        updated = SoftwareOrder.objects.filter(
+            pk=obj.pk,
+            license_email_sent=False
+        ).update(
+            license_email_sent=True
+        )
+
+        if not updated:
+            return
+
+        if obj.product.delivery_type == SoftwareProduct.DeliveryType.WEB_APP:
+            self.send_web_app_deployment_email(obj)
+            return
+
         license_obj, created = SoftwareLicense.objects.get_or_create(
             order=obj,
             defaults={
@@ -96,17 +143,12 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
             }
         )
 
-        updated = SoftwareOrder.objects.filter(
-            pk=obj.pk,
-            license_email_sent=False
-        ).update(
-            license_email_sent=True
-        )
-
-        if updated:
-            self.send_license_email(obj, license_obj)
+        self.send_license_email(obj, license_obj)
 
     def download_link(self, obj):
+        if obj.product.delivery_type == SoftwareProduct.DeliveryType.WEB_APP:
+            return "Web application - no download link"
+
         license_obj = obj.licenses.first()
 
         if not license_obj:
@@ -177,6 +219,63 @@ class SoftwareOrderAdmin(admin.ModelAdmin):
 
         html_message = render_to_string(
             "software_store/emails/license_ready.html",
+            context
+        )
+
+        email = EmailMultiAlternatives(
+            subject,
+            text_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [order.customer_email],
+        )
+
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+
+    def send_web_app_deployment_email(self, order):
+        subject = (
+            "Your MITSOL Hospital Management System Order Has Been Confirmed"
+        )
+
+        context = {
+            "customer_name": order.customer_name,
+            "product_name": order.product.name,
+            "website_url": settings.SITE_URL,
+            "support_email": "info@mitsol.com.se",
+            "company_name": "MITSOL Company Limited",
+        }
+
+        text_message = f"""
+Dear {order.customer_name},
+
+Thank you for purchasing {order.product.name}.
+
+Your payment has been confirmed successfully.
+
+This product is a secure web-based application. Our implementation team will contact you shortly to deploy and configure your system.
+
+You will receive:
+
+- Your secure system URL
+- Administrator username
+- Temporary password
+- Initial system configuration
+- User guide
+- Technical support
+
+Deployment normally begins within 24 hours after payment confirmation.
+
+Thank you for choosing MITSOL Company Limited.
+
+Website:
+{settings.SITE_URL}
+
+Email:
+info@mitsol.com.se
+"""
+
+        html_message = render_to_string(
+            "software_store/emails/web_app_confirmed.html",
             context
         )
 

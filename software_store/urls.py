@@ -29,6 +29,12 @@ urlpatterns = [
         name="download_software"
     ),
 
+    path(
+        '<slug:product_slug>/',
+        views.product_detail,
+        name='software_product_detail'
+    ),
+
 ]
 
 

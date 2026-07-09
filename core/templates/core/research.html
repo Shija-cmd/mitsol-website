@@ -1,0 +1,305 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="hero py-5">
+
+    <div class="container text-center">
+
+        <h1 class="display-4 fw-bold">
+
+            Research & Innovation
+
+        </h1>
+
+        <p class="lead mt-4">
+
+            MITSOL combines software engineering with applied research to develop intelligent, secure, and practical digital solutions.
+
+        </p>
+
+    </div>
+
+</section>
+
+<section class="py-5">
+
+    <div class="container">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                Research Areas
+
+            </h2>
+
+            <p class="text-muted">
+
+                Our innovation work focuses on practical technologies that solve real business, institutional, and community problems.
+
+            </p>
+
+        </div>
+
+        <div class="row text-center">
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                <h5>Artificial Intelligence</h5>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                <h5>Machine Learning</h5>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-notes-medical fa-3x text-primary mb-3"></i>
+                <h5>Health Informatics</h5>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-shield-halved fa-3x text-primary mb-3"></i>
+                <h5>Cybersecurity</h5>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                <h5>Information Systems</h5>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-diagram-project fa-3x text-primary mb-3"></i>
+                <h5>Digital Transformation</h5>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-4">
+                <i class="fas fa-link fa-3x text-primary mb-3"></i>
+                <h5>Blockchain Applications</h5>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="py-5 bg-light">
+
+    <div class="container">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                Featured Research
+
+            </h2>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Machine Learning Model for Early Detection of Sexually Transmitted Infections</h5>
+                        <p class="text-muted mb-0">Applied predictive modelling for healthcare decision support and early risk identification.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>AI-Driven Predictive Analytics</h5>
+                        <p class="text-muted mb-0">Using intelligent models to support business insight, planning, and operational decisions.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Cybersecurity and Network Security Research</h5>
+                        <p class="text-muted mb-0">Research and advisory work for secure systems, networks, users, and digital operations.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Digital Health and Health Informatics Systems</h5>
+                        <p class="text-muted mb-0">Practical health technology systems for clinical workflows, reporting, and institutional management.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="py-5">
+
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-lg-8 mb-4">
+
+                <h2 class="fw-bold">
+
+                    Publications & Academic Work
+
+                </h2>
+
+                <p class="text-muted mb-4">
+
+                    Selected publications, research projects, and academic contributions from MITSOL.
+
+                </p>
+
+                {% if publications %}
+
+                <div class="row">
+
+                    {% for publication in publications %}
+
+                    <div class="col-lg-6 mb-4">
+
+                        <div class="card shadow-sm h-100 overflow-hidden">
+
+                            {% if publication.featured_image %}
+                            <img
+                                src="{{ publication.featured_image.url }}"
+                                class="card-img-top"
+                                alt="{{ publication.title }}">
+                            {% endif %}
+
+                            <div class="card-body">
+
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+
+                                    <span class="badge bg-primary">
+                                        {{ publication.category }}
+                                    </span>
+
+                                    {% if publication.featured %}
+                                    <span class="badge bg-success">
+                                        Featured
+                                    </span>
+                                    {% endif %}
+
+                                    <span class="badge bg-secondary">
+                                        {{ publication.status }}
+                                    </span>
+
+                                </div>
+
+                                <h3 class="h4">
+
+                                    {{ publication.title }}
+
+                                </h3>
+
+                                {% if publication.research_area %}
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-microscope me-2"></i>
+                                    {{ publication.research_area|truncatewords:12 }}
+                                </p>
+                                {% endif %}
+
+                                {% if publication.publication_date %}
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-calendar-days me-2"></i>
+                                    {% if publication.publication_date %}
+                                    {{ publication.publication_date|date:"F Y" }}
+                                    {% endif %}
+                                </p>
+                                {% endif %}
+
+                                <p class="text-muted">
+
+                                    {{ publication.abstract|default:"Research details will be added soon."|truncatewords:28 }}
+
+                                </p>
+
+                                <a
+                                    href="{% url 'research_detail' publication.slug %}"
+                                    class="btn btn-outline-primary">
+
+                                    Read More
+
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="alert alert-info">
+
+                    Selected publications, research projects, and academic contributions will be listed here.
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            <div class="col-lg-4">
+
+                <div class="card shadow-sm">
+
+                    <div class="card-body">
+
+                        <h3 class="h4">
+
+                            Collaboration
+
+                        </h3>
+
+                        <p>
+
+                            Interested in research collaboration, consultancy, or innovation projects?
+
+                        </p>
+
+                        <a href="{% url 'contact' %}" class="btn btn-primary">
+
+                            Contact MITSOL
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

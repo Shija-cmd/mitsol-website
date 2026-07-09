@@ -11,6 +11,10 @@ def create_license_for_paid_order(sender, instance, **kwargs):
 
         return
 
+    if instance.product.delivery_type != instance.product.DeliveryType.DESKTOP:
+
+        return
+
     SoftwareLicense.objects.get_or_create(
         order=instance,
         defaults={

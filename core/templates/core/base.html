@@ -125,11 +125,10 @@
 
                 <li class="nav-item">
 
-                    <a
-                        class="nav-link {% if 'about' in request.path %}active-link{% endif %}"
-                            href="{% url 'about' %}">
+                    <a class="nav-link"
+                    href="{% url 'software_product_list' %}">
 
-                            About
+                        Software
 
                     </a>
 
@@ -149,9 +148,9 @@
                 <li class="nav-item">
 
                     <a class="nav-link"
-                    href="{% url 'software_product_list' %}">
+                    href="{% url 'portfolio' %}">
 
-                        Software
+                        Portfolio
 
                     </a>
 
@@ -160,9 +159,21 @@
                 <li class="nav-item">
 
                     <a class="nav-link"
-                    href="{% url 'portfolio' %}">
+                    href="{% url 'research' %}">
 
-                        Portfolio
+                        Research
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a
+                        class="nav-link {% if 'about' in request.path %}active-link{% endif %}"
+                            href="{% url 'about' %}">
+
+                            About
 
                     </a>
 
@@ -213,11 +224,12 @@
 
                     Magadulla Information Technology Solutions.
 
-                    Software Engineering,
-                    Cybersecurity,
-                    IT Consultancy,
-                    Digital Transformation,
-                    and Retail Stationery Services.
+                    MITSOL provides software products,
+                    custom software development,
+                    cybersecurity solutions,
+                    research-driven innovation,
+                    ICT training,
+                    and digital transformation consultancy.
 
                 </p>
 
@@ -241,17 +253,6 @@
                         class="footer-link">
 
                             Home
-
-                        </a>
-
-                    </li>
-
-                    <li>
-
-                        <a href="{% url 'about' %}"
-                        class="footer-link">
-
-                            About
 
                         </a>
 
@@ -285,6 +286,28 @@
                         class="footer-link">
 
                             Portfolio
+
+                        </a>
+
+                    </li>
+
+                    <li>
+
+                        <a href="{% url 'research' %}"
+                        class="footer-link">
+
+                            Research
+
+                        </a>
+
+                    </li>
+
+                    <li>
+
+                        <a href="{% url 'about' %}"
+                        class="footer-link">
+
+                            About
 
                         </a>
 

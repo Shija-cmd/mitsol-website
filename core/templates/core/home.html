@@ -14,18 +14,20 @@
 
                 <h1 class="display-4 fw-bold">
 
-                    Empowering Innovation Through
-                    Technology Solutions
+                    Building Secure, Intelligent and
+                    Practical Digital Solutions
 
                 </h1>
 
                 <p class="lead mt-4">
 
-                    MITSOL delivers software engineering,
-                    cybersecurity, IT consultancy,
-                    computer training, and digital
-                    transformation solutions for
-                    businesses, institutions,
+                    MITSOL provides software products,
+                    custom software development,
+                    cybersecurity solutions,
+                    IT consultancy,
+                    research-driven innovation,
+                    and professional technology training
+                    for businesses, institutions,
                     and organizations.
 
                 </p>
@@ -33,18 +35,18 @@
                 <div class="mt-4">
 
                     <a
-                    href="{% url 'services' %}"
+                    href="{% url 'software_product_list' %}"
 
                     class="btn btn-primary btn-lg me-3">
 
-                        Explore Services
+                        Explore Software
 
                     </a>
 
                     <a
                     href="{% url 'contact' %}"
 
-                    class="btn btn-outline-dark btn-lg">
+                    class="btn btn-outline-light btn-lg">
 
                         Contact Us
 
@@ -102,6 +104,124 @@ class="py-5">
 
 </section>
 
+
+<!-- BUSINESS PILLARS -->
+
+<section class="py-5 bg-light">
+
+    <div class="container">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                What We Do
+
+            </h2>
+
+            <p class="text-muted">
+
+                MITSOL delivers technology solutions through four core pillars.
+
+            </p>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
+
+                        <h4>
+                            Software Products
+                        </h4>
+
+                        <p>
+                            Commercial software solutions such as MITSOL Pharmacy Pro, Hospital Management System, and Dalali Mtandaoni.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-laptop-code fa-3x text-primary mb-3"></i>
+
+                        <h4>
+                            IT Services
+                        </h4>
+
+                        <p>
+                            Custom software development, website development, mobile app development, system integration, cloud deployment, and technical support.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-microscope fa-3x text-primary mb-3"></i>
+
+                        <h4>
+                            Research & Innovation
+                        </h4>
+
+                        <p>
+                            Applied research in artificial intelligence, machine learning, cybersecurity, health informatics, and digital transformation.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-chalkboard-user fa-3x text-primary mb-3"></i>
+
+                        <h4>
+                            Training & Consultancy
+                        </h4>
+
+                        <p>
+                            Professional ICT training, system advisory, digital transformation consulting, and institutional technology support.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
 
 <!-- SERVICES -->
 
@@ -202,6 +322,144 @@ class="bg-light py-5">
                             infrastructure solutions.
 
                         </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- SOFTWARE PRODUCTS PREVIEW -->
+
+<section class="py-5">
+
+    <div class="container">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                Our Software Products
+
+            </h2>
+
+            <p class="text-muted">
+
+                Explore MITSOL software solutions designed for pharmacies, hospitals, businesses, and digital marketplaces.
+
+            </p>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-lg-4 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body d-flex flex-column">
+
+                        <span class="badge bg-primary align-self-start mb-3">
+                            Desktop Software
+                        </span>
+
+                        <h4>
+                            MITSOL Pharmacy Pro
+                        </h4>
+
+                        <p class="text-muted flex-grow-1">
+                            A complete pharmacy management system for medicine inventory, barcode sales, purchases, payments, debts, receipts, and reports.
+                        </p>
+
+                        <div class="d-grid gap-2">
+
+                            <a href="{% url 'software_product_list' %}" class="btn btn-outline-primary">
+                                View Software
+                            </a>
+
+                            <a href="{% url 'software_product_list' %}" class="btn btn-primary">
+                                Buy Now
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body d-flex flex-column">
+
+                        <span class="badge bg-info text-dark align-self-start mb-3">
+                            Cloud Web Application
+                        </span>
+
+                        <h4>
+                            MITSOL Hospital Management System
+                        </h4>
+
+                        <p class="text-muted flex-grow-1">
+                            A web-based healthcare management system for patient registration, consultations, laboratory services, pharmacy, billing, staff roles, and reports.
+                        </p>
+
+                        <div class="d-grid gap-2">
+
+                            <a href="{% url 'software_product_list' %}" class="btn btn-outline-primary">
+                                View Software
+                            </a>
+
+                            <a href="{% url 'software_product_list' %}" class="btn btn-primary">
+                                Request Setup
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 mb-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body d-flex flex-column">
+
+                        <span class="badge bg-success align-self-start mb-3">
+                            Web & Mobile Platform
+                        </span>
+
+                        <h4>
+                            Dalali Mtandaoni
+                        </h4>
+
+                        <p class="text-muted flex-grow-1">
+                            A digital marketplace for houses, rooms, plots, cars, landlords, agents, dealers, renters, and buyers.
+                        </p>
+
+                        <div class="d-grid gap-2">
+
+                            <a href="{% url 'portfolio' %}" class="btn btn-outline-primary">
+                                View Portfolio
+                            </a>
+
+                            <a href="{% url 'contact' %}" class="btn btn-primary">
+                                Request Demo
+                            </a>
+
+                        </div>
 
                     </div>
 
@@ -329,8 +587,13 @@ class="bg-light py-5">
 
             <p class="text-muted">
 
-                Innovative technology solutions
-                and digital systems developed by MITSOL.
+                Explore selected systems, applications, and research-driven solutions developed by MITSOL.
+
+            </p>
+
+            <p class="text-muted small">
+
+                Examples include Pharmacy Management System, Hospital Management System, Dalali Mtandaoni, and STI Machine Learning Prediction System.
 
             </p>
 

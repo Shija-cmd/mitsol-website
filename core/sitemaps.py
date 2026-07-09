@@ -18,6 +18,8 @@ class StaticViewSitemap(Sitemap):
 
             'portfolio',
 
+            'research',
+
             'contact',
 
             'about',

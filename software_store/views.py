@@ -32,6 +32,27 @@ def product_list(request):
     )
 
 
+def product_detail(request, product_slug):
+
+    product = get_object_or_404(
+        SoftwareProduct.objects.prefetch_related(
+            'features',
+            'screenshots',
+            'faqs',
+        ),
+        slug=product_slug,
+        is_active=True
+    )
+
+    return render(
+        request,
+        'software_store/product_detail.html',
+        {
+            'product': product,
+        }
+    )
+
+
 def order_product(request, product_slug):
 
     product = get_object_or_404(
@@ -293,6 +314,7 @@ def latest_software(request, product_slug):
         if (
             license_obj
             and license_obj.product_id == product.id
+            and product.delivery_type == SoftwareProduct.DeliveryType.DESKTOP
             and not get_license_error(license_obj)
         ):
 
@@ -347,6 +369,10 @@ def get_license_error(license_obj):
     if not license_obj.product.is_active:
 
         return 'Software product is not active'
+
+    if license_obj.product.delivery_type != SoftwareProduct.DeliveryType.DESKTOP:
+
+        return 'Downloads are only available for desktop software products'
 
     return ''
 

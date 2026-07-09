@@ -18,7 +18,11 @@
 
                 Your order has been received.
                 After payment confirmation,
+                {% if product.is_web_app %}
+                your deployment instructions will be sent to your email.
+                {% else %}
                 your license and download link will be activated.
+                {% endif %}
 
             </p>
 

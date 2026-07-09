@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from urllib.parse import parse_qs, urlparse
 
 from django.db import models
 from django.utils import timezone
@@ -11,6 +12,12 @@ def default_license_expiry_date():
 
 
 class SoftwareProduct(models.Model):
+
+    class DeliveryType(models.TextChoices):
+
+        DESKTOP = 'Desktop Software', 'Desktop Software'
+
+        WEB_APP = 'Web Application', 'Web Application'
 
     name = models.CharField(
         max_length=200
@@ -31,6 +38,12 @@ class SoftwareProduct(models.Model):
         decimal_places=2
     )
 
+    delivery_type = models.CharField(
+        max_length=50,
+        choices=DeliveryType.choices,
+        default=DeliveryType.DESKTOP
+    )
+
     proton_drive_link = models.URLField(
         max_length=1000,
         blank=True
@@ -43,6 +56,11 @@ class SoftwareProduct(models.Model):
 
     release_notes = models.TextField(
         blank=True
+    )
+
+    key_features = models.TextField(
+        blank=True,
+        help_text='Optional fallback features, one per line. Use product feature rows for richer entries.'
     )
 
     is_active = models.BooleanField(
@@ -81,6 +99,198 @@ class SoftwareProduct(models.Model):
     def __str__(self):
 
         return self.name
+
+    @property
+    def is_desktop(self):
+
+        return self.delivery_type == self.DeliveryType.DESKTOP
+
+    @property
+    def is_web_app(self):
+
+        return self.delivery_type == self.DeliveryType.WEB_APP
+
+    @property
+    def fallback_feature_list(self):
+
+        return [
+            feature.strip()
+            for feature in self.key_features.splitlines()
+            if feature.strip()
+        ]
+
+    @property
+    def youtube_demo_videos(self):
+
+        videos = []
+
+        video_fields = (
+            (
+                'Product Overview',
+                self.youtube_overview_url,
+            ),
+            (
+                'Installation Guide',
+                self.youtube_installation_url,
+            ),
+            (
+                'License Activation',
+                self.youtube_activation_url,
+            ),
+        )
+
+        for title, url in video_fields:
+
+            embed_url = self.get_youtube_embed_url(
+                url
+            )
+
+            if embed_url:
+
+                videos.append(
+                    {
+                        'title': title,
+                        'embed_url': embed_url,
+                    }
+                )
+
+        return videos
+
+    def get_youtube_embed_url(self, url):
+
+        if not url:
+
+            return ''
+
+        parsed_url = urlparse(
+            url
+        )
+
+        hostname = parsed_url.hostname or ''
+
+        if 'youtu.be' in hostname:
+
+            video_id = parsed_url.path.strip('/')
+
+        elif 'youtube.com' in hostname:
+
+            if parsed_url.path.startswith('/embed/'):
+
+                return url
+
+            video_id = parse_qs(
+                parsed_url.query
+            ).get(
+                'v',
+                [
+                    '',
+                ]
+            )[0]
+
+        else:
+
+            return ''
+
+        if not video_id:
+
+            return ''
+
+        return f'https://www.youtube.com/embed/{video_id}'
+
+
+class SoftwareProductFeature(models.Model):
+
+    product = models.ForeignKey(
+        SoftwareProduct,
+        on_delete=models.CASCADE,
+        related_name='features'
+    )
+
+    title = models.CharField(
+        max_length=200
+    )
+
+    description = models.TextField(
+        blank=True
+    )
+
+    sort_order = models.PositiveIntegerField(
+        default=0
+    )
+
+    class Meta:
+
+        ordering = (
+            'sort_order',
+            'title',
+        )
+
+    def __str__(self):
+
+        return self.title
+
+
+class SoftwareProductScreenshot(models.Model):
+
+    product = models.ForeignKey(
+        SoftwareProduct,
+        on_delete=models.CASCADE,
+        related_name='screenshots'
+    )
+
+    image = models.ImageField(
+        upload_to='software/screenshots/'
+    )
+
+    caption = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    sort_order = models.PositiveIntegerField(
+        default=0
+    )
+
+    class Meta:
+
+        ordering = (
+            'sort_order',
+            'id',
+        )
+
+    def __str__(self):
+
+        return self.caption or f'{self.product.name} screenshot'
+
+
+class SoftwareProductFAQ(models.Model):
+
+    product = models.ForeignKey(
+        SoftwareProduct,
+        on_delete=models.CASCADE,
+        related_name='faqs'
+    )
+
+    question = models.CharField(
+        max_length=255
+    )
+
+    answer = models.TextField()
+
+    sort_order = models.PositiveIntegerField(
+        default=0
+    )
+
+    class Meta:
+
+        ordering = (
+            'sort_order',
+            'question',
+        )
+
+    def __str__(self):
+
+        return self.question
 
 
 class SoftwareOrder(models.Model):

@@ -9,6 +9,8 @@ from .models import (
     LicenseActivation,
     SoftwareLicense,
     SoftwareOrder,
+    SoftwareProductFAQ,
+    SoftwareProductFeature,
     SoftwareProduct,
 )
 
@@ -23,8 +25,19 @@ class SoftwareStoreTests(TestCase):
             description='Pharmacy business software.',
             version='1.0.1',
             price='100.00',
+            delivery_type=SoftwareProduct.DeliveryType.DESKTOP,
             proton_drive_link='https://drive.proton.me/urls/example',
             release_notes='Bug fixes and improvements.'
+        )
+
+        self.web_product = SoftwareProduct.objects.create(
+            name='MITSOL Hospital Management System',
+            slug='mitsol-hospital-management-system',
+            description='Hospital management web platform.',
+            version='1.0.0',
+            price='1500000.00',
+            delivery_type=SoftwareProduct.DeliveryType.WEB_APP,
+            release_notes='Initial release.'
         )
 
     def create_paid_order(self):
@@ -171,4 +184,119 @@ class SoftwareStoreTests(TestCase):
 
         self.assertFalse(
             response.json()['valid']
+        )
+
+    def test_paid_web_app_order_does_not_create_license(self):
+
+        order = SoftwareOrder.objects.create(
+            customer_name='Clinic Customer',
+            customer_phone='255711111111',
+            customer_email='clinic@example.com',
+            business_name='Clinic',
+            product=self.web_product,
+            amount=self.web_product.price,
+            payment_method='Bank transfer',
+            payment_reference='HMS123',
+            payment_status=SoftwareOrder.PaymentStatus.PAID
+        )
+
+        self.assertFalse(
+            SoftwareLicense.objects.filter(
+                order=order
+            ).exists()
+        )
+
+    def test_product_list_marks_web_app_as_cloud_application(self):
+
+        response = self.client.get(
+            reverse('software_product_list')
+        )
+
+        self.assertContains(
+            response,
+            'Cloud Web Application'
+        )
+        self.assertContains(
+            response,
+            'After payment approval, MITSOL will deploy and configure your web system.'
+        )
+
+    def test_web_app_manifest_does_not_expose_download_url(self):
+
+        response = self.client.get(
+            reverse(
+                'software_latest',
+                args=[
+                    self.web_product.slug,
+                ]
+            )
+        )
+
+        self.assertNotIn(
+            'download_url',
+            response.json()
+        )
+
+    def test_product_list_has_detail_and_buy_buttons(self):
+
+        response = self.client.get(
+            reverse('software_product_list')
+        )
+
+        self.assertContains(
+            response,
+            'View Details'
+        )
+        self.assertContains(
+            response,
+            reverse(
+                'software_product_detail',
+                args=[
+                    self.product.slug,
+                ]
+            )
+        )
+        self.assertContains(
+            response,
+            reverse(
+                'software_order',
+                args=[
+                    self.product.slug,
+                ]
+            )
+        )
+
+    def test_product_detail_renders_full_content(self):
+
+        SoftwareProductFeature.objects.create(
+            product=self.product,
+            title='Inventory Management',
+            description='Track stock and pharmacy items.'
+        )
+        SoftwareProductFAQ.objects.create(
+            product=self.product,
+            question='Does it need activation?',
+            answer='Yes, desktop products use license activation.'
+        )
+
+        response = self.client.get(
+            reverse(
+                'software_product_detail',
+                args=[
+                    self.product.slug,
+                ]
+            )
+        )
+
+        self.assertContains(
+            response,
+            'Inventory Management'
+        )
+        self.assertContains(
+            response,
+            'Release Notes'
+        )
+        self.assertContains(
+            response,
+            'Does it need activation?'
         )

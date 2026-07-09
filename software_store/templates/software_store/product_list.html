@@ -29,81 +29,67 @@
 
             <div class="col-lg-4 col-md-6">
 
-                <div class="card h-100 border-0 shadow rounded-4">
+                <div class="card h-100 border-0 shadow software-card">
 
                     <div class="card-body d-flex flex-column p-4">
 
-                        <span class="badge bg-success align-self-start mb-3">
-                            Version {{ product.version }}
+                        {% if product.is_web_app %}
+                        <span class="software-type-badge software-type-badge-web">
+                            Cloud Web Application
                         </span>
+                        {% else %}
+                        <span class="software-type-badge software-type-badge-desktop">
+                            Desktop Software
+                        </span>
+                        {% endif %}
 
-                        <h3 class="fw-bold text-primary">
+                        <h3 class="software-card-title">
                             {{ product.name }}
                         </h3>
 
-                        <p class="text-muted flex-grow-1">
-                            {{ product.description|truncatewords:30 }}
+                        <p class="software-card-version">
+                            Version {{ product.version }}
                         </p>
 
-                        <div class="my-3">
+                        <p class="software-card-summary">
+                            {{ product.description|truncatewords:28 }}
+                        </p>
 
-                            <h2 class="fw-bold text-success mb-0">
+                        <div class="software-card-price">
+
+                            <h2>
                                 TSh {{ product.price|floatformat:0|intcomma }}
                             </h2>
 
-                            <small class="text-muted">
-                                One-time purchase • Lifetime license
+                            <small>
+                                {% if product.is_web_app %}
+                                Web system deployment package
+                                {% else %}
+                                Desktop software license
+                                {% endif %}
                             </small>
 
                         </div>
 
-                        {% if product.youtube_overview_url or product.youtube_installation_url or product.youtube_activation_url %}
+                        <div class="d-grid gap-2 mt-auto">
 
-<div class="mt-3">
+                            <a
+                                class="btn btn-outline-primary btn-lg"
+                                href="{% url 'software_product_detail' product.slug %}">
 
-    <h6 class="fw-bold">
-        Watch Demo Videos
-    </h6>
+                                View Details
 
-    <div class="d-grid gap-2">
+                            </a>
 
-        {% if product.youtube_overview_url %}
-        <a class="btn btn-outline-danger btn-sm"
-           href="{{ product.youtube_overview_url }}"
-           target="_blank">
-            ▶ Product Overview
-        </a>
-        {% endif %}
+                            <a
+                                class="btn btn-primary btn-lg"
+                                href="{% url 'software_order' product.slug %}">
 
-        {% if product.youtube_installation_url %}
-        <a class="btn btn-outline-danger btn-sm"
-           href="{{ product.youtube_installation_url }}"
-           target="_blank">
-            ▶ Installation Guide
-        </a>
-        {% endif %}
+                                Buy Now
 
-        {% if product.youtube_activation_url %}
-        <a class="btn btn-outline-danger btn-sm"
-           href="{{ product.youtube_activation_url }}"
-           target="_blank">
-            ▶ License Activation
-        </a>
-        {% endif %}
+                            </a>
 
-    </div>
-
-</div>
-
-{% endif %}
-
-                        <a
-                            class="btn btn-primary btn-lg mt-3"
-                            href="{% url 'software_order' product.slug %}">
-
-                            Buy Now
-
-                        </a>
+                        </div>
 
                     </div>
 
