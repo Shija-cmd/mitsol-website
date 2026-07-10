@@ -1,16 +1,44 @@
-/* Whole login page */
+/* Entire Jazzmin login-screen background */
+body.login-page,
+body.register-page,
 .login-page,
 .register-page {
-    background: #0B1F3A !important;   /* MITSOL dark blue */
+    background-color: #002b36 !important;
+    background-image: none !important;
+}
+
+/* Ensure wrappers do not retain a light background */
+.login-page .wrapper,
+.login-page .content-wrapper,
+.login-page .login-box {
+    background-color: transparent !important;
 }
 
 /* Login card */
-.login-box .card {
-    background: #1a1a1a !important;
+.login-box .card,
+.login-box .card-body {
+    background-color: #073642 !important;
+    color: #eee8d5 !important;
 }
 
-/* Logo text */
-.login-logo,
-.brand-text {
-    color: white !important;
+/* Welcome text */
+.login-box-msg {
+    color: #eee8d5 !important;
+}
+
+/* Form fields */
+.login-box .form-control {
+    background-color: #002b36 !important;
+    border-color: #586e75 !important;
+    color: #eee8d5 !important;
+}
+
+.login-box .form-control::placeholder {
+    color: #93a1a1 !important;
+}
+
+/* Login button */
+.login-box .btn-primary {
+    background-color: #268bd2 !important;
+    border-color: #268bd2 !important;
 }

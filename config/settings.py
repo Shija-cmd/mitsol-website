@@ -244,73 +244,45 @@ SECURE_HSTS_PRELOAD = not DEBUG
 JAZZMIN_SETTINGS = {
 
     "site_title": "MITSOL Admin",
-
     "site_header": "MITSOL",
-
     "site_brand": "MITSOL",
 
     "welcome_sign": "Welcome to MITSOL Management Portal",
 
     "site_logo": "core/images/logo.png",
-    
     "login_logo": "core/images/small_logo.png",
+    "login_logo_dark": "core/images/small_logo.png",
 
-    "site_logo_classes":
-        "img-circle elevation-3",
+    "site_logo_classes": "img-circle elevation-3",
 
-    "copyright":
-        "MITSOL 2026",
-        
+    "copyright": "MITSOL 2026",
+
     "navigation_expanded": True,
-
     "show_sidebar": True,
 
-    
+    "custom_css": "css/admin.css",
 
     "icons": {
-
-        "auth":
-            "fas fa-users-cog",
-
-        "portfolio.Project":
-            "fas fa-code",
-
-        "services.Service":
-            "fas fa-briefcase",
-
-        "contact.Contact":
-            "fas fa-envelope",
-
-        "software_store.SoftwareProduct":
-            "fas fa-box",
-
-        "software_store.SoftwareOrder":
-            "fas fa-receipt",
-
-        "software_store.SoftwareLicense":
-            "fas fa-key",
-
+        "auth": "fas fa-users-cog",
+        "portfolio.Project": "fas fa-code",
+        "services.Service": "fas fa-briefcase",
+        "contact.Contact": "fas fa-envelope",
+        "software_store.SoftwareProduct": "fas fa-box",
+        "software_store.SoftwareOrder": "fas fa-receipt",
+        "software_store.SoftwareLicense": "fas fa-key",
     },
-    
+
     "order_with_respect_to": [
+        "auth",
+        "portfolio",
+        "services",
+        "contact",
+        "software_store",
+    ],
 
-            "auth",
-
-            "portfolio",
-
-            "services",
-
-            "contact",
-
-            "software_store",
-
-        ],
-    
     "hide_apps": [
-
-    "sessions",
-
-    ]
+        "sessions",
+    ],
 }
 
 JAZZMIN_UI_TWEAKS = {
