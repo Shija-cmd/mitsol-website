@@ -217,6 +217,12 @@
 
                         <div class="d-grid gap-2 mt-3">
 
+                            {% if not publication.has_resource_links %}
+                            <div class="alert alert-info mb-0">
+                                No downloadable file or resource link has been uploaded for this research entry yet.
+                            </div>
+                            {% endif %}
+
                             {% if publication.pdf_file %}
                             <a href="{{ publication.pdf_file.url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-file-pdf me-2"></i>

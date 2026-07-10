@@ -349,6 +349,20 @@ class ResearchPublication(models.Model):
 
         return f'https://www.youtube.com/embed/{video_id}'
 
+    @property
+    def has_resource_links(self):
+
+        return any(
+            [
+                self.pdf_file,
+                self.presentation_slides,
+                self.github_url,
+                self.youtube_url,
+                self.demo_url,
+                self.external_link,
+            ]
+        )
+
     def split_comma_values(self, value):
 
         return [
