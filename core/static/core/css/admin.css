@@ -1,0 +1,16 @@
+/* Whole login page */
+.login-page,
+.register-page {
+    background: #0B1F3A !important;   /* MITSOL dark blue */
+}
+
+/* Login card */
+.login-box .card {
+    background: #1a1a1a !important;
+}
+
+/* Logo text */
+.login-logo,
+.brand-text {
+    color: white !important;
+}

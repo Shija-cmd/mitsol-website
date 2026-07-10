@@ -265,7 +265,6 @@ JAZZMIN_SETTINGS = {
 
     "show_sidebar": True,
 
-    "theme": "darkly",
     
 
     "icons": {
@@ -312,6 +311,25 @@ JAZZMIN_SETTINGS = {
     "sessions",
 
     ]
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "solar",
+    "dark_mode_theme": "solar",
+
+    "navbar": "navbar-dark",
+    "brand_colour": "navbar-dark",
+    "sidebar": "sidebar-dark-success",
+    "accent": "accent-success",
+
+    "button_classes": {
+        "primary": "btn-success",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
 }
 
 LOGGING = {
