@@ -87,6 +87,22 @@ h2{
 
     line-height:1.1;
 
+    padding-bottom:4px;
+
+    padding-top:4px;
+
+}
+
+.navbar-brand span{
+
+    font-size:1.45rem;
+
+}
+
+.navbar-brand small{
+
+    font-size:.95rem;
+
 }
 
 .nav-link{
@@ -163,11 +179,25 @@ h2{
 
 .navbar-logo{
 
-    height:50px;
+    height:54px;
+
+    max-width:170px;
 
     width:auto;
 
     object-fit:contain;
+
+}
+
+@media (max-width:767.98px){
+
+    .navbar-logo{
+
+        height:44px;
+
+        max-width:138px;
+
+    }
 
 }
 
