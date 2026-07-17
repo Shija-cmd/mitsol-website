@@ -49,7 +49,11 @@
                             TSh {{ product.price|floatformat:0|intcomma }}
                         </h2>
 
-                        {% if product.is_web_app %}
+                        {% if product.uses_saas_signup %}
+                        <p class="text-muted">
+                            Subscription is managed inside the SaaS platform.
+                        </p>
+                        {% elif product.is_web_app %}
                         <p class="text-muted">
                             Includes deployment and configuration support.
                         </p>
@@ -59,7 +63,7 @@
                         </p>
                         {% endif %}
 
-                        {% if product.uses_saas_signup %}
+                        {% if product.can_open_saas_signup %}
                         <a
                             class="btn btn-primary btn-lg w-100"
                             href="{{ product.saas_signup_url }}"
@@ -67,6 +71,14 @@
                             rel="noopener noreferrer">
 
                             Create Account & Subscribe
+
+                        </a>
+                        {% elif product.uses_saas_signup %}
+                        <a
+                            class="btn btn-primary btn-lg w-100"
+                            href="{% url 'contact' %}">
+
+                            Request SaaS Access
 
                         </a>
                         {% else %}
@@ -172,7 +184,7 @@
                     <strong>Web application deployment</strong>
                     {% if product.uses_saas_signup %}
                     <p class="mb-0 mt-2">
-                        Create an account in the Pharmacy SaaS platform, create your pharmacy workspace, then choose a subscription plan.
+                        This product is subscribed inside the SaaS platform. The tenant creates an account, creates a pharmacy workspace, then chooses a subscription plan.
                     </p>
                     {% else %}
                     <p class="mb-0 mt-2">
@@ -383,7 +395,7 @@
             {% endif %}
         </p>
 
-        {% if product.uses_saas_signup %}
+        {% if product.can_open_saas_signup %}
         <a
             class="btn btn-light btn-lg"
             href="{{ product.saas_signup_url }}"
@@ -391,6 +403,14 @@
             rel="noopener noreferrer">
 
             Create Account & Subscribe
+
+        </a>
+        {% elif product.uses_saas_signup %}
+        <a
+            class="btn btn-light btn-lg"
+            href="{% url 'contact' %}">
+
+            Request SaaS Access
 
         </a>
         {% else %}

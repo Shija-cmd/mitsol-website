@@ -45,6 +45,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'delivery_type',
+        'sales_flow',
         'version',
         'price',
         'is_active',
@@ -53,6 +54,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
 
     list_filter = (
         'delivery_type',
+        'sales_flow',
         'is_active',
         'created_at',
     )
@@ -83,6 +85,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
                     'name',
                     'slug',
                     'delivery_type',
+                    'sales_flow',
                     'description',
                     'version',
                     'price',

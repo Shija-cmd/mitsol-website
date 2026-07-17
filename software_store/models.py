@@ -19,6 +19,12 @@ class SoftwareProduct(models.Model):
 
         WEB_APP = 'Web Application', 'Web Application'
 
+    class SalesFlow(models.TextChoices):
+
+        ORDER_FORM = 'Order Form', 'Order Form'
+
+        SAAS_SUBSCRIPTION = 'SaaS Subscription', 'SaaS Subscription'
+
     name = models.CharField(
         max_length=200
     )
@@ -42,6 +48,12 @@ class SoftwareProduct(models.Model):
         max_length=50,
         choices=DeliveryType.choices,
         default=DeliveryType.DESKTOP
+    )
+
+    sales_flow = models.CharField(
+        max_length=50,
+        choices=SalesFlow.choices,
+        default=SalesFlow.ORDER_FORM
     )
 
     proton_drive_link = models.URLField(
@@ -119,7 +131,12 @@ class SoftwareProduct(models.Model):
     @property
     def uses_saas_signup(self):
 
-        return self.is_web_app and bool(
+        return self.sales_flow == self.SalesFlow.SAAS_SUBSCRIPTION
+
+    @property
+    def can_open_saas_signup(self):
+
+        return self.uses_saas_signup and bool(
             self.saas_signup_url
         )
 

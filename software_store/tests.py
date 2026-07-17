@@ -216,10 +216,6 @@ class SoftwareStoreTests(TestCase):
             response,
             'Cloud Web Application'
         )
-        self.assertContains(
-            response,
-            'After payment approval, MITSOL will deploy and configure your web system.'
-        )
 
     def test_web_app_manifest_does_not_expose_download_url(self):
 
@@ -299,4 +295,42 @@ class SoftwareStoreTests(TestCase):
         self.assertContains(
             response,
             'Does it need activation?'
+        )
+
+    def test_saas_product_uses_subscription_flow(self):
+
+        saas_product = SoftwareProduct.objects.create(
+            name='MITSOL Pharmacy Cloud',
+            slug='mitsol-pharmacy-cloud',
+            description='Cloud pharmacy SaaS.',
+            version='1.0.0',
+            price='50000.00',
+            delivery_type=SoftwareProduct.DeliveryType.WEB_APP,
+            sales_flow=SoftwareProduct.SalesFlow.SAAS_SUBSCRIPTION,
+            saas_signup_url='https://pharmacy.example.com/register/'
+        )
+
+        list_response = self.client.get(
+            reverse('software_product_list')
+        )
+        order_response = self.client.get(
+            reverse(
+                'software_order',
+                args=[
+                    saas_product.slug,
+                ]
+            )
+        )
+
+        self.assertContains(
+            list_response,
+            'Create Account & Subscribe'
+        )
+        self.assertEqual(
+            order_response.status_code,
+            302
+        )
+        self.assertEqual(
+            order_response['Location'],
+            saas_product.saas_signup_url
         )

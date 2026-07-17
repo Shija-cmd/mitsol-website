@@ -62,10 +62,16 @@ def order_product(request, product_slug):
         is_active=True
     )
 
-    if product.uses_saas_signup:
+    if product.can_open_saas_signup:
 
         return redirect(
             product.saas_signup_url
+        )
+
+    if product.uses_saas_signup:
+
+        return redirect(
+            'contact'
         )
 
     if request.method == 'POST':

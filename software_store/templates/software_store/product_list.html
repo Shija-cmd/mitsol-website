@@ -62,7 +62,9 @@
                             </h2>
 
                             <small>
-                                {% if product.is_web_app %}
+                                {% if product.uses_saas_signup %}
+                                Subscription managed inside the SaaS platform
+                                {% elif product.is_web_app %}
                                 Web system deployment package
                                 {% else %}
                                 Desktop software license
@@ -81,7 +83,7 @@
 
                             </a>
 
-                            {% if product.uses_saas_signup %}
+                            {% if product.can_open_saas_signup %}
                             <a
                                 class="btn btn-primary btn-lg"
                                 href="{{ product.saas_signup_url }}"
@@ -89,6 +91,14 @@
                                 rel="noopener noreferrer">
 
                                 Create Account & Subscribe
+
+                            </a>
+                            {% elif product.uses_saas_signup %}
+                            <a
+                                class="btn btn-primary btn-lg"
+                                href="{% url 'contact' %}">
+
+                                Request SaaS Access
 
                             </a>
                             {% else %}
