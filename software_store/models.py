@@ -131,7 +131,10 @@ class SoftwareProduct(models.Model):
     @property
     def uses_saas_signup(self):
 
-        return self.sales_flow == self.SalesFlow.SAAS_SUBSCRIPTION
+        return (
+            self.sales_flow == self.SalesFlow.SAAS_SUBSCRIPTION
+            or bool(self.saas_signup_url)
+        )
 
     @property
     def can_open_saas_signup(self):
