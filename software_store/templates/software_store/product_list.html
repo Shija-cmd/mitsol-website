@@ -81,6 +81,17 @@
 
                             </a>
 
+                            {% if product.uses_saas_signup %}
+                            <a
+                                class="btn btn-primary btn-lg"
+                                href="{{ product.saas_signup_url }}"
+                                target="_blank"
+                                rel="noopener noreferrer">
+
+                                Create Account & Subscribe
+
+                            </a>
+                            {% else %}
                             <a
                                 class="btn btn-primary btn-lg"
                                 href="{% url 'software_order' product.slug %}">
@@ -88,6 +99,7 @@
                                 Buy Now
 
                             </a>
+                            {% endif %}
 
                         </div>
 

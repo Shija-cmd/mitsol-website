@@ -54,6 +54,12 @@ class SoftwareProduct(models.Model):
         blank=True
     )
 
+    saas_signup_url = models.URLField(
+        max_length=1000,
+        blank=True,
+        help_text='For SaaS products, send tenants here to create an account, create a pharmacy, and subscribe.'
+    )
+
     release_notes = models.TextField(
         blank=True
     )
@@ -109,6 +115,13 @@ class SoftwareProduct(models.Model):
     def is_web_app(self):
 
         return self.delivery_type == self.DeliveryType.WEB_APP
+
+    @property
+    def uses_saas_signup(self):
+
+        return self.is_web_app and bool(
+            self.saas_signup_url
+        )
 
     @property
     def fallback_feature_list(self):

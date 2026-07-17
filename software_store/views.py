@@ -2,7 +2,7 @@ import json
 import uuid
 
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -61,6 +61,12 @@ def order_product(request, product_slug):
         slug=product_slug,
         is_active=True
     )
+
+    if product.uses_saas_signup:
+
+        return redirect(
+            product.saas_signup_url
+        )
 
     if request.method == 'POST':
 

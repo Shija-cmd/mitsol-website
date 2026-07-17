@@ -75,6 +75,45 @@ class SoftwareProductAdmin(admin.ModelAdmin):
         SoftwareProductFAQInline,
     )
 
+    fieldsets = (
+        (
+            'Product Information',
+            {
+                'fields': (
+                    'name',
+                    'slug',
+                    'delivery_type',
+                    'description',
+                    'version',
+                    'price',
+                    'is_active',
+                )
+            }
+        ),
+        (
+            'Delivery Links',
+            {
+                'fields': (
+                    'proton_drive_link',
+                    'proton_drive_password',
+                    'saas_signup_url',
+                )
+            }
+        ),
+        (
+            'Product Content',
+            {
+                'fields': (
+                    'release_notes',
+                    'key_features',
+                    'youtube_overview_url',
+                    'youtube_installation_url',
+                    'youtube_activation_url',
+                )
+            }
+        ),
+    )
+
 
 @admin.register(SoftwareOrder)
 class SoftwareOrderAdmin(admin.ModelAdmin):
