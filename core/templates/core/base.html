@@ -63,7 +63,7 @@
 
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark site-navbar">
 
     <div class="container">
 
@@ -81,6 +81,10 @@
                             <div>
 
                                 <div class="brand-text">
+
+                                    <strong class="brand-name d-block">
+                                        MITSOL
+                                    </strong>
 
                                     <span class="d-block text-info">
                                         Technology Solutions
@@ -109,7 +113,7 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
+                    <a class="nav-link {% if request.path == '/' %}active-link{% endif %}"
                     href="{% url 'home' %}">
 
                         Home
@@ -120,7 +124,7 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
+                    <a class="nav-link {% if '/software/' in request.path %}active-link{% endif %}"
                     href="{% url 'software_product_list' %}">
 
                         Software
@@ -131,7 +135,7 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
+                    <a class="nav-link {% if '/services/' in request.path %}active-link{% endif %}"
                     href="{% url 'services' %}">
 
                         Services
@@ -142,7 +146,7 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
+                    <a class="nav-link {% if '/portfolio/' in request.path %}active-link{% endif %}"
                     href="{% url 'portfolio' %}">
 
                         Portfolio
@@ -153,7 +157,7 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
+                    <a class="nav-link {% if '/research/' in request.path %}active-link{% endif %}"
                     href="{% url 'research' %}">
 
                         Research
@@ -176,7 +180,7 @@
 
                 <li class="nav-item">
 
-                    <a class="nav-link"
+                    <a class="nav-link {% if '/contact/' in request.path %}active-link{% endif %}"
                         href="{% url 'contact' %}">
 
                             Contact
