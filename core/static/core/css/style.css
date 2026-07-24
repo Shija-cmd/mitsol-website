@@ -538,6 +538,100 @@ section{
 
 }
 
+.page-hero{
+
+    background:var(--mitsol-navy);
+    color:#fff;
+    min-height:auto;
+    padding:78px 0 64px;
+
+}
+
+.page-hero .container{
+
+    position:relative;
+    z-index:1;
+
+}
+
+.page-hero h1{
+
+    font-size:clamp(2.1rem,4vw,3.6rem);
+    line-height:1.08;
+    margin-bottom:1rem;
+    max-width:860px;
+
+}
+
+.page-hero .lead{
+
+    color:rgba(255,255,255,.86);
+    font-size:1.14rem;
+    line-height:1.75;
+    margin-bottom:0;
+    max-width:780px;
+
+}
+
+.page-hero.centered h1,
+.page-hero.centered .lead{
+
+    margin-left:auto;
+    margin-right:auto;
+
+}
+
+.hero-chip-row{
+
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:24px;
+
+}
+
+.page-hero.centered .hero-chip-row{
+
+    justify-content:center;
+
+}
+
+.hero-chip{
+
+    align-items:center;
+    background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:999px;
+    color:#fff;
+    display:inline-flex;
+    font-size:.92rem;
+    font-weight:700;
+    gap:8px;
+    padding:8px 14px;
+
+}
+
+.hero-chip i{
+
+    color:var(--mitsol-cyan);
+
+}
+
+.page-hero-actions{
+
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:28px;
+
+}
+
+.page-hero.centered .page-hero-actions{
+
+    justify-content:center;
+
+}
+
 .section-kicker{
 
     color:var(--mitsol-blue);
@@ -654,6 +748,31 @@ footer{
     .hero{
 
         min-height:auto;
+
+    }
+
+    .page-hero{
+
+        padding:56px 0 46px;
+
+    }
+
+    .page-hero .lead{
+
+        font-size:1rem;
+
+    }
+
+    .page-hero.centered .hero-chip-row{
+
+        justify-content:flex-start;
+
+    }
+
+    .hero-chip{
+
+        width:100%;
+        justify-content:center;
 
     }
 
