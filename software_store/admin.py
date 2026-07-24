@@ -46,6 +46,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
         'name',
         'delivery_type',
         'sales_flow',
+        'delivery_status',
         'version',
         'price',
         'is_active',
@@ -116,6 +117,33 @@ class SoftwareProductAdmin(admin.ModelAdmin):
             }
         ),
     )
+
+    def delivery_status(self, obj):
+        if obj.uses_saas_signup:
+            if obj.saas_signup_url:
+                return format_html(
+                    '<span style="color:#198754;font-weight:600;">SaaS signup ready</span>'
+                )
+
+            return format_html(
+                '<span style="color:#dc3545;font-weight:600;">Missing SaaS signup URL</span>'
+            )
+
+        if obj.delivery_type == SoftwareProduct.DeliveryType.DESKTOP:
+            if obj.proton_drive_link:
+                return format_html(
+                    '<span style="color:#198754;font-weight:600;">Download ready</span>'
+                )
+
+            return format_html(
+                '<span style="color:#dc3545;font-weight:600;">Missing desktop download link</span>'
+            )
+
+        return format_html(
+            '<span style="color:#0d6efd;font-weight:600;">Deployment workflow</span>'
+        )
+
+    delivery_status.short_description = 'Delivery Status'
 
 
 @admin.register(SoftwareOrder)

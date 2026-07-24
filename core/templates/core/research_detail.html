@@ -224,7 +224,7 @@
                             {% endif %}
 
                             {% if publication.pdf_file %}
-                            <a href="{{ publication.pdf_file.url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                            <a href="{% url 'research_pdf_download' publication.slug %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-file-pdf me-2"></i>
                                 Download PDF
                             </a>

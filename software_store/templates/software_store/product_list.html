@@ -23,6 +23,60 @@
 
     <div class="container">
 
+        <form method="get" class="card border-0 shadow-sm mb-4">
+
+            <div class="card-body">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-lg-5">
+                        <label for="softwareSearch" class="form-label">Search software</label>
+                        <input
+                            id="softwareSearch"
+                            type="search"
+                            name="q"
+                            value="{{ search_query }}"
+                            class="form-control"
+                            placeholder="Search by product name or description">
+                    </div>
+
+                    <div class="col-lg-4">
+                        <label for="softwareType" class="form-label">Product type</label>
+                        <select id="softwareType" name="type" class="form-select">
+                            <option value="">All software</option>
+                            <option value="desktop" {% if selected_product_type == 'desktop' %}selected{% endif %}>
+                                Desktop Software
+                            </option>
+                            <option value="web" {% if selected_product_type == 'web' %}selected{% endif %}>
+                                Cloud Web Application
+                            </option>
+                            <option value="saas" {% if selected_product_type == 'saas' %}selected{% endif %}>
+                                SaaS Subscription
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>
+                            Filter Software
+                        </button>
+                    </div>
+
+                </div>
+
+                {% if search_query or selected_product_type %}
+                <div class="mt-3">
+                    <a href="{% url 'software_product_list' %}" class="btn btn-outline-secondary btn-sm">
+                        Clear filters
+                    </a>
+                </div>
+                {% endif %}
+
+            </div>
+
+        </form>
+
         <div class="row g-4">
 
             {% for product in products %}

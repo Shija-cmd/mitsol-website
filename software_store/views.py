@@ -24,11 +24,55 @@ def product_list(request):
         is_active=True
     )
 
+    selected_product_type = request.GET.get(
+        'type',
+        ''
+    ).strip()
+
+    search_query = request.GET.get(
+        'q',
+        ''
+    ).strip()
+
+    if selected_product_type == 'desktop':
+
+        products = products.filter(
+            delivery_type=SoftwareProduct.DeliveryType.DESKTOP
+        )
+
+    elif selected_product_type == 'web':
+
+        products = products.filter(
+            delivery_type=SoftwareProduct.DeliveryType.WEB_APP
+        ).exclude(
+            sales_flow=SoftwareProduct.SalesFlow.SAAS_SUBSCRIPTION
+        ).exclude(
+            saas_signup_url__gt=''
+        )
+
+    elif selected_product_type == 'saas':
+
+        products = products.filter(
+            sales_flow=SoftwareProduct.SalesFlow.SAAS_SUBSCRIPTION
+        ) | products.filter(
+            saas_signup_url__gt=''
+        )
+
+    if search_query:
+
+        products = products.filter(
+            name__icontains=search_query
+        ) | products.filter(
+            description__icontains=search_query
+        )
+
     return render(
         request,
         'software_store/product_list.html',
         {
-            'products': products,
+            'products': products.distinct(),
+            'selected_product_type': selected_product_type,
+            'search_query': search_query,
         }
     )
 

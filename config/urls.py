@@ -5,13 +5,19 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from django.views.static import serve
-from core.sitemaps import StaticViewSitemap
+from core.sitemaps import (
+    ResearchPublicationSitemap,
+    SoftwareProductSitemap,
+    StaticViewSitemap,
+)
 from core.views import health_check, robots_txt
 from software_store.urls import api_urlpatterns
 
 sitemaps = {
 
     'static': StaticViewSitemap,
+    'software': SoftwareProductSitemap,
+    'research': ResearchPublicationSitemap,
 
 }
 
