@@ -187,6 +187,21 @@ class SoftwareProduct(models.Model):
                     }
                 )
 
+        for video in self.demo_videos.all():
+
+            embed_url = self.get_youtube_embed_url(
+                video.youtube_url
+            )
+
+            if embed_url:
+
+                videos.append(
+                    {
+                        'title': video.title,
+                        'embed_url': embed_url,
+                    }
+                )
+
         return videos
 
     def get_youtube_embed_url(self, url):
@@ -203,7 +218,7 @@ class SoftwareProduct(models.Model):
 
         if 'youtu.be' in hostname:
 
-            video_id = parsed_url.path.strip('/')
+            video_id = parsed_url.path.strip('/').split('/')[0]
 
         elif 'youtube.com' in hostname:
 
@@ -211,14 +226,24 @@ class SoftwareProduct(models.Model):
 
                 return url
 
-            video_id = parse_qs(
-                parsed_url.query
-            ).get(
-                'v',
-                [
-                    '',
-                ]
-            )[0]
+            if parsed_url.path.startswith('/shorts/'):
+
+                video_id = parsed_url.path.split('/shorts/', 1)[1].split('/')[0]
+
+            elif parsed_url.path.startswith('/live/'):
+
+                video_id = parsed_url.path.split('/live/', 1)[1].split('/')[0]
+
+            else:
+
+                video_id = parse_qs(
+                    parsed_url.query
+                ).get(
+                    'v',
+                    [
+                        '',
+                    ]
+                )[0]
 
         else:
 
@@ -227,6 +252,8 @@ class SoftwareProduct(models.Model):
         if not video_id:
 
             return ''
+
+        video_id = video_id.split('?')[0].split('&')[0]
 
         return f'https://www.youtube.com/embed/{video_id}'
 
@@ -324,6 +351,40 @@ class SoftwareProductFAQ(models.Model):
     def __str__(self):
 
         return self.question
+
+
+class SoftwareProductVideo(models.Model):
+
+    product = models.ForeignKey(
+        SoftwareProduct,
+        on_delete=models.CASCADE,
+        related_name='demo_videos'
+    )
+
+    title = models.CharField(
+        max_length=200,
+        help_text='Example: Stock management demo, Sales demo, Reports overview.'
+    )
+
+    youtube_url = models.URLField(
+        max_length=1000,
+        help_text='Paste one YouTube video URL here.'
+    )
+
+    sort_order = models.PositiveIntegerField(
+        default=0
+    )
+
+    class Meta:
+
+        ordering = (
+            'sort_order',
+            'title',
+        )
+
+    def __str__(self):
+
+        return f'{self.product.name} - {self.title}'
 
 
 class SoftwareOrder(models.Model):

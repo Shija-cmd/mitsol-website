@@ -322,7 +322,7 @@ class ResearchPublication(models.Model):
 
         if 'youtu.be' in hostname:
 
-            video_id = parsed_url.path.strip('/')
+            video_id = parsed_url.path.strip('/').split('/')[0]
 
         elif 'youtube.com' in hostname:
 
@@ -330,14 +330,24 @@ class ResearchPublication(models.Model):
 
                 return self.youtube_url
 
-            video_id = parse_qs(
-                parsed_url.query
-            ).get(
-                'v',
-                [
-                    '',
-                ]
-            )[0]
+            if parsed_url.path.startswith('/shorts/'):
+
+                video_id = parsed_url.path.split('/shorts/', 1)[1].split('/')[0]
+
+            elif parsed_url.path.startswith('/live/'):
+
+                video_id = parsed_url.path.split('/live/', 1)[1].split('/')[0]
+
+            else:
+
+                video_id = parse_qs(
+                    parsed_url.query
+                ).get(
+                    'v',
+                    [
+                        '',
+                    ]
+                )[0]
 
         else:
 
@@ -346,6 +356,8 @@ class ResearchPublication(models.Model):
         if not video_id:
 
             return ''
+
+        video_id = video_id.split('?')[0].split('&')[0]
 
         return f'https://www.youtube.com/embed/{video_id}'
 

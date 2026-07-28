@@ -83,6 +83,7 @@ def product_detail(request, product_slug):
         SoftwareProduct.objects.prefetch_related(
             'features',
             'screenshots',
+            'demo_videos',
             'faqs',
         ),
         slug=product_slug,

@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import PaymentSetting
 from django.urls import reverse
 from django.utils.html import format_html
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -14,6 +15,7 @@ from .models import (
     SoftwareProductFAQ,
     SoftwareProductFeature,
     SoftwareProductScreenshot,
+    SoftwareProductVideo,
     SoftwareProduct,
 )
 
@@ -39,6 +41,19 @@ class SoftwareProductFAQInline(admin.TabularInline):
     extra = 1
 
 
+class SoftwareProductVideoInline(admin.TabularInline):
+
+    model = SoftwareProductVideo
+
+    extra = 1
+
+    fields = (
+        'title',
+        'youtube_url',
+        'sort_order',
+    )
+
+
 @admin.register(SoftwareProduct)
 class SoftwareProductAdmin(admin.ModelAdmin):
 
@@ -48,7 +63,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
         'sales_flow',
         'delivery_status',
         'version',
-        'price',
+        'formatted_price',
         'is_active',
         'updated_at',
     )
@@ -75,6 +90,7 @@ class SoftwareProductAdmin(admin.ModelAdmin):
     inlines = (
         SoftwareProductFeatureInline,
         SoftwareProductScreenshotInline,
+        SoftwareProductVideoInline,
         SoftwareProductFAQInline,
     )
 
@@ -113,6 +129,10 @@ class SoftwareProductAdmin(admin.ModelAdmin):
                     'youtube_overview_url',
                     'youtube_installation_url',
                     'youtube_activation_url',
+                ),
+                'description': (
+                    'The YouTube fields below support one legacy video each. '
+                    'Use the Demo Videos inline section to add multiple videos.'
                 )
             }
         ),
@@ -122,33 +142,39 @@ class SoftwareProductAdmin(admin.ModelAdmin):
         if obj.uses_saas_signup:
             if obj.saas_signup_url:
                 return format_html(
-                    '<span style="color:#198754;font-weight:600;">{}</span>',
+                    '<span class="mitsol-admin-badge mitsol-admin-badge-success">{}</span>',
                     'SaaS signup ready'
                 )
 
             return format_html(
-                '<span style="color:#dc3545;font-weight:600;">{}</span>',
+                '<span class="mitsol-admin-badge mitsol-admin-badge-danger">{}</span>',
                 'Missing SaaS signup URL'
             )
 
         if obj.delivery_type == SoftwareProduct.DeliveryType.DESKTOP:
             if obj.proton_drive_link:
                 return format_html(
-                    '<span style="color:#198754;font-weight:600;">{}</span>',
+                    '<span class="mitsol-admin-badge mitsol-admin-badge-success">{}</span>',
                     'Download ready'
                 )
 
             return format_html(
-                '<span style="color:#dc3545;font-weight:600;">{}</span>',
+                '<span class="mitsol-admin-badge mitsol-admin-badge-danger">{}</span>',
                 'Missing desktop download link'
             )
 
         return format_html(
-            '<span style="color:#0d6efd;font-weight:600;">{}</span>',
+            '<span class="mitsol-admin-badge mitsol-admin-badge-info">{}</span>',
             'Deployment workflow'
         )
 
-    delivery_status.short_description = 'Delivery Status'
+    delivery_status.short_description = 'Status'
+
+    def formatted_price(self, obj):
+        return f'TSh {intcomma(obj.price)}'
+
+    formatted_price.short_description = 'Price'
+    formatted_price.admin_order_field = 'price'
 
 
 @admin.register(SoftwareOrder)

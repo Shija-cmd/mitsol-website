@@ -42,3 +42,77 @@ body.register-page,
     background-color: #268bd2 !important;
     border-color: #268bd2 !important;
 }
+
+/* Changelist table polish */
+.change-list .results table {
+    table-layout: auto;
+    width: 100%;
+}
+
+.change-list .results th,
+.change-list .results td {
+    vertical-align: middle !important;
+    white-space: nowrap;
+}
+
+.change-list .results th.column-name,
+.change-list .results td.field-name {
+    min-width: 220px;
+    white-space: normal;
+}
+
+.change-list .results th.column-delivery_type,
+.change-list .results td.field-delivery_type {
+    min-width: 125px;
+}
+
+.change-list .results th.column-sales_flow,
+.change-list .results td.field-sales_flow {
+    min-width: 125px;
+}
+
+.change-list .results th.column-delivery_status,
+.change-list .results td.field-delivery_status {
+    min-width: 150px;
+}
+
+.change-list .results th.column-formatted_price,
+.change-list .results td.field-formatted_price {
+    min-width: 115px;
+    text-align: right;
+}
+
+.change-list .results th.column-is_active,
+.change-list .results td.field-is_active {
+    min-width: 80px;
+    text-align: center;
+}
+
+.change-list .results th.column-updated_at,
+.change-list .results td.field-updated_at {
+    min-width: 160px;
+}
+
+.mitsol-admin-badge {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 6px 10px;
+}
+
+.mitsol-admin-badge-success {
+    background: rgba(25, 135, 84, .16);
+    color: #198754;
+}
+
+.mitsol-admin-badge-danger {
+    background: rgba(220, 53, 69, .16);
+    color: #dc3545;
+}
+
+.mitsol-admin-badge-info {
+    background: rgba(13, 110, 253, .16);
+    color: #0d6efd;
+}
