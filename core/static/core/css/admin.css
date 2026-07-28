@@ -43,6 +43,54 @@ body.register-page,
     border-color: #268bd2 !important;
 }
 
+/* Changelist filter/search alignment */
+.change-list #changelist-search,
+.change-list #changelist-filter,
+.change-list .actions {
+    align-items: center;
+}
+
+.change-list #changelist-search .form-group,
+.change-list #changelist-search .form-control,
+.change-list #changelist-search input[type="text"],
+.change-list #changelist-search input[type="search"],
+.change-list #changelist-search button,
+.change-list #changelist-filter select,
+.change-list .actions select,
+.change-list .actions button {
+    min-height: 38px;
+}
+
+.change-list #changelist-search .form-control,
+.change-list #changelist-search input[type="text"],
+.change-list #changelist-search input[type="search"],
+.change-list #changelist-filter select,
+.change-list .actions select {
+    border-radius: 4px;
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+
+.change-list #changelist-search button,
+.change-list .actions button,
+.change-list .actions .button {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    line-height: 1;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    padding-top: 0;
+}
+
+.change-list #changelist-search {
+    margin-bottom: 16px;
+}
+
+.change-list #changelist-search .input-group {
+    align-items: stretch;
+}
+
 /* Changelist table polish */
 .change-list .results table {
     table-layout: auto;
