@@ -122,25 +122,30 @@ class SoftwareProductAdmin(admin.ModelAdmin):
         if obj.uses_saas_signup:
             if obj.saas_signup_url:
                 return format_html(
-                    '<span style="color:#198754;font-weight:600;">SaaS signup ready</span>'
+                    '<span style="color:#198754;font-weight:600;">{}</span>',
+                    'SaaS signup ready'
                 )
 
             return format_html(
-                '<span style="color:#dc3545;font-weight:600;">Missing SaaS signup URL</span>'
+                '<span style="color:#dc3545;font-weight:600;">{}</span>',
+                'Missing SaaS signup URL'
             )
 
         if obj.delivery_type == SoftwareProduct.DeliveryType.DESKTOP:
             if obj.proton_drive_link:
                 return format_html(
-                    '<span style="color:#198754;font-weight:600;">Download ready</span>'
+                    '<span style="color:#198754;font-weight:600;">{}</span>',
+                    'Download ready'
                 )
 
             return format_html(
-                '<span style="color:#dc3545;font-weight:600;">Missing desktop download link</span>'
+                '<span style="color:#dc3545;font-weight:600;">{}</span>',
+                'Missing desktop download link'
             )
 
         return format_html(
-            '<span style="color:#0d6efd;font-weight:600;">Deployment workflow</span>'
+            '<span style="color:#0d6efd;font-weight:600;">{}</span>',
+            'Deployment workflow'
         )
 
     delivery_status.short_description = 'Delivery Status'
