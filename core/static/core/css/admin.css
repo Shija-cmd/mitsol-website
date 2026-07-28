@@ -44,10 +44,30 @@ body.register-page,
 }
 
 /* Changelist filter/search alignment */
+.change-list .search-filters,
 .change-list #changelist-search,
 .change-list #changelist-filter,
 .change-list .actions {
     align-items: center;
+}
+
+.change-list .search-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.change-list .search-filters select,
+.change-list .search-filters input,
+.change-list .search-filters button,
+.change-list .search-filters .btn,
+.change-list select,
+.change-list input[type="text"],
+.change-list input[type="search"],
+.change-list input[type="submit"],
+.change-list button {
+    box-sizing: border-box;
+    height: 38px !important;
 }
 
 .change-list #changelist-search .form-group,
@@ -69,18 +89,21 @@ body.register-page,
     border-radius: 4px;
     line-height: 1.4;
     margin-bottom: 0;
+    padding-bottom: 6px;
+    padding-top: 6px;
 }
 
 .change-list #changelist-search button,
 .change-list .actions button,
-.change-list .actions .button {
+.change-list .actions .button,
+.change-list input[type="submit"] {
     align-items: center;
     display: inline-flex;
     justify-content: center;
     line-height: 1;
     margin-bottom: 0;
-    padding-bottom: 0;
-    padding-top: 0;
+    padding-bottom: 0 !important;
+    padding-top: 0 !important;
 }
 
 .change-list #changelist-search {
@@ -89,6 +112,18 @@ body.register-page,
 
 .change-list #changelist-search .input-group {
     align-items: stretch;
+}
+
+.change-list .select2-container .select2-selection--single {
+    height: 38px !important;
+}
+
+.change-list .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 36px !important;
+}
+
+.change-list .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
 }
 
 /* Changelist table polish */
