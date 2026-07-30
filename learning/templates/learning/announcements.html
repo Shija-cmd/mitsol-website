@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Course Announcements</span>
+        <h1 class="fw-bold mt-3">Updates from Your Courses</h1>
+        <p class="lead">Read announcements published by instructors for your active courses.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% for announcement in announcements %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="badge bg-primary">{{ announcement.course.title }}</span>
+                    <span class="badge bg-light text-dark border">{{ announcement.published_at|date:"M d, Y" }}</span>
+                </div>
+                <h2 class="h4 fw-bold">{{ announcement.title }}</h2>
+                <p class="text-muted mb-2">{{ announcement.message|linebreaksbr }}</p>
+                <small class="text-muted">Posted by {{ announcement.author.get_full_name|default:announcement.author.username }}</small>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info text-center">No course announcements are available for your active courses.</div>
+        {% endfor %}
+    </div>
+</section>
+
+{% endblock %}

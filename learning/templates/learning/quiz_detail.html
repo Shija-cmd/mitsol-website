@@ -1,0 +1,74 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ quiz.course.title }}</span>
+        <h1 class="fw-bold mt-3">{{ quiz.title }}</h1>
+        <p class="lead">{{ quiz.instructions|default:'Review the instructions and start when you are ready.'|truncatewords:28 }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Quiz Instructions</h2>
+                        <p class="text-muted">{{ quiz.instructions|linebreaksbr }}</p>
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ quiz.questions.count }}</strong><span>Questions</span></div></div>
+                            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ quiz.total_marks }}</strong><span>Total Marks</span></div></div>
+                            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ quiz.passing_score }}%</strong><span>Pass Mark</span></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Previous Attempts</h2>
+                        {% for attempt in attempts %}
+                        <div class="d-flex justify-content-between border-bottom py-3">
+                            <div>
+                                <strong>Attempt {{ attempt.attempt_number }}</strong>
+                                <div class="text-muted small">{{ attempt.status }}{% if attempt.submitted_at %} • {{ attempt.submitted_at }}{% endif %}</div>
+                            </div>
+                            <a class="btn btn-outline-primary btn-sm" href="{% url 'learning:quiz_result' attempt.pk %}">Result</a>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-info mb-0">No attempts yet.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Attempt Summary</h2>
+                        <p class="mb-1">Attempts used: <strong>{{ attempts_used }}</strong></p>
+                        <p class="mb-1">Attempts remaining: <strong>{{ attempts_remaining }}</strong></p>
+                        <p class="mb-1">Time limit: <strong>{% if quiz.time_limit_minutes %}{{ quiz.time_limit_minutes }} minutes{% else %}Untimed{% endif %}</strong></p>
+                        <p class="mb-3">Compulsory: <strong>{% if quiz.is_compulsory %}Yes{% else %}No{% endif %}</strong></p>
+                        {% if best_attempt %}
+                        <div class="alert {% if best_attempt.passed %}alert-success{% else %}alert-warning{% endif %}">
+                            Best score: {{ best_attempt.percentage }}%
+                        </div>
+                        {% endif %}
+                        {% if in_progress %}
+                        <a href="{% url 'learning:quiz_attempt' in_progress.pk %}" class="btn btn-primary w-100">Resume Quiz</a>
+                        {% elif attempts_remaining > 0 %}
+                        <a href="{% url 'learning:quiz_start' quiz.pk %}" class="btn btn-primary w-100">Start Quiz</a>
+                        {% else %}
+                        <div class="alert alert-secondary mb-0">No attempts remaining.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

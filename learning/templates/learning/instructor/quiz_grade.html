@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ attempt.quiz.title }}</span>
+        <h1 class="fw-bold mt-3">Manual Grading</h1>
+        <p class="lead">Grade short-answer responses for {{ attempt.student.get_full_name|default:attempt.student.username }}.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="post" class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                {% csrf_token %}
+                {% for answer in short_answers %}
+                <div class="quiz-question-card mb-4">
+                    <h2 class="h5 fw-bold">{{ forloop.counter }}. {{ answer.question.question_text }}</h2>
+                    <p class="text-muted">Available marks: {{ answer.question.marks }}</p>
+                    <div class="alert alert-light border">{{ answer.text_answer|default:'No answer submitted.'|linebreaksbr }}</div>
+                    <label class="form-label fw-semibold" for="marks_{{ answer.pk }}">Marks Awarded</label>
+                    <input type="number" step="0.01" min="0" max="{{ answer.question.marks }}" name="marks_{{ answer.pk }}" id="marks_{{ answer.pk }}" value="{{ answer.manual_marks_awarded }}" class="form-control mb-3">
+                    <label class="form-label fw-semibold" for="feedback_{{ answer.pk }}">Feedback</label>
+                    <textarea name="feedback_{{ answer.pk }}" id="feedback_{{ answer.pk }}" rows="3" class="form-control">{{ answer.instructor_feedback }}</textarea>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">There are no short-answer questions to grade.</div>
+                {% endfor %}
+
+                {% include 'core/includes/form_fields.html' %}
+                <button type="submit" class="btn btn-primary">Save Grade</button>
+                <a href="{% url 'learning:instructor_quiz_attempt_detail' attempt.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>
+
+{% endblock %}

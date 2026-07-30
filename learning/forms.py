@@ -2,10 +2,62 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 
-from .models import Course, Lesson, Module
+from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, Lesson, Module, Question, Quiz
+from .services import validate_assignment_file
 
 
 User = get_user_model()
+
+
+class BootstrapFormMixin:
+
+    def apply_bootstrap_styles(self):
+
+        for field_name, field in self.fields.items():
+
+            widget = field.widget
+
+            if isinstance(widget, forms.CheckboxInput):
+
+                css_class = 'form-check-input'
+
+            elif isinstance(widget, forms.Select):
+
+                css_class = 'form-select'
+
+            elif isinstance(widget, forms.ClearableFileInput):
+
+                css_class = 'form-control'
+
+            else:
+
+                css_class = 'form-control'
+
+            existing_class = widget.attrs.get(
+                'class',
+                ''
+            )
+
+            widget.attrs['class'] = (
+                f'{existing_class} {css_class}'.strip()
+                if css_class not in existing_class
+                else existing_class
+            )
+
+            if not isinstance(
+                widget,
+                (
+                    forms.CheckboxInput,
+                    forms.Select,
+                    forms.ClearableFileInput,
+                    forms.Textarea,
+                )
+            ):
+
+                widget.attrs.setdefault(
+                    'placeholder',
+                    field.label
+                )
 
 
 class StudentRegistrationForm(UserCreationForm):
@@ -72,7 +124,7 @@ class StudentRegistrationForm(UserCreationForm):
         self.fields['password2'].help_text = ''
 
 
-class CourseForm(forms.ModelForm):
+class CourseForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
 
@@ -127,6 +179,11 @@ class CourseForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
     def clean(self):
 
         cleaned_data = super().clean()
@@ -143,7 +200,7 @@ class CourseForm(forms.ModelForm):
         return cleaned_data
 
 
-class ModuleForm(forms.ModelForm):
+class ModuleForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
 
@@ -156,8 +213,21 @@ class ModuleForm(forms.ModelForm):
             'is_published',
         )
 
+        widgets = {
+            'description': forms.Textarea(
+                attrs={
+                    'rows': 3,
+                }
+            ),
+        }
 
-class LessonForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+
+class LessonForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
 
@@ -200,3 +270,533 @@ class LessonForm(forms.ModelForm):
         if course:
 
             self.fields['module'].queryset = course.modules.all()
+
+        self.apply_bootstrap_styles()
+
+
+class CourseAnnouncementForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = CourseAnnouncement
+
+        fields = (
+            'course',
+            'title',
+            'message',
+            'is_published',
+        )
+
+        widgets = {
+            'message': forms.Textarea(
+                attrs={
+                    'rows': 6,
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        user = kwargs.pop(
+            'user',
+            None
+        )
+
+        super().__init__(*args, **kwargs)
+
+        if user and not user.is_staff:
+
+            self.fields['course'].queryset = Course.objects.filter(
+                instructor=user
+            )
+
+        self.apply_bootstrap_styles()
+
+
+class QuizForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = Quiz
+
+        fields = (
+            'lesson',
+            'title',
+            'instructions',
+            'passing_score',
+            'time_limit_minutes',
+            'attempts_allowed',
+            'randomise_questions',
+            'randomise_choices',
+            'show_score_after_submission',
+            'show_correct_answers',
+            'is_compulsory',
+            'is_published',
+        )
+
+        widgets = {
+            'instructions': forms.Textarea(
+                attrs={
+                    'rows': 5,
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        user = kwargs.pop(
+            'user',
+            None
+        )
+
+        super().__init__(*args, **kwargs)
+
+        lessons = Lesson.objects.select_related(
+            'module',
+            'module__course'
+        ).filter(
+            is_published=True
+        )
+
+        if user and not user.is_staff:
+
+            lessons = lessons.filter(
+                module__course__instructor=user
+            )
+
+        self.fields['lesson'].queryset = lessons
+        self.apply_bootstrap_styles()
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+        passing_score = cleaned_data.get('passing_score')
+        attempts_allowed = cleaned_data.get('attempts_allowed')
+        time_limit = cleaned_data.get('time_limit_minutes')
+
+        if passing_score is not None and not 0 <= passing_score <= 100:
+
+            self.add_error(
+                'passing_score',
+                'Passing score must be between 0 and 100.'
+            )
+
+        if attempts_allowed is not None and attempts_allowed < 1:
+
+            self.add_error(
+                'attempts_allowed',
+                'Attempts allowed must be at least 1.'
+            )
+
+        if time_limit is not None and time_limit <= 0:
+
+            self.add_error(
+                'time_limit_minutes',
+                'Time limit must be greater than zero.'
+            )
+
+        return cleaned_data
+
+
+class QuestionForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = Question
+
+        fields = (
+            'question_text',
+            'question_type',
+            'marks',
+            'order',
+            'explanation',
+            'is_required',
+        )
+
+        widgets = {
+            'question_text': forms.Textarea(
+                attrs={
+                    'rows': 4,
+                }
+            ),
+            'explanation': forms.Textarea(
+                attrs={
+                    'rows': 3,
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        self.quiz = kwargs.pop(
+            'quiz',
+            None
+        )
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+    def clean_order(self):
+
+        order = self.cleaned_data['order']
+
+        if self.quiz:
+
+            qs = Question.objects.filter(
+                quiz=self.quiz,
+                order=order
+            )
+
+            if self.instance.pk:
+
+                qs = qs.exclude(
+                    pk=self.instance.pk
+                )
+
+            if qs.exists():
+
+                raise forms.ValidationError(
+                    'Another question already uses this order.'
+                )
+
+        return order
+
+    def clean_marks(self):
+
+        marks = self.cleaned_data['marks']
+
+        if marks <= 0:
+
+            raise forms.ValidationError(
+                'Marks must be greater than zero.'
+            )
+
+        return marks
+
+
+class ChoiceForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = Choice
+
+        fields = (
+            'choice_text',
+            'is_correct',
+            'order',
+        )
+
+    def __init__(self, *args, **kwargs):
+
+        self.question = kwargs.pop(
+            'question',
+            None
+        )
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+    def clean_choice_text(self):
+
+        value = self.cleaned_data['choice_text'].strip()
+
+        if not value:
+
+            raise forms.ValidationError(
+                'Choice text is required.'
+            )
+
+        if self.question:
+
+            qs = Choice.objects.filter(
+                question=self.question,
+                choice_text__iexact=value
+            )
+
+            if self.instance.pk:
+
+                qs = qs.exclude(
+                    pk=self.instance.pk
+                )
+
+            if qs.exists():
+
+                raise forms.ValidationError(
+                    'This choice already exists for the question.'
+                )
+
+        return value
+
+
+class ManualQuizGradingForm(forms.Form):
+
+    instructor_feedback = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Overall feedback for the student',
+            }
+        )
+    )
+
+
+class QuizAttemptForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+
+        self.quiz = kwargs.pop(
+            'quiz'
+        )
+        super().__init__(*args, **kwargs)
+
+        questions = self.quiz.questions.prefetch_related(
+            'choices'
+        )
+
+        for question in questions:
+
+            field_name = f'question_{question.pk}'
+
+            if question.question_type == Question.QuestionType.SHORT_ANSWER:
+
+                self.fields[field_name] = forms.CharField(
+                    label=question.question_text,
+                    required=question.is_required,
+                    widget=forms.Textarea(
+                        attrs={
+                            'rows': 4,
+                            'class': 'form-control',
+                        }
+                    )
+                )
+
+            else:
+
+                choices = [
+                    (
+                        choice.pk,
+                        choice.choice_text,
+                    )
+                    for choice in question.choices.all()
+                ]
+
+                if question.question_type == Question.QuestionType.MULTIPLE_SELECT:
+
+                    widget = forms.CheckboxSelectMultiple
+                    field_class = forms.MultipleChoiceField
+
+                else:
+
+                    widget = forms.RadioSelect
+                    field_class = forms.ChoiceField
+
+                self.fields[field_name] = field_class(
+                    label=question.question_text,
+                    choices=choices,
+                    required=question.is_required,
+                    widget=widget
+                )
+
+    def submitted_answers(self):
+
+        answers = {}
+
+        for question in self.quiz.questions.all():
+
+            value = self.cleaned_data.get(
+                f'question_{question.pk}'
+            )
+
+            if question.question_type == Question.QuestionType.SHORT_ANSWER:
+
+                answers[str(question.pk)] = {
+                    'text_answer': value or '',
+                }
+
+            else:
+
+                choice_ids = value if isinstance(value, list) else [
+                    value,
+                ] if value else []
+                answers[str(question.pk)] = {
+                    'choice_ids': choice_ids,
+                }
+
+        return answers
+
+
+class AssignmentForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = Assignment
+
+        fields = (
+            'lesson',
+            'title',
+            'instructions',
+            'maximum_score',
+            'passing_score',
+            'due_date',
+            'allow_late_submission',
+            'allow_resubmission',
+            'maximum_attempts',
+            'allowed_file_extensions',
+            'maximum_file_size_mb',
+            'require_text_submission',
+            'require_file_submission',
+            'is_compulsory',
+            'is_published',
+        )
+
+        widgets = {
+            'instructions': forms.Textarea(
+                attrs={
+                    'rows': 6,
+                }
+            ),
+            'due_date': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        user = kwargs.pop(
+            'user',
+            None
+        )
+        super().__init__(*args, **kwargs)
+
+        lessons = Lesson.objects.select_related(
+            'module',
+            'module__course'
+        ).filter(
+            is_published=True
+        )
+
+        if user and not user.is_staff:
+
+            lessons = lessons.filter(
+                module__course__instructor=user
+            )
+
+        self.fields['lesson'].queryset = lessons
+        self.apply_bootstrap_styles()
+
+
+class AssignmentSubmissionForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = AssignmentSubmission
+
+        fields = (
+            'submission_text',
+            'submission_file',
+        )
+
+        widgets = {
+            'submission_text': forms.Textarea(
+                attrs={
+                    'rows': 8,
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        self.assignment = kwargs.pop(
+            'assignment'
+        )
+        super().__init__(*args, **kwargs)
+        self.fields['submission_text'].required = self.assignment.require_text_submission
+        self.fields['submission_file'].required = (
+            self.assignment.require_file_submission
+            and not getattr(self.instance, 'submission_file', None)
+        )
+        self.apply_bootstrap_styles()
+
+    def clean_submission_text(self):
+
+        value = self.cleaned_data.get(
+            'submission_text',
+            ''
+        )
+
+        if self.assignment.require_text_submission and not value.strip():
+
+            raise forms.ValidationError(
+                'A written response is required.'
+            )
+
+        return value
+
+    def clean_submission_file(self):
+
+        uploaded_file = self.cleaned_data.get(
+            'submission_file'
+        )
+
+        if uploaded_file:
+
+            validate_assignment_file(
+                self.assignment,
+                uploaded_file
+            )
+
+        elif self.assignment.require_file_submission and not getattr(
+            self.instance,
+            'submission_file',
+            None
+        ):
+
+            raise forms.ValidationError(
+                'A file submission is required.'
+            )
+
+        return uploaded_file
+
+
+class AssignmentGradingForm(BootstrapFormMixin, forms.Form):
+
+    score = forms.DecimalField(
+        min_value=0,
+        label='Score'
+    )
+
+    instructor_feedback = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                'rows': 5,
+            }
+        )
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        self.submission = kwargs.pop(
+            'submission'
+        )
+        super().__init__(*args, **kwargs)
+        self.fields['score'].max_value = self.submission.assignment.maximum_score
+        self.apply_bootstrap_styles()
+
+
+class AssignmentRevisionForm(BootstrapFormMixin, forms.Form):
+
+    revision_message = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                'rows': 5,
+            }
+        )
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()

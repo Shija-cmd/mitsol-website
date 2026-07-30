@@ -1,6 +1,8 @@
 from urllib.parse import parse_qs, urlparse
+from pathlib import Path
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
@@ -26,6 +28,53 @@ SAFE_VIDEO_EXTENSIONS = [
     'webm',
     'm4v',
 ]
+
+SAFE_ASSIGNMENT_EXTENSIONS = [
+    'pdf',
+    'doc',
+    'docx',
+    'txt',
+    'zip',
+    'py',
+    'ipynb',
+    'csv',
+    'xlsx',
+    'ppt',
+    'pptx',
+    'jpg',
+    'jpeg',
+    'png',
+]
+
+DANGEROUS_ASSIGNMENT_EXTENSIONS = [
+    'exe',
+    'bat',
+    'cmd',
+    'com',
+    'msi',
+    'sh',
+    'ps1',
+    'dll',
+    'apk',
+    'jar',
+]
+
+
+def assignment_submission_upload_to(instance, filename):
+
+    safe_name = Path(filename).name
+    assignment_id = instance.assignment_id or 'new-assignment'
+    student_id = instance.student_id or 'new-student'
+    course_id = (
+        instance.assignment.lesson.module.course_id
+        if instance.assignment_id
+        else 'new-course'
+    )
+
+    return (
+        f'learning/assignments/{course_id}/'
+        f'{assignment_id}/{student_id}/{safe_name}'
+    )
 
 
 class CourseCategory(models.Model):
@@ -303,13 +352,13 @@ class Course(models.Model):
         )
 
         indexes = (
-            models.Index(fields=('slug',)),
-            models.Index(fields=('category',)),
-            models.Index(fields=('instructor',)),
-            models.Index(fields=('status',)),
-            models.Index(fields=('is_published',)),
-            models.Index(fields=('is_featured',)),
-            models.Index(fields=('created_at',)),
+            models.Index(fields=('slug',), name='learning_co_slug_42b789_idx'),
+            models.Index(fields=('category',), name='learning_co_categor_7f5139_idx'),
+            models.Index(fields=('instructor',), name='learning_co_instruc_c28a74_idx'),
+            models.Index(fields=('status',), name='learning_co_status_064f7f_idx'),
+            models.Index(fields=('is_published',), name='learning_co_is_publ_0180a6_idx'),
+            models.Index(fields=('is_featured',), name='learning_co_is_feat_2ae4e2_idx'),
+            models.Index(fields=('created_at',), name='learning_co_created_91bc8a_idx'),
         )
 
     def __str__(self):
@@ -810,3 +859,1128 @@ class LessonProgress(models.Model):
     def __str__(self):
 
         return f'{self.student} - {self.lesson}'
+
+
+class Notification(models.Model):
+
+    class NotificationType(models.TextChoices):
+
+        ENROLMENT = 'Enrolment', 'Enrolment'
+        PAYMENT = 'Payment', 'Payment'
+        QUIZ = 'Quiz', 'Quiz'
+        ASSIGNMENT = 'Assignment', 'Assignment'
+        ANNOUNCEMENT = 'Announcement', 'Announcement'
+        COURSE_COMPLETION = 'Course Completion', 'Course Completion'
+        CERTIFICATE = 'Certificate', 'Certificate'
+        SYSTEM = 'System', 'System'
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='learning_notifications'
+    )
+
+    title = models.CharField(
+        max_length=180
+    )
+
+    message = models.TextField()
+
+    notification_type = models.CharField(
+        max_length=40,
+        choices=NotificationType.choices,
+        default=NotificationType.SYSTEM
+    )
+
+    related_url = models.CharField(
+        max_length=1000,
+        blank=True
+    )
+
+    dedupe_key = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='Optional key used by services to avoid duplicate notifications.'
+    )
+
+    is_read = models.BooleanField(
+        default=False
+    )
+
+    read_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-created_at',
+        )
+
+        indexes = (
+            models.Index(fields=('recipient', 'is_read'), name='learning_no_recipie_e8673c_idx'),
+            models.Index(fields=('notification_type',), name='learning_no_notific_7d05e5_idx'),
+            models.Index(fields=('created_at',), name='learning_no_created_3c962e_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'recipient',
+                    'dedupe_key',
+                ),
+                condition=~models.Q(dedupe_key=''),
+                name='unique_learning_notification_dedupe'
+            ),
+        )
+
+    def __str__(self):
+
+        return f'{self.recipient} - {self.title}'
+
+    def mark_read(self):
+
+        if not self.is_read:
+
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(
+                update_fields=[
+                    'is_read',
+                    'read_at',
+                ]
+            )
+
+
+class CourseAnnouncement(models.Model):
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='announcements'
+    )
+
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='learning_announcements'
+    )
+
+    title = models.CharField(
+        max_length=220
+    )
+
+    message = models.TextField()
+
+    is_published = models.BooleanField(
+        default=False
+    )
+
+    published_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    notifications_sent = models.BooleanField(
+        default=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-published_at',
+            '-created_at',
+        )
+
+    def __str__(self):
+
+        return f'{self.course.title} - {self.title}'
+
+    def save(self, *args, **kwargs):
+
+        if self.is_published and not self.published_at:
+
+            self.published_at = timezone.now()
+
+        super().save(*args, **kwargs)
+
+
+class Quiz(models.Model):
+
+    lesson = models.OneToOneField(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='quiz'
+    )
+
+    title = models.CharField(
+        max_length=220
+    )
+
+    slug = models.SlugField(
+        max_length=240,
+        blank=True
+    )
+
+    instructions = models.TextField(
+        blank=True
+    )
+
+    passing_score = models.PositiveIntegerField(
+        default=50,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ]
+    )
+
+    time_limit_minutes = models.PositiveIntegerField(
+        blank=True,
+        null=True
+    )
+
+    attempts_allowed = models.PositiveIntegerField(
+        default=1,
+        validators=[
+            MinValueValidator(1),
+        ]
+    )
+
+    randomise_questions = models.BooleanField(
+        default=False
+    )
+
+    randomise_choices = models.BooleanField(
+        default=False
+    )
+
+    show_score_after_submission = models.BooleanField(
+        default=True
+    )
+
+    show_correct_answers = models.BooleanField(
+        default=False
+    )
+
+    is_compulsory = models.BooleanField(
+        default=True
+    )
+
+    is_published = models.BooleanField(
+        default=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            'lesson__module__course__title',
+            'lesson__module__order',
+            'lesson__order',
+        )
+
+        indexes = (
+            models.Index(fields=('slug',), name='learning_qu_slug_d912e9_idx'),
+            models.Index(fields=('is_published',), name='learning_qu_is_publ_7dbd38_idx'),
+            models.Index(fields=('created_at',), name='learning_qu_created_0e42de_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'lesson',
+                    'slug',
+                ),
+                name='unique_quiz_slug_per_lesson'
+            ),
+        )
+
+    def __str__(self):
+
+        return self.title
+
+    def clean(self):
+
+        if self.passing_score < 0 or self.passing_score > 100:
+
+            raise ValidationError(
+                {
+                    'passing_score': 'Passing score must be between 0 and 100.'
+                }
+            )
+
+        if self.attempts_allowed < 1:
+
+            raise ValidationError(
+                {
+                    'attempts_allowed': 'Attempts allowed must be at least 1.'
+                }
+            )
+
+        if self.time_limit_minutes is not None and self.time_limit_minutes <= 0:
+
+            raise ValidationError(
+                {
+                    'time_limit_minutes': 'Time limit must be greater than zero.'
+                }
+            )
+
+        if self.is_published and self.lesson and not self.lesson.is_published:
+
+            raise ValidationError(
+                {
+                    'is_published': 'A quiz cannot be published under an unpublished lesson.'
+                }
+            )
+
+    def save(self, *args, **kwargs):
+
+        if not self.slug:
+
+            self.slug = slugify(self.title) or 'quiz'
+
+        if self.lesson_id and self.lesson.lesson_type != Lesson.LessonType.QUIZ:
+
+            self.lesson.lesson_type = Lesson.LessonType.QUIZ
+            self.lesson.save(
+                update_fields=[
+                    'lesson_type',
+                    'updated_at',
+                ]
+            )
+
+        super().save(*args, **kwargs)
+
+    @property
+    def course(self):
+
+        return self.lesson.module.course
+
+    @property
+    def total_marks(self):
+
+        return self.questions.aggregate(
+            total=models.Sum('marks')
+        )['total'] or 0
+
+
+class Question(models.Model):
+
+    class QuestionType(models.TextChoices):
+
+        MULTIPLE_CHOICE = 'Multiple Choice', 'Multiple Choice'
+        MULTIPLE_SELECT = 'Multiple Select', 'Multiple Select'
+        TRUE_FALSE = 'True or False', 'True or False'
+        SHORT_ANSWER = 'Short Answer', 'Short Answer'
+
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name='questions'
+    )
+
+    question_text = models.TextField()
+
+    question_type = models.CharField(
+        max_length=40,
+        choices=QuestionType.choices,
+        default=QuestionType.MULTIPLE_CHOICE
+    )
+
+    marks = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=1
+    )
+
+    order = models.PositiveIntegerField(
+        default=1
+    )
+
+    explanation = models.TextField(
+        blank=True
+    )
+
+    is_required = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            'quiz',
+            'order',
+        )
+
+        indexes = (
+            models.Index(fields=('quiz', 'order'), name='learning_qu_quiz_id_218b17_idx'),
+            models.Index(fields=('question_type',), name='learning_qu_questio_c8f546_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'quiz',
+                    'order',
+                ),
+                name='unique_question_order_per_quiz'
+            ),
+        )
+
+    def __str__(self):
+
+        return f'{self.quiz.title} - Question {self.order}'
+
+    def clean(self):
+
+        if self.marks <= 0:
+
+            raise ValidationError(
+                {
+                    'marks': 'Question marks must be greater than zero.'
+                }
+            )
+
+    @property
+    def is_objective(self):
+
+        return self.question_type != self.QuestionType.SHORT_ANSWER
+
+
+class Choice(models.Model):
+
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name='choices'
+    )
+
+    choice_text = models.CharField(
+        max_length=500
+    )
+
+    is_correct = models.BooleanField(
+        default=False
+    )
+
+    order = models.PositiveIntegerField(
+        default=1
+    )
+
+    class Meta:
+
+        ordering = (
+            'question',
+            'order',
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'question',
+                    'order',
+                ),
+                name='unique_choice_order_per_question'
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    'question',
+                    'choice_text',
+                ),
+                name='unique_choice_text_per_question'
+            ),
+        )
+
+    def __str__(self):
+
+        return self.choice_text
+
+    def clean(self):
+
+        if not self.choice_text.strip():
+
+            raise ValidationError(
+                {
+                    'choice_text': 'Choice text is required.'
+                }
+            )
+
+        if self.question_id and not self.question.is_objective:
+
+            raise ValidationError(
+                'Short-answer questions cannot have choices.'
+            )
+
+
+class QuizAttempt(models.Model):
+
+    class Status(models.TextChoices):
+
+        IN_PROGRESS = 'In Progress', 'In Progress'
+        SUBMITTED = 'Submitted', 'Submitted'
+        AWAITING_MANUAL_GRADING = 'Awaiting Manual Grading', 'Awaiting Manual Grading'
+        GRADED = 'Graded', 'Graded'
+        EXPIRED = 'Expired', 'Expired'
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='quiz_attempts'
+    )
+
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name='attempts'
+    )
+
+    enrolment = models.ForeignKey(
+        Enrolment,
+        on_delete=models.PROTECT,
+        related_name='quiz_attempts',
+        blank=True,
+        null=True
+    )
+
+    attempt_number = models.PositiveIntegerField()
+
+    started_at = models.DateTimeField(
+        default=timezone.now
+    )
+
+    submitted_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    expires_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    status = models.CharField(
+        max_length=40,
+        choices=Status.choices,
+        default=Status.IN_PROGRESS
+    )
+
+    objective_marks_awarded = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0
+    )
+
+    manual_marks_awarded = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0
+    )
+
+    total_marks_awarded = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0
+    )
+
+    total_possible_marks = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0
+    )
+
+    percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+
+    passed = models.BooleanField(
+        default=False
+    )
+
+    requires_manual_grading = models.BooleanField(
+        default=False
+    )
+
+    graded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='graded_quiz_attempts',
+        blank=True,
+        null=True
+    )
+
+    graded_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    instructor_feedback = models.TextField(
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-started_at',
+        )
+
+        indexes = (
+            models.Index(fields=('student',), name='learning_qu_student_b59012_idx'),
+            models.Index(fields=('quiz',), name='learning_qu_quiz_id_fe08bf_idx'),
+            models.Index(fields=('status',), name='learning_qu_status_2cdb71_idx'),
+            models.Index(fields=('attempt_number',), name='learning_qu_attempt_2388b3_idx'),
+            models.Index(fields=('enrolment',), name='learning_qu_enrolme_b0dc59_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'student',
+                    'quiz',
+                    'attempt_number',
+                ),
+                name='unique_quiz_attempt_number_per_student'
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    'student',
+                    'quiz',
+                ),
+                condition=models.Q(status='In Progress'),
+                name='unique_active_quiz_attempt_per_student'
+            ),
+        )
+
+    def __str__(self):
+
+        return f'{self.student} - {self.quiz} - Attempt {self.attempt_number}'
+
+    @property
+    def is_editable(self):
+
+        return self.status == self.Status.IN_PROGRESS
+
+
+class StudentAnswer(models.Model):
+
+    attempt = models.ForeignKey(
+        QuizAttempt,
+        on_delete=models.CASCADE,
+        related_name='answers'
+    )
+
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name='student_answers'
+    )
+
+    selected_choices = models.ManyToManyField(
+        Choice,
+        blank=True,
+        related_name='student_answers'
+    )
+
+    text_answer = models.TextField(
+        blank=True
+    )
+
+    objective_marks_awarded = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0
+    )
+
+    manual_marks_awarded = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0
+    )
+
+    is_correct = models.BooleanField(
+        default=False
+    )
+
+    instructor_feedback = models.TextField(
+        blank=True
+    )
+
+    graded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='graded_quiz_answers',
+        blank=True,
+        null=True
+    )
+
+    graded_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            'question__order',
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'attempt',
+                    'question',
+                ),
+                name='unique_answer_per_attempt_question'
+            ),
+        )
+
+    def __str__(self):
+
+        return f'{self.attempt} - {self.question}'
+
+    def clean(self):
+
+        if self.manual_marks_awarded < 0 or self.objective_marks_awarded < 0:
+
+            raise ValidationError(
+                'Marks cannot be negative.'
+            )
+
+        if self.manual_marks_awarded > self.question.marks:
+
+            raise ValidationError(
+                {
+                    'manual_marks_awarded': 'Manual marks cannot exceed question marks.'
+                }
+            )
+
+
+class Assignment(models.Model):
+
+    lesson = models.OneToOneField(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='assignment'
+    )
+
+    title = models.CharField(
+        max_length=220
+    )
+
+    slug = models.SlugField(
+        max_length=240,
+        blank=True
+    )
+
+    instructions = models.TextField()
+
+    maximum_score = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=100
+    )
+
+    passing_score = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=50
+    )
+
+    due_date = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    allow_late_submission = models.BooleanField(
+        default=False
+    )
+
+    allow_resubmission = models.BooleanField(
+        default=True
+    )
+
+    maximum_attempts = models.PositiveIntegerField(
+        default=1,
+        validators=[
+            MinValueValidator(1),
+        ]
+    )
+
+    allowed_file_extensions = models.CharField(
+        max_length=255,
+        default=','.join(SAFE_ASSIGNMENT_EXTENSIONS),
+        help_text='Separate extensions using commas.'
+    )
+
+    maximum_file_size_mb = models.PositiveIntegerField(
+        default=10
+    )
+
+    require_text_submission = models.BooleanField(
+        default=True
+    )
+
+    require_file_submission = models.BooleanField(
+        default=False
+    )
+
+    is_compulsory = models.BooleanField(
+        default=True
+    )
+
+    is_published = models.BooleanField(
+        default=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            'lesson__module__course__title',
+            'lesson__module__order',
+            'lesson__order',
+        )
+
+        indexes = (
+            models.Index(fields=('slug',), name='learning_as_slug_8df6b9_idx'),
+            models.Index(fields=('is_published',), name='learning_as_is_publ_7751a1_idx'),
+            models.Index(fields=('due_date',), name='learning_as_due_dat_9305cc_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'lesson',
+                    'slug',
+                ),
+                name='unique_assignment_slug_per_lesson'
+            ),
+        )
+
+    def __str__(self):
+
+        return self.title
+
+    def clean(self):
+
+        errors = {}
+
+        if self.maximum_score <= 0:
+
+            errors['maximum_score'] = 'Maximum score must be greater than zero.'
+
+        if self.passing_score < 0:
+
+            errors['passing_score'] = 'Passing score cannot be negative.'
+
+        if self.maximum_score and self.passing_score > self.maximum_score:
+
+            errors['passing_score'] = 'Passing score cannot exceed maximum score.'
+
+        if self.maximum_attempts < 1:
+
+            errors['maximum_attempts'] = 'Maximum attempts must be at least 1.'
+
+        if not self.require_text_submission and not self.require_file_submission:
+
+            errors['require_text_submission'] = 'At least one submission method is required.'
+
+        allowed_extensions = self.allowed_extension_list
+
+        if self.require_file_submission and not allowed_extensions:
+
+            errors['allowed_file_extensions'] = 'Allowed file extensions are required for file submissions.'
+
+        dangerous = set(allowed_extensions) & set(DANGEROUS_ASSIGNMENT_EXTENSIONS)
+
+        if dangerous:
+
+            errors['allowed_file_extensions'] = 'Executable file types are not allowed.'
+
+        if self.require_file_submission and self.maximum_file_size_mb <= 0:
+
+            errors['maximum_file_size_mb'] = 'Maximum file size must be greater than zero.'
+
+        if self.is_published and self.lesson and not self.lesson.is_published:
+
+            errors['is_published'] = 'A published assignment cannot belong to an unpublished lesson.'
+
+        if errors:
+
+            raise ValidationError(
+                errors
+            )
+
+    def save(self, *args, **kwargs):
+
+        if not self.slug:
+
+            self.slug = slugify(self.title) or 'assignment'
+
+        if self.lesson_id and self.lesson.lesson_type != Lesson.LessonType.ASSIGNMENT:
+
+            self.lesson.lesson_type = Lesson.LessonType.ASSIGNMENT
+            self.lesson.save(
+                update_fields=[
+                    'lesson_type',
+                    'updated_at',
+                ]
+            )
+
+        super().save(*args, **kwargs)
+
+    @property
+    def course(self):
+
+        return self.lesson.module.course
+
+    @property
+    def allowed_extension_list(self):
+
+        return [
+            item.strip().lower().lstrip('.')
+            for item in self.allowed_file_extensions.split(',')
+            if item.strip()
+        ]
+
+    def get_absolute_url(self):
+
+        return reverse(
+            'learning:assignment_detail',
+            args=[
+                self.pk,
+            ]
+        )
+
+
+class AssignmentSubmission(models.Model):
+
+    class Status(models.TextChoices):
+
+        DRAFT = 'Draft', 'Draft'
+        SUBMITTED = 'Submitted', 'Submitted'
+        UNDER_REVIEW = 'Under Review', 'Under Review'
+        GRADED = 'Graded', 'Graded'
+        RETURNED = 'Returned for Revision', 'Returned for Revision'
+        WITHDRAWN = 'Withdrawn', 'Withdrawn'
+
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name='submissions'
+    )
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='assignment_submissions'
+    )
+
+    enrolment = models.ForeignKey(
+        Enrolment,
+        on_delete=models.PROTECT,
+        related_name='assignment_submissions'
+    )
+
+    attempt_number = models.PositiveIntegerField()
+
+    submission_text = models.TextField(
+        blank=True
+    )
+
+    submission_file = models.FileField(
+        upload_to=assignment_submission_upload_to,
+        blank=True,
+        null=True
+    )
+
+    original_filename = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    file_size = models.PositiveIntegerField(
+        default=0
+    )
+
+    status = models.CharField(
+        max_length=40,
+        choices=Status.choices,
+        default=Status.DRAFT
+    )
+
+    submitted_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    is_late = models.BooleanField(
+        default=False
+    )
+
+    score = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+
+    passed = models.BooleanField(
+        default=False
+    )
+
+    instructor_feedback = models.TextField(
+        blank=True
+    )
+
+    graded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='graded_assignment_submissions',
+        blank=True,
+        null=True
+    )
+
+    graded_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    returned_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    returned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='returned_assignment_submissions',
+        blank=True,
+        null=True
+    )
+
+    revision_message = models.TextField(
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-created_at',
+        )
+
+        indexes = (
+            models.Index(fields=('assignment', 'student', 'status'), name='learning_su_assign_1a2e5f_idx'),
+            models.Index(fields=('enrolment', 'submitted_at'), name='learning_su_enrolme_14a507_idx'),
+            models.Index(fields=('status', 'graded_at'), name='learning_su_status_47f75a_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'assignment',
+                    'student',
+                    'attempt_number',
+                ),
+                name='unique_assignment_attempt_per_student'
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    'assignment',
+                    'student',
+                ),
+                condition=models.Q(status='Draft'),
+                name='unique_draft_assignment_submission'
+            ),
+        )
+
+    def __str__(self):
+
+        return f'{self.student} - {self.assignment} - Attempt {self.attempt_number}'
+
+    def clean(self):
+
+        if self.score is not None:
+
+            if self.score < 0:
+
+                raise ValidationError(
+                    {
+                        'score': 'Score cannot be negative.'
+                    }
+                )
+
+            if self.assignment_id and self.score > self.assignment.maximum_score:
+
+                raise ValidationError(
+                    {
+                        'score': 'Score cannot exceed assignment maximum score.'
+                    }
+                )
+
+    @property
+    def is_student_editable(self):
+
+        return self.status in [
+            self.Status.DRAFT,
+        ]

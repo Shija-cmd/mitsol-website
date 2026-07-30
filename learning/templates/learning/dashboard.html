@@ -18,6 +18,16 @@
             <div class="col-md-4"><div class="learning-stat-card"><strong>{{ completed_count }}</strong><span>Completed Courses</span></div></div>
         </div>
 
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ passed_quiz_count }}</strong><span>Passed Quizzes</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ failed_quiz_count }}</strong><span>Failed Quizzes</span></div></div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ passed_assignment_count }}</strong><span>Passed Assignments</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ failed_assignment_count }}</strong><span>Failed Assignments</span></div></div>
+        </div>
+
         <div class="row g-4">
             <div class="col-lg-8">
                 <h2 class="fw-bold mb-3">Enrolled Courses</h2>
@@ -56,8 +66,63 @@
 
                 <div class="card border-0 shadow-sm mt-4">
                     <div class="card-body">
-                        <h3 class="h5 fw-bold">Phase 2 Areas</h3>
-                        <p class="text-muted mb-0">Assignments, quiz results, certificates, announcements, and payment history will appear after Phase 2 is implemented.</p>
+                        <h3 class="h5 fw-bold">Recent Announcements</h3>
+                        {% for announcement in recent_announcements %}
+                        <a href="{% url 'learning:announcements' %}" class="learning-list-item text-decoration-none mb-2">
+                            <i class="fas fa-bullhorn"></i>
+                            <div>
+                                <strong>{{ announcement.title }}</strong>
+                                <span>{{ announcement.course.title }}</span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <p class="text-muted mb-0">Course announcements will appear here.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-body">
+                        <h3 class="h5 fw-bold">Recent Quiz Attempts</h3>
+                        {% for attempt in recent_quiz_attempts %}
+                        <a href="{% if attempt.status == 'In Progress' %}{% url 'learning:quiz_attempt' attempt.pk %}{% else %}{% url 'learning:quiz_result' attempt.pk %}{% endif %}" class="learning-list-item text-decoration-none mb-2">
+                            <i class="fas fa-circle-question"></i>
+                            <div>
+                                <strong>{{ attempt.quiz.title }}</strong>
+                                <span>{{ attempt.status }} • {{ attempt.percentage }}%</span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <p class="text-muted mb-0">Quiz attempts will appear here.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-body">
+                        <h3 class="h5 fw-bold">Assignment Activity</h3>
+                        {% for submission in returned_assignments %}
+                        <a href="{% url 'learning:submission_detail' submission.pk %}" class="learning-list-item text-decoration-none mb-2">
+                            <i class="fas fa-rotate-left"></i>
+                            <div>
+                                <strong>{{ submission.assignment.title }}</strong>
+                                <span>Returned for revision</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                        {% for assignment in upcoming_assignments %}
+                        <a href="{% url 'learning:assignment_detail' assignment.pk %}" class="learning-list-item text-decoration-none mb-2">
+                            <i class="fas fa-calendar-day"></i>
+                            <div>
+                                <strong>{{ assignment.title }}</strong>
+                                <span>Due {{ assignment.due_date }}</span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        {% if not returned_assignments %}
+                        <p class="text-muted mb-0">Assignment deadlines and revision requests will appear here.</p>
+                        {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
             </div>

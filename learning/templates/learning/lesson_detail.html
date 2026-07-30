@@ -46,6 +46,50 @@
                 </div>
                 {% endif %}
 
+                {% if quiz %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <span class="badge bg-info text-dark mb-2">Quiz</span>
+                        <h2 class="h4 fw-bold">{{ quiz.title }}</h2>
+                        <p class="text-muted">{{ quiz.instructions|truncatewords:32 }}</p>
+                        {% if latest_quiz_attempt %}
+                        <div class="alert {% if latest_quiz_attempt.passed %}alert-success{% elif latest_quiz_attempt.status == 'Awaiting Manual Grading' %}alert-info{% else %}alert-warning{% endif %}">
+                            Latest attempt: {{ latest_quiz_attempt.status }}{% if latest_quiz_attempt.status == 'Graded' %} • {{ latest_quiz_attempt.percentage }}%{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if quiz.is_published %}
+                        <a href="{% url 'learning:quiz_detail' quiz.pk %}" class="btn btn-primary">
+                            Open Quiz
+                        </a>
+                        {% else %}
+                        <div class="alert alert-secondary mb-0">This quiz is not published yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if assignment %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <span class="badge bg-warning text-dark mb-2">Assignment</span>
+                        <h2 class="h4 fw-bold">{{ assignment.title }}</h2>
+                        <p class="text-muted">{{ assignment.instructions|truncatewords:32 }}</p>
+                        {% if latest_assignment_submission %}
+                        <div class="alert {% if latest_assignment_submission.passed %}alert-success{% elif latest_assignment_submission.status == 'Returned for Revision' %}alert-warning{% else %}alert-info{% endif %}">
+                            Latest submission: {{ latest_assignment_submission.status }}{% if latest_assignment_submission.score %} • {{ latest_assignment_submission.score }} / {{ assignment.maximum_score }}{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if assignment.is_published %}
+                        <a href="{% url 'learning:assignment_detail' assignment.pk %}" class="btn btn-primary">
+                            Open Assignment
+                        </a>
+                        {% else %}
+                        <div class="alert alert-secondary mb-0">This assignment is not published yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="d-flex flex-wrap gap-2">
                     {% if lesson.downloadable_file %}
                     <a class="btn btn-outline-primary" href="{{ lesson.downloadable_file.url }}" target="_blank" rel="noopener noreferrer">
@@ -76,7 +120,11 @@
                         <div class="progress mb-3">
                             <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%"></div>
                         </div>
-                        {% if progress and progress.is_completed %}
+                        {% if lesson.lesson_type == 'Quiz' %}
+                        <div class="alert alert-info">Quiz lessons are completed when you pass the quiz.</div>
+                        {% elif lesson.lesson_type == 'Assignment' %}
+                        <div class="alert alert-info">Assignment lessons are completed when your submission receives a passing grade.</div>
+                        {% elif progress and progress.is_completed %}
                         <div class="alert alert-success">This lesson is complete.</div>
                         {% else %}
                         <form method="post">

@@ -1,0 +1,38 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ submission.assignment.title }}</span>
+        <h1 class="fw-bold mt-3">{{ submission.student.get_full_name|default:submission.student.username }}</h1>
+        <p class="lead">Attempt {{ submission.attempt_number }} • {{ submission.status }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    {% if submission.status == 'Submitted' %}
+                    <form method="post" action="{% url 'learning:instructor_submission_review' submission.pk %}">{% csrf_token %}<button class="btn btn-outline-primary">Mark Under Review</button></form>
+                    {% endif %}
+                    <a href="{% url 'learning:instructor_submission_grade' submission.pk %}" class="btn btn-primary">Grade Submission</a>
+                    <a href="{% url 'learning:instructor_submission_return' submission.pk %}" class="btn btn-outline-warning">Return for Revision</a>
+                    {% if submission.submission_file %}
+                    <a href="{% url 'learning:submission_download' submission.pk %}" class="btn btn-outline-dark">Download File</a>
+                    {% endif %}
+                </div>
+                {% if submission.submission_text %}
+                <h2 class="h5 fw-bold">Written Response</h2>
+                <p>{{ submission.submission_text|linebreaksbr }}</p>
+                {% endif %}
+                <div class="alert alert-light border">
+                    Score: {{ submission.score|default:'-' }} / {{ submission.assignment.maximum_score }}<br>
+                    Feedback: {{ submission.instructor_feedback|default:'-' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

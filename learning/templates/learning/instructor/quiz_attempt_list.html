@@ -1,0 +1,72 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Instructor Workspace</span>
+        <h1 class="fw-bold mt-3">Quiz Attempts</h1>
+        <p class="lead">Review submissions and grade short-answer attempts.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="get" class="card filter-card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All statuses</option>
+                            {% for value,label in statuses %}
+                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Quiz</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                            <th>Submitted</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attempt in attempts %}
+                        <tr>
+                            <td>{{ attempt.student.get_full_name|default:attempt.student.username }}</td>
+                            <td>{{ attempt.quiz.title }}</td>
+                            <td>{{ attempt.status }}</td>
+                            <td>{{ attempt.percentage }}%</td>
+                            <td>{{ attempt.submitted_at|default:'-' }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'learning:instructor_quiz_attempt_detail' attempt.pk %}" class="btn btn-outline-primary btn-sm">View</a>
+                                {% if attempt.status == 'Awaiting Manual Grading' %}
+                                <a href="{% url 'learning:instructor_quiz_attempt_grade' attempt.pk %}" class="btn btn-primary btn-sm">Grade</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-muted">No attempts found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

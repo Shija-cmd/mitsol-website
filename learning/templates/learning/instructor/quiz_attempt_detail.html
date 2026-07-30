@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ attempt.quiz.title }}</span>
+        <h1 class="fw-bold mt-3">Attempt {{ attempt.attempt_number }}</h1>
+        <p class="lead">{{ attempt.student.get_full_name|default:attempt.student.username }} • {{ attempt.status }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-3"><strong>Score</strong><div>{{ attempt.percentage }}%</div></div>
+                    <div class="col-md-3"><strong>Marks</strong><div>{{ attempt.total_marks_awarded }} / {{ attempt.total_possible_marks }}</div></div>
+                    <div class="col-md-3"><strong>Passed</strong><div>{% if attempt.passed %}Yes{% else %}No{% endif %}</div></div>
+                    <div class="col-md-3"><strong>Submitted</strong><div>{{ attempt.submitted_at|default:'-' }}</div></div>
+                </div>
+                {% if attempt.status == 'Awaiting Manual Grading' %}
+                <a href="{% url 'learning:instructor_quiz_attempt_grade' attempt.pk %}" class="btn btn-primary mt-3">Grade Attempt</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h4 fw-bold">Answers</h2>
+                {% for answer in attempt.answers.all %}
+                <div class="border-bottom py-3">
+                    <strong>{{ answer.question.question_text }}</strong>
+                    <div class="text-muted small">{{ answer.question.question_type }} • {{ answer.question.marks }} marks</div>
+                    {% if answer.text_answer %}
+                    <p class="mt-2">{{ answer.text_answer|linebreaksbr }}</p>
+                    {% endif %}
+                    {% if answer.selected_choices.all %}
+                    <ul class="mt-2">
+                        {% for choice in answer.selected_choices.all %}
+                        <li>{{ choice.choice_text }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    <div class="small">Awarded: {{ answer.objective_marks_awarded|add:answer.manual_marks_awarded }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

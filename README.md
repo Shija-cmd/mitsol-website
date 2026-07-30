@@ -88,3 +88,31 @@ python manage.py migrate
 ## Author
 
 Developed and maintained by Juma Shija.
+# MITSOL Learning Assignments
+
+Stage 3 adds assignment lessons to the online learning system. An assignment is linked to one `Assignment` lesson and supports written responses, file uploads, drafts, final submission, grading, and revision.
+
+Assignment workflow:
+- Students create or resume one draft for the current attempt.
+- Saving a draft does not notify instructors and does not complete lesson progress.
+- Final submission changes the draft to `Submitted` and makes it read-only for the student.
+- Instructors can mark submitted work `Under Review`, grade it, or return it for revision.
+- Returned submissions are preserved. If resubmission is allowed and attempts remain, the student creates a new draft as the next attempt.
+- A compulsory assignment lesson is completed only when at least one submission is graded as passed.
+
+Submission statuses:
+- `Draft`
+- `Submitted`
+- `Under Review`
+- `Graded`
+- `Returned for Revision`
+- `Withdrawn`
+
+Late-submission policy:
+- Due dates are checked server-side.
+- Late submissions are rejected when `allow_late_submission` is disabled.
+- When late submissions are allowed, `is_late` is calculated by the server during final submission.
+
+File validation:
+- The server validates extension, file size, empty files, filename length, dangerous executable extensions, and assignment-specific allowed extensions.
+- Public `MEDIA_URL` serving is not true private storage. The learning UI uses an authorized download view for assignment files, but Render local media is not reliably persistent unless persistent disk or external object storage is configured.

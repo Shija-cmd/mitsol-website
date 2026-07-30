@@ -1,14 +1,25 @@
 from django.contrib import admin
+from django.utils import timezone
 
 from .models import (
+    Assignment,
+    AssignmentSubmission,
     Course,
+    CourseAnnouncement,
     CourseCategory,
     Enrolment,
     InstructorProfile,
     Lesson,
     LessonProgress,
     Module,
+    Notification,
+    Choice,
+    Question,
+    Quiz,
+    QuizAttempt,
+    StudentAnswer,
 )
+from .services import mark_submission_under_review, publish_announcement
 
 
 class LessonInline(admin.TabularInline):
@@ -25,6 +36,34 @@ class LessonInline(admin.TabularInline):
         'is_preview',
         'is_compulsory',
         'is_published',
+    )
+
+
+class ChoiceInline(admin.TabularInline):
+
+    model = Choice
+
+    extra = 2
+
+    fields = (
+        'choice_text',
+        'is_correct',
+        'order',
+    )
+
+
+class QuestionInline(admin.TabularInline):
+
+    model = Question
+
+    extra = 1
+
+    fields = (
+        'question_text',
+        'question_type',
+        'marks',
+        'order',
+        'is_required',
     )
 
 
@@ -291,3 +330,543 @@ class LessonProgressAdmin(admin.ModelAdmin):
         'started_at',
         'last_accessed_at',
     )
+
+
+@admin.register(CourseAnnouncement)
+class CourseAnnouncementAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'title',
+        'course',
+        'author',
+        'is_published',
+        'notifications_sent',
+        'published_at',
+        'updated_at',
+    )
+
+    list_filter = (
+        'is_published',
+        'notifications_sent',
+        'course',
+        'created_at',
+    )
+
+    search_fields = (
+        'title',
+        'message',
+        'course__title',
+        'author__username',
+        'author__first_name',
+        'author__last_name',
+    )
+
+    readonly_fields = (
+        'published_at',
+        'notifications_sent',
+        'created_at',
+        'updated_at',
+    )
+
+    date_hierarchy = 'created_at'
+
+    actions = (
+        'publish_and_notify',
+    )
+
+    def save_model(self, request, obj, form, change):
+
+        was_published = False
+
+        if change:
+
+            was_published = CourseAnnouncement.objects.filter(
+                pk=obj.pk,
+                is_published=True
+            ).exists()
+
+        super().save_model(
+            request,
+            obj,
+            form,
+            change
+        )
+
+        if obj.is_published and not was_published:
+
+            publish_announcement(
+                obj
+            )
+
+    def publish_and_notify(self, request, queryset):
+
+        for announcement in queryset:
+
+            publish_announcement(
+                announcement
+            )
+
+    publish_and_notify.short_description = 'Publish and notify enrolled students'
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'recipient',
+        'title',
+        'notification_type',
+        'is_read',
+        'created_at',
+    )
+
+    list_filter = (
+        'notification_type',
+        'is_read',
+        'created_at',
+    )
+
+    search_fields = (
+        'recipient__username',
+        'recipient__first_name',
+        'recipient__last_name',
+        'title',
+        'message',
+    )
+
+    readonly_fields = (
+        'created_at',
+        'read_at',
+    )
+
+    date_hierarchy = 'created_at'
+
+    actions = (
+        'mark_notifications_read',
+    )
+
+    def mark_notifications_read(self, request, queryset):
+
+        queryset.update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+
+    mark_notifications_read.short_description = 'Mark selected notifications as read'
+
+
+@admin.register(Quiz)
+class QuizAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'title',
+        'lesson',
+        'passing_score',
+        'attempts_allowed',
+        'time_limit_minutes',
+        'is_published',
+        'updated_at',
+    )
+
+    list_filter = (
+        'is_published',
+        'is_compulsory',
+        'lesson__module__course',
+        'created_at',
+    )
+
+    search_fields = (
+        'title',
+        'instructions',
+        'lesson__title',
+        'lesson__module__course__title',
+    )
+
+    prepopulated_fields = {
+        'slug': (
+            'title',
+        )
+    }
+
+    autocomplete_fields = (
+        'lesson',
+    )
+
+    readonly_fields = (
+        'created_at',
+        'updated_at',
+    )
+
+    inlines = (
+        QuestionInline,
+    )
+
+    actions = (
+        'publish_quizzes',
+        'unpublish_quizzes',
+    )
+
+    def publish_quizzes(self, request, queryset):
+
+        queryset.update(
+            is_published=True
+        )
+
+    publish_quizzes.short_description = 'Publish selected quizzes'
+
+    def unpublish_quizzes(self, request, queryset):
+
+        queryset.update(
+            is_published=False
+        )
+
+    unpublish_quizzes.short_description = 'Unpublish selected quizzes'
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'quiz',
+        'order',
+        'question_type',
+        'marks',
+        'is_required',
+    )
+
+    list_filter = (
+        'question_type',
+        'is_required',
+        'quiz__lesson__module__course',
+    )
+
+    search_fields = (
+        'question_text',
+        'quiz__title',
+        'quiz__lesson__module__course__title',
+    )
+
+    autocomplete_fields = (
+        'quiz',
+    )
+
+    inlines = (
+        ChoiceInline,
+    )
+
+
+@admin.register(Choice)
+class ChoiceAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'question',
+        'choice_text',
+        'is_correct',
+        'order',
+    )
+
+    list_filter = (
+        'is_correct',
+        'question__question_type',
+    )
+
+    search_fields = (
+        'choice_text',
+        'question__question_text',
+    )
+
+    autocomplete_fields = (
+        'question',
+    )
+
+
+@admin.register(QuizAttempt)
+class QuizAttemptAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'student',
+        'quiz',
+        'attempt_number',
+        'status',
+        'percentage',
+        'passed',
+        'submitted_at',
+    )
+
+    list_filter = (
+        'status',
+        'passed',
+        'requires_manual_grading',
+        'quiz__lesson__module__course',
+        'submitted_at',
+    )
+
+    search_fields = (
+        'student__username',
+        'student__first_name',
+        'student__last_name',
+        'quiz__title',
+    )
+
+    autocomplete_fields = (
+        'student',
+        'quiz',
+        'enrolment',
+        'graded_by',
+    )
+
+    readonly_fields = (
+        'objective_marks_awarded',
+        'manual_marks_awarded',
+        'total_marks_awarded',
+        'total_possible_marks',
+        'percentage',
+        'passed',
+        'submitted_at',
+        'graded_at',
+        'created_at',
+        'updated_at',
+    )
+
+    date_hierarchy = 'created_at'
+
+    actions = (
+        'mark_for_review',
+    )
+
+    def mark_for_review(self, request, queryset):
+
+        queryset.update(
+            status=QuizAttempt.Status.AWAITING_MANUAL_GRADING,
+            requires_manual_grading=True
+        )
+
+    mark_for_review.short_description = 'Mark selected attempts for review'
+
+
+@admin.register(StudentAnswer)
+class StudentAnswerAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'attempt',
+        'question',
+        'objective_marks_awarded',
+        'manual_marks_awarded',
+        'is_correct',
+        'graded_at',
+    )
+
+    list_filter = (
+        'is_correct',
+        'question__question_type',
+        'graded_at',
+    )
+
+    search_fields = (
+        'attempt__student__username',
+        'question__question_text',
+        'text_answer',
+    )
+
+    autocomplete_fields = (
+        'attempt',
+        'question',
+        'selected_choices',
+        'graded_by',
+    )
+
+    readonly_fields = (
+        'objective_marks_awarded',
+        'created_at',
+        'updated_at',
+    )
+
+
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'title',
+        'lesson',
+        'maximum_score',
+        'passing_score',
+        'due_date',
+        'is_compulsory',
+        'is_published',
+    )
+
+    list_filter = (
+        'is_published',
+        'is_compulsory',
+        'allow_late_submission',
+        'allow_resubmission',
+        'lesson__module__course',
+    )
+
+    search_fields = (
+        'title',
+        'instructions',
+        'lesson__title',
+        'lesson__module__course__title',
+    )
+
+    prepopulated_fields = {
+        'slug': (
+            'title',
+        )
+    }
+
+    autocomplete_fields = (
+        'lesson',
+    )
+
+    readonly_fields = (
+        'created_at',
+        'updated_at',
+    )
+
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        (
+            'Basic Information',
+            {
+                'fields': (
+                    'lesson',
+                    'title',
+                    'slug',
+                    'instructions',
+                    'is_published',
+                    'is_compulsory',
+                )
+            }
+        ),
+        (
+            'Scoring and Attempts',
+            {
+                'fields': (
+                    'maximum_score',
+                    'passing_score',
+                    'maximum_attempts',
+                    'allow_resubmission',
+                )
+            }
+        ),
+        (
+            'Deadline and Uploads',
+            {
+                'fields': (
+                    'due_date',
+                    'allow_late_submission',
+                    'require_text_submission',
+                    'require_file_submission',
+                    'allowed_file_extensions',
+                    'maximum_file_size_mb',
+                )
+            }
+        ),
+        (
+            'Timestamps',
+            {
+                'fields': (
+                    'created_at',
+                    'updated_at',
+                )
+            }
+        ),
+    )
+
+    actions = (
+        'publish_assignments',
+        'unpublish_assignments',
+    )
+
+    def publish_assignments(self, request, queryset):
+
+        queryset.update(
+            is_published=True
+        )
+
+    publish_assignments.short_description = 'Publish selected assignments'
+
+    def unpublish_assignments(self, request, queryset):
+
+        queryset.update(
+            is_published=False
+        )
+
+    unpublish_assignments.short_description = 'Unpublish selected assignments'
+
+
+@admin.register(AssignmentSubmission)
+class AssignmentSubmissionAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'student',
+        'assignment',
+        'attempt_number',
+        'status',
+        'is_late',
+        'score',
+        'passed',
+        'submitted_at',
+        'graded_at',
+    )
+
+    list_filter = (
+        'status',
+        'is_late',
+        'passed',
+        'assignment__lesson__module__course',
+        'submitted_at',
+        'graded_at',
+    )
+
+    search_fields = (
+        'student__username',
+        'student__first_name',
+        'student__last_name',
+        'assignment__title',
+        'submission_text',
+    )
+
+    autocomplete_fields = (
+        'assignment',
+        'student',
+        'enrolment',
+        'graded_by',
+        'returned_by',
+    )
+
+    readonly_fields = (
+        'attempt_number',
+        'original_filename',
+        'file_size',
+        'submitted_at',
+        'is_late',
+        'score',
+        'passed',
+        'graded_by',
+        'graded_at',
+        'returned_at',
+        'returned_by',
+        'created_at',
+        'updated_at',
+    )
+
+    date_hierarchy = 'created_at'
+
+    actions = (
+        'mark_selected_under_review',
+    )
+
+    def mark_selected_under_review(self, request, queryset):
+
+        for submission in queryset:
+
+            mark_submission_under_review(
+                submission,
+                request.user
+            )
+
+    mark_selected_under_review.short_description = 'Mark selected submissions Under Review'

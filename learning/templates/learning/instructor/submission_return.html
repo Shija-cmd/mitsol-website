@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ submission.assignment.title }}</span>
+        <h1 class="fw-bold mt-3">Return for Revision</h1>
+        <p class="lead">Provide clear revision instructions for the student.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="post" class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                {% csrf_token %}
+                {% include 'core/includes/form_fields.html' %}
+                <button type="submit" class="btn btn-warning">Return Submission</button>
+                <a href="{% url 'learning:instructor_submission_detail' submission.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ quiz.lesson.module.course.title }}</span>
+        <h1 class="fw-bold mt-3">{{ quiz.title }} Questions</h1>
+        <p class="lead">Add objective and short-answer questions for this quiz.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                {% for question in questions %}
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between gap-3">
+                            <div>
+                                <h2 class="h5 fw-bold">{{ question.order }}. {{ question.question_text|truncatewords:18 }}</h2>
+                                <p class="text-muted mb-2">{{ question.question_type }} • {{ question.marks }} marks</p>
+                            </div>
+                            <div class="text-end">
+                                <a href="{% url 'learning:instructor_question_edit' question.pk %}" class="btn btn-outline-primary btn-sm">Edit</a>
+                                {% if question.is_objective %}
+                                <a href="{% url 'learning:instructor_question_choices' question.pk %}" class="btn btn-primary btn-sm">Choices</a>
+                                {% endif %}
+                                <form method="post" action="{% url 'learning:instructor_question_delete' question.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">No questions yet.</div>
+                {% endfor %}
+            </div>
+            <div class="col-lg-5">
+                <form method="post" class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Add Question</h2>
+                        {% csrf_token %}
+                        {% include 'core/includes/form_fields.html' with form=question_form %}
+                        <button class="btn btn-primary w-100" type="submit">Add Question</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

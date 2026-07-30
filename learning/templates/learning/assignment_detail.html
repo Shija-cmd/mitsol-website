@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ assignment.course.title }}</span>
+        <h1 class="fw-bold mt-3">{{ assignment.title }}</h1>
+        <p class="lead">{{ assignment.instructions|truncatewords:28 }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Instructions</h2>
+                        <p class="text-muted">{{ assignment.instructions|linebreaksbr }}</p>
+                    </div>
+                </div>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Submission History</h2>
+                        {% for submission in submissions %}
+                        <div class="d-flex justify-content-between border-bottom py-3">
+                            <div>
+                                <strong>Attempt {{ submission.attempt_number }}</strong>
+                                <div class="text-muted small">{{ submission.status }}{% if submission.is_late %} • Late{% endif %}</div>
+                            </div>
+                            <a href="{% url 'learning:submission_detail' submission.pk %}" class="btn btn-outline-primary btn-sm">View</a>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-info mb-0">No submissions yet.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Requirements</h2>
+                        <p class="mb-1">Maximum score: <strong>{{ assignment.maximum_score }}</strong></p>
+                        <p class="mb-1">Passing score: <strong>{{ assignment.passing_score }}</strong></p>
+                        <p class="mb-1">Due date: <strong>{{ assignment.due_date|default:'No due date' }}</strong></p>
+                        <p class="mb-1">Attempts: <strong>{{ attempts_used }} / {{ assignment.maximum_attempts }}</strong></p>
+                        <p class="mb-1">Text required: <strong>{% if assignment.require_text_submission %}Yes{% else %}No{% endif %}</strong></p>
+                        <p class="mb-3">File required: <strong>{% if assignment.require_file_submission %}Yes{% else %}No{% endif %}</strong></p>
+                        <p class="small text-muted">Allowed files: {{ assignment.allowed_file_extensions }}</p>
+                        {% if draft %}
+                        <a href="{% url 'learning:assignment_draft' assignment.pk %}" class="btn btn-primary w-100">Continue Draft</a>
+                        {% elif attempts_remaining > 0 %}
+                        <a href="{% url 'learning:assignment_draft' assignment.pk %}" class="btn btn-primary w-100">Start Submission</a>
+                        {% else %}
+                        <div class="alert alert-secondary mb-0">No attempts remaining.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

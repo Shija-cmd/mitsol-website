@@ -50,7 +50,7 @@
                         <form method="post">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="module">
-                            {{ module_form.as_p }}
+                            {% include 'core/includes/form_fields.html' with form=module_form %}
                             <button class="btn btn-primary w-100" type="submit">Add Module</button>
                         </form>
                     </div>
@@ -62,7 +62,7 @@
                         <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="lesson">
-                            {{ lesson_form.as_p }}
+                            {% include 'core/includes/form_fields.html' with form=lesson_form %}
                             <button class="btn btn-primary w-100" type="submit">Add Lesson</button>
                         </form>
                     </div>

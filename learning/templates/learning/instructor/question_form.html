@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Question</span>
+        <h1 class="fw-bold mt-3">{{ title }}</h1>
+        <p class="lead">{{ question.quiz.title }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="post" class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                {% csrf_token %}
+                {% include 'core/includes/form_fields.html' %}
+                <button type="submit" class="btn btn-primary">Save Question</button>
+                <a href="{% url 'learning:instructor_quiz_questions' question.quiz.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>
+
+{% endblock %}

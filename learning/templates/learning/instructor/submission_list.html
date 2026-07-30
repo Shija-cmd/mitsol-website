@@ -1,0 +1,56 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Instructor Workspace</span>
+        <h1 class="fw-bold mt-3">Assignment Submissions</h1>
+        <p class="lead">Review submitted assignments and grading status.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if statuses %}
+        <form method="get" class="card filter-card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All statuses</option>
+                            {% for value,label in statuses %}
+                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Filter</button></div>
+                </div>
+            </div>
+        </form>
+        {% endif %}
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead><tr><th>Student</th><th>Assignment</th><th>Attempt</th><th>Status</th><th>Late</th><th>Score</th><th></th></tr></thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        <tr>
+                            <td>{{ submission.student.get_full_name|default:submission.student.username }}</td>
+                            <td>{{ submission.assignment.title }}</td>
+                            <td>{{ submission.attempt_number }}</td>
+                            <td>{{ submission.status }}</td>
+                            <td>{% if submission.is_late %}Yes{% else %}No{% endif %}</td>
+                            <td>{{ submission.score|default:'-' }}</td>
+                            <td class="text-end"><a href="{% url 'learning:instructor_submission_detail' submission.pk %}" class="btn btn-outline-primary btn-sm">View</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-muted">No submissions found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ quiz.title }}</span>
+        <h1 class="fw-bold mt-3">Quiz Result</h1>
+        <p class="lead">Attempt {{ attempt.attempt_number }} • {{ attempt.status }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Score</h2>
+                        {% if attempt.status == 'Awaiting Manual Grading' %}
+                        <div class="alert alert-info">This attempt is awaiting manual grading.</div>
+                        {% endif %}
+                        <div class="display-6 fw-bold">{{ attempt.percentage }}%</div>
+                        <p class="text-muted">{{ attempt.total_marks_awarded }} / {{ attempt.total_possible_marks }} marks</p>
+                        <span class="badge {% if attempt.passed %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if attempt.passed %}Passed{% else %}Not Passed{% endif %}
+                        </span>
+                        {% if attempt.instructor_feedback %}
+                        <hr>
+                        <h3 class="h6 fw-bold">Instructor Feedback</h3>
+                        <p class="text-muted mb-0">{{ attempt.instructor_feedback|linebreaksbr }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Question Feedback</h2>
+                        {% for answer in attempt.answers.all %}
+                        <div class="border-bottom py-3">
+                            <strong>{{ forloop.counter }}. {{ answer.question.question_text }}</strong>
+                            <div class="text-muted small">Marks: {{ answer.objective_marks_awarded|add:answer.manual_marks_awarded }} / {{ answer.question.marks }}</div>
+                            {% if answer.text_answer %}
+                            <p class="mt-2 mb-1">{{ answer.text_answer|linebreaksbr }}</p>
+                            {% endif %}
+                            {% if answer.selected_choices.all %}
+                            <ul class="mb-1">
+                                {% for choice in answer.selected_choices.all %}
+                                <li>{{ choice.choice_text }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            {% if quiz.show_correct_answers and answer.question.is_objective %}
+                            <div class="small text-success">
+                                Correct answer:
+                                {% for choice in answer.question.choices.all %}
+                                    {% if choice.is_correct %}{{ choice.choice_text }}{% if not forloop.last %}, {% endif %}{% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if answer.instructor_feedback %}
+                            <div class="small text-muted mt-2">{{ answer.instructor_feedback }}</div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-info">No answers recorded.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

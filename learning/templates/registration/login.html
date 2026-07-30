@@ -13,18 +13,88 @@
 <section class="py-5 bg-light">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-lg-5">
-                <form method="post" class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        {% csrf_token %}
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-primary w-100">Log In</button>
-                        <p class="text-center mt-3 mb-0">
-                            New learner?
-                            <a href="{% url 'learning:register' %}">Create account</a>
-                        </p>
+            <div class="col-xl-8 col-lg-9">
+                <div class="card border-0 shadow-sm learning-auth-card">
+                    <div class="row g-0">
+                        <div class="col-lg-5 learning-auth-side">
+                            <div class="p-4 p-lg-5">
+                                <span class="section-kicker">Welcome Back</span>
+                                <h2 class="h3 fw-bold mt-3">Continue Learning</h2>
+                                <p>
+                                    Access your courses, continue lessons, and track progress from your learner dashboard.
+                                </p>
+                                <div class="learning-auth-benefit">
+                                    <i class="fas fa-play-circle"></i>
+                                    Continue lessons
+                                </div>
+                                <div class="learning-auth-benefit">
+                                    <i class="fas fa-chart-line"></i>
+                                    Track progress
+                                </div>
+                                <div class="learning-auth-benefit">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    Build practical skills
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-7">
+                            <form method="post" class="p-4 p-lg-5">
+                                {% csrf_token %}
+
+                                {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.non_field_errors }}
+                                </div>
+                                {% endif %}
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                                    <input
+                                        type="text"
+                                        name="{{ form.username.html_name }}"
+                                        id="{{ form.username.id_for_label }}"
+                                        class="form-control"
+                                        placeholder="Enter your username"
+                                        value="{{ form.username.value|default_if_none:'' }}"
+                                        autocomplete="username"
+                                        required>
+                                    {% for error in form.username.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                                    <input
+                                        type="password"
+                                        name="{{ form.password.html_name }}"
+                                        id="{{ form.password.id_for_label }}"
+                                        class="form-control"
+                                        placeholder="Enter your password"
+                                        autocomplete="current-password"
+                                        required>
+                                    {% for error in form.password.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                {% if next %}
+                                <input type="hidden" name="next" value="{{ next }}">
+                                {% endif %}
+
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    Log In
+                                </button>
+
+                                <p class="text-center mt-3 mb-0">
+                                    New learner?
+                                    <a href="{% url 'learning:register' %}">Create account</a>
+                                </p>
+                            </form>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

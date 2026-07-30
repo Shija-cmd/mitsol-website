@@ -1,0 +1,35 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Instructor</span>
+        <h1 class="fw-bold mt-3">{{ title }}</h1>
+        <p class="lead">Create updates for active students in your course.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <form method="post" class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        {% csrf_token %}
+                        {% include 'core/includes/form_fields.html' %}
+                        <div class="alert alert-info">
+                            Notifications are sent only the first time an announcement is published.
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary">Save Announcement</button>
+                            <a href="{% url 'learning:instructor_announcements' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

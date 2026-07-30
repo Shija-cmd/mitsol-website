@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Instructor Workspace</span>
+        <h1 class="fw-bold mt-3">Assignment Management</h1>
+        <p class="lead">Create assignments, publish tasks, and review submissions.</p>
+        <a href="{% url 'learning:instructor_assignment_create' %}" class="btn btn-primary btn-lg">Create Assignment</a>
+        <a href="{% url 'learning:instructor_submission_list' %}" class="btn btn-outline-light btn-lg">Submission Queue</a>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead><tr><th>Assignment</th><th>Course</th><th>Due</th><th>Submissions</th><th>Pending</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>{{ assignment.title }}</td>
+                            <td>{{ assignment.lesson.module.course.title }}</td>
+                            <td>{{ assignment.due_date|default:'-' }}</td>
+                            <td>{{ assignment.submission_count }}</td>
+                            <td>{{ assignment.pending_count }}</td>
+                            <td>{% if assignment.is_published %}<span class="badge bg-success">Published</span>{% else %}<span class="badge bg-secondary">Draft</span>{% endif %}</td>
+                            <td class="text-end">
+                                <a href="{% url 'learning:instructor_assignment_edit' assignment.pk %}" class="btn btn-outline-primary btn-sm">Edit</a>
+                                <a href="{% url 'learning:instructor_assignment_submissions' assignment.pk %}" class="btn btn-primary btn-sm">Submissions</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-muted">No assignments yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

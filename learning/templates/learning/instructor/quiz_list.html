@@ -1,0 +1,55 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Instructor Workspace</span>
+        <h1 class="fw-bold mt-3">Quiz Management</h1>
+        <p class="lead">Create quizzes, manage questions, and monitor attempts.</p>
+        <a href="{% url 'learning:instructor_quiz_create' %}" class="btn btn-primary btn-lg">Create Quiz</a>
+        <a href="{% url 'learning:instructor_quiz_attempts' %}" class="btn btn-outline-light btn-lg">Grading Queue</a>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Quiz</th>
+                            <th>Course</th>
+                            <th>Questions</th>
+                            <th>Attempts</th>
+                            <th>Pending</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for quiz in quizzes %}
+                        <tr>
+                            <td>{{ quiz.title }}</td>
+                            <td>{{ quiz.lesson.module.course.title }}</td>
+                            <td>{{ quiz.question_count }}</td>
+                            <td>{{ quiz.attempt_count }}</td>
+                            <td>{{ quiz.pending_count }}</td>
+                            <td>{% if quiz.is_published %}<span class="badge bg-success">Published</span>{% else %}<span class="badge bg-secondary">Draft</span>{% endif %}</td>
+                            <td class="text-end">
+                                <a href="{% url 'learning:instructor_quiz_edit' quiz.pk %}" class="btn btn-outline-primary btn-sm">Edit</a>
+                                <a href="{% url 'learning:instructor_quiz_questions' quiz.pk %}" class="btn btn-primary btn-sm">Questions</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-muted">No quizzes yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

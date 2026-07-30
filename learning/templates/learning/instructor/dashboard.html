@@ -10,6 +10,8 @@
         <div class="page-hero-actions">
             <a href="{% url 'learning:instructor_course_create' %}" class="btn btn-primary btn-lg">Create Course</a>
             <a href="{% url 'learning:instructor_courses' %}" class="btn btn-outline-light btn-lg">Manage Courses</a>
+            <a href="{% url 'learning:instructor_quizzes' %}" class="btn btn-outline-light btn-lg">Quizzes</a>
+            <a href="{% url 'learning:instructor_announcements' %}" class="btn btn-outline-light btn-lg">Announcements</a>
         </div>
     </div>
 </section>
@@ -21,6 +23,19 @@
             <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ published_courses }}</strong><span>Published</span></div></div>
             <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ draft_courses }}</strong><span>Drafts</span></div></div>
             <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ total_students }}</strong><span>Students</span></div></div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ total_quiz_attempts }}</strong><span>Quiz Attempts</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ pending_grading_count }}</strong><span>Awaiting Grading</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ average_quiz_score|default:'0' }}</strong><span>Average Score</span></div></div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ total_assignment_submissions }}</strong><span>Assignment Submissions</span></div></div>
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ pending_assignment_grading_count }}</strong><span>Pending Assignment Grades</span></div></div>
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ late_assignment_count }}</strong><span>Late Submissions</span></div></div>
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ returned_assignment_count }}</strong><span>Returned</span></div></div>
         </div>
 
         <div class="row g-4">
@@ -55,6 +70,46 @@
                 </div>
                 {% empty %}
                 <div class="alert alert-info">Recent enrolments will appear here.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 fw-bold mb-0">Recent Quiz Attempts</h2>
+                    <a href="{% url 'learning:instructor_quiz_attempts' %}" class="btn btn-outline-primary btn-sm">Open Grading Queue</a>
+                </div>
+                {% for attempt in recent_quiz_attempts %}
+                <div class="learning-list-item mb-2">
+                    <i class="fas fa-clipboard-check"></i>
+                    <div>
+                        <strong>{{ attempt.student.get_full_name|default:attempt.student.username }}</strong>
+                        <span>{{ attempt.quiz.title }} • {{ attempt.status }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info mb-0">Quiz submissions will appear here.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 fw-bold mb-0">Recent Assignment Submissions</h2>
+                    <a href="{% url 'learning:instructor_submission_list' %}" class="btn btn-outline-primary btn-sm">Open Submission Queue</a>
+                </div>
+                {% for submission in recent_assignment_submissions %}
+                <div class="learning-list-item mb-2">
+                    <i class="fas fa-file-pen"></i>
+                    <div>
+                        <strong>{{ submission.student.get_full_name|default:submission.student.username }}</strong>
+                        <span>{{ submission.assignment.title }} • {{ submission.status }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info mb-0">Assignment submissions will appear here.</div>
                 {% endfor %}
             </div>
         </div>

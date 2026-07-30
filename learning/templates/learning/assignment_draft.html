@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Attempt {{ submission.attempt_number }}</span>
+        <h1 class="fw-bold mt-3">{{ assignment.title }}</h1>
+        <p class="lead">Save your work as a draft, then submit when it is final.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="post" enctype="multipart/form-data" class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                {% csrf_token %}
+                {% include 'core/includes/form_fields.html' %}
+                {% if submission.submission_file %}
+                <div class="alert alert-light border">
+                    Current file: {{ submission.original_filename|default:submission.submission_file.name }}
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn-outline-primary">Save Draft</button>
+                <button type="submit" form="final-submit-form" class="btn btn-primary">Final Submit</button>
+                <a href="{% url 'learning:assignment_detail' assignment.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+        <form id="final-submit-form" method="post" action="{% url 'learning:assignment_submit' assignment.pk %}">
+            {% csrf_token %}
+        </form>
+    </div>
+</section>
+{% endblock %}

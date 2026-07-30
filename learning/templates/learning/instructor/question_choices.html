@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ question.quiz.title }}</span>
+        <h1 class="fw-bold mt-3">Question Choices</h1>
+        <p class="lead">{{ question.question_text|truncatewords:24 }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if choice_warning %}
+        <div class="alert alert-warning">{{ choice_warning }}</div>
+        {% endif %}
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Existing Choices</h2>
+                        {% for choice in choices %}
+                        <div class="d-flex justify-content-between border-bottom py-2">
+                            <span>{{ choice.order }}. {{ choice.choice_text }}</span>
+                            {% if choice.is_correct %}<span class="badge bg-success">Correct</span>{% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-info">No choices yet.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <form method="post" class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Add Choice</h2>
+                        {% csrf_token %}
+                        {% include 'core/includes/form_fields.html' %}
+                        <button class="btn btn-primary w-100" type="submit">Add Choice</button>
+                        <a href="{% url 'learning:instructor_quiz_questions' question.quiz.pk %}" class="btn btn-outline-secondary w-100 mt-2">Back to Questions</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

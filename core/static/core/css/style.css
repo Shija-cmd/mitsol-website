@@ -706,11 +706,69 @@ section{
 
 }
 
+.form-control[type="file"]{
+
+    padding:.65rem .85rem;
+
+}
+
 .form-control:focus,
 .form-select:focus{
 
     border-color:var(--mitsol-blue);
     box-shadow:0 0 0 .18rem rgba(0,119,255,.15);
+
+}
+
+.form-label{
+
+    color:var(--mitsol-ink);
+
+}
+
+.form-text{
+
+    color:var(--mitsol-muted);
+    font-size:.88rem;
+
+}
+
+.errorlist{
+
+    color:#DC2626;
+    list-style:none;
+    margin:.35rem 0 0;
+    padding-left:0;
+
+}
+
+.invalid-feedback{
+
+    color:#DC2626;
+    font-weight:600;
+
+}
+
+.form-check{
+
+    align-items:flex-start;
+    display:flex;
+    gap:10px;
+    padding-left:0;
+
+}
+
+.form-check .form-check-input{
+
+    flex:0 0 auto;
+    margin-left:0;
+    margin-top:.28rem;
+
+}
+
+.form-check-label{
+
+    color:var(--mitsol-ink);
 
 }
 
@@ -737,6 +795,105 @@ footer{
 }
 
 /* LEARNING */
+
+.learning-sidebar{
+
+    background:var(--mitsol-navy);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:10px;
+    box-shadow:0 18px 45px rgba(2,12,27,.22);
+    color:#fff;
+    left:24px;
+    max-height:calc(100vh - 118px);
+    overflow-y:auto;
+    position:fixed;
+    top:94px;
+    width:250px;
+    z-index:1020;
+
+}
+
+.learning-sidebar-inner{
+
+    padding:18px;
+
+}
+
+.learning-sidebar-title{
+
+    color:#fff;
+    font-size:1.05rem;
+    font-weight:800;
+    margin-bottom:14px;
+
+}
+
+.learning-sidebar-section{
+
+    border-top:1px solid rgba(255,255,255,.1);
+    color:rgba(255,255,255,.58);
+    font-size:.73rem;
+    font-weight:800;
+    letter-spacing:.05em;
+    margin:14px 0 6px;
+    padding:14px 12px 0;
+    text-transform:uppercase;
+
+}
+
+.learning-sidebar-link,
+.learning-sidebar-button{
+
+    align-items:center;
+    background:transparent;
+    border:0;
+    border-radius:7px;
+    color:rgba(255,255,255,.84);
+    display:flex;
+    gap:10px;
+    min-height:42px;
+    padding:10px 12px;
+    text-align:left;
+    text-decoration:none;
+    width:100%;
+
+}
+
+.learning-sidebar-link:hover,
+.learning-sidebar-link.active,
+.learning-sidebar-button:hover{
+
+    background:rgba(255,255,255,.1);
+    color:#fff;
+
+}
+
+.learning-sidebar-link i,
+.learning-sidebar-button i{
+
+    color:var(--mitsol-cyan);
+    width:18px;
+
+}
+
+.learning-sidebar-count{
+
+    background:var(--mitsol-cyan);
+    border-radius:999px;
+    color:#06343d;
+    font-size:.75rem;
+    font-weight:800;
+    margin-left:auto;
+    padding:2px 7px;
+
+}
+
+body.learning-page > section,
+body.learning-page > footer{
+
+    margin-left:298px;
+
+}
 
 .learning-hero .learning-hero-panel{
 
@@ -971,6 +1128,38 @@ footer{
 
 }
 
+.learning-unread-card{
+
+    border-left:4px solid var(--mitsol-blue) !important;
+
+}
+
+.quiz-question-card{
+
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    padding:20px;
+
+}
+
+.quiz-question-card ul{
+
+    list-style:none;
+    margin:0;
+    padding-left:0;
+
+}
+
+.quiz-question-card li{
+
+    align-items:center;
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+
+}
+
 @media (max-width:767.98px){
 
     .software-card-title,
@@ -1016,6 +1205,63 @@ footer{
         margin-bottom:10px;
         margin-right:0 !important;
         width:100%;
+
+    }
+
+}
+
+@media (max-width:991.98px){
+
+    .learning-sidebar{
+
+        border-bottom:1px solid rgba(255,255,255,.08);
+        border-right:0;
+        border-radius:0;
+        box-shadow:none;
+        left:auto;
+        max-height:none;
+        position:static;
+        top:auto;
+        width:100%;
+
+    }
+
+    .learning-sidebar-inner{
+
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        padding:12px;
+
+    }
+
+    .learning-sidebar-title{
+
+        margin-bottom:4px;
+        width:100%;
+
+    }
+
+    .learning-sidebar-section{
+
+        border-top:0;
+        margin:8px 4px 0;
+        padding:10px 4px 0;
+        width:100%;
+
+    }
+
+    .learning-sidebar-link,
+    .learning-sidebar-button{
+
+        width:auto;
+
+    }
+
+    body.learning-page > section,
+    body.learning-page > footer{
+
+        margin-left:0;
 
     }
 

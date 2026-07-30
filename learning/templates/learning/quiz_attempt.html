@@ -1,0 +1,45 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Attempt {{ attempt.attempt_number }}</span>
+        <h1 class="fw-bold mt-3">{{ quiz.title }}</h1>
+        <p class="lead">{% if attempt.expires_at %}This attempt expires at {{ attempt.expires_at }}. The timer is a guide only; the server enforces expiry.{% else %}Untimed quiz attempt.{% endif %}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post" action="{% url 'learning:quiz_submit' attempt.pk %}" class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="quiz-question-card mb-4">
+                    <label class="form-label fw-bold">{{ forloop.counter }}. {{ field.label }}</label>
+                    <div class="text-muted small mb-2">Required{% if not field.field.required %}: No{% endif %}</div>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="alert alert-warning">
+                    Submit only when you are ready. A submitted attempt cannot be edited.
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">Submit Quiz</button>
+                <a href="{% url 'learning:quiz_detail' quiz.pk %}" class="btn btn-outline-secondary btn-lg">Back</a>
+            </div>
+        </form>
+    </div>
+</section>
+
+{% endblock %}

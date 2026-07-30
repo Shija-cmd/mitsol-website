@@ -1,0 +1,48 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Administrator</span>
+        <h1 class="fw-bold mt-3">All Course Announcements</h1>
+        <p class="lead">Review announcements across the learning platform.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Course</th>
+                            <th>Author</th>
+                            <th>Published</th>
+                            <th>Notifications</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for announcement in announcements %}
+                        <tr>
+                            <td><strong>{{ announcement.title }}</strong></td>
+                            <td>{{ announcement.course.title }}</td>
+                            <td>{{ announcement.author.get_full_name|default:announcement.author.username }}</td>
+                            <td>{{ announcement.is_published|yesno:"Yes,No" }}</td>
+                            <td>{{ announcement.notifications_sent|yesno:"Sent,Not sent" }}</td>
+                            <td>{{ announcement.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No announcements yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

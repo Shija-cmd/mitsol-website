@@ -118,7 +118,7 @@
 
                             {% csrf_token %}
 
-                            {{ form.as_p }}
+                            {% include 'core/includes/form_fields.html' %}
 
                             <button
                             type="submit"

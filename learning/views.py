@@ -4,15 +4,66 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.http import FileResponse, Http404
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from .forms import CourseForm, LessonForm, ModuleForm, StudentRegistrationForm
-from .models import Course, CourseCategory, Enrolment, Lesson, LessonProgress
+from .forms import (
+    AssignmentForm,
+    AssignmentGradingForm,
+    AssignmentRevisionForm,
+    AssignmentSubmissionForm,
+    ChoiceForm,
+    CourseAnnouncementForm,
+    CourseForm,
+    LessonForm,
+    ManualQuizGradingForm,
+    ModuleForm,
+    QuestionForm,
+    QuizAttemptForm,
+    QuizForm,
+    StudentRegistrationForm,
+)
+from .models import (
+    Assignment,
+    AssignmentSubmission,
+    Choice,
+    Course,
+    CourseAnnouncement,
+    CourseCategory,
+    Enrolment,
+    Lesson,
+    LessonProgress,
+    Notification,
+    Question,
+    Quiz,
+    QuizAttempt,
+    StudentAnswer,
+)
 from .permissions import STUDENT_GROUP, ensure_course_owner, instructor_required, is_instructor
-from .services import enrol_student_in_course, mark_lesson_complete, recalculate_enrolment_progress
+from .services import (
+    can_access_assignment,
+    enrol_student_in_course,
+    expire_quiz_attempt_if_needed,
+    get_or_create_assignment_draft,
+    grade_assignment_submission,
+    grade_short_answers,
+    mark_lesson_complete,
+    mark_submission_under_review,
+    publish_announcement,
+    quiz_is_accessible,
+    recalculate_enrolment_progress,
+    return_assignment_for_revision,
+    save_assignment_draft,
+    start_quiz_attempt,
+    submit_assignment,
+    submit_quiz_attempt,
+)
 
 
 def learning_home(request):
@@ -232,6 +283,55 @@ def student_dashboard(request):
         student=request.user
     )[:5]
 
+    recent_announcements = CourseAnnouncement.objects.select_related(
+        'course',
+        'author'
+    ).filter(
+        is_published=True,
+        course__enrolments__student=request.user,
+        course__enrolments__is_active=True,
+        course__enrolments__status__in=[
+            Enrolment.Status.ACTIVE,
+            Enrolment.Status.COMPLETED,
+        ],
+    ).distinct()[:5]
+
+    quiz_attempts = QuizAttempt.objects.select_related(
+        'quiz',
+        'quiz__lesson',
+        'quiz__lesson__module',
+        'quiz__lesson__module__course'
+    ).filter(
+        student=request.user
+    )
+
+    in_progress_attempts = quiz_attempts.filter(
+        status=QuizAttempt.Status.IN_PROGRESS
+    )
+
+    assignment_submissions = AssignmentSubmission.objects.select_related(
+        'assignment',
+        'assignment__lesson',
+        'assignment__lesson__module',
+        'assignment__lesson__module__course'
+    ).filter(
+        student=request.user
+    )
+
+    upcoming_assignments = Assignment.objects.select_related(
+        'lesson',
+        'lesson__module',
+        'lesson__module__course'
+    ).filter(
+        is_published=True,
+        lesson__module__course__enrolments__student=request.user,
+        lesson__module__course__enrolments__is_active=True,
+        due_date__isnull=False,
+        due_date__gte=timezone.now()
+    ).distinct().order_by(
+        'due_date'
+    )[:5]
+
     return render(
         request,
         'learning/dashboard.html',
@@ -241,6 +341,18 @@ def student_dashboard(request):
             'active_count': enrolments.filter(status=Enrolment.Status.ACTIVE).count(),
             'completed_count': enrolments.filter(status=Enrolment.Status.COMPLETED).count(),
             'pending_count': enrolments.filter(status=Enrolment.Status.PENDING).count(),
+            'recent_announcements': recent_announcements,
+            'recent_quiz_attempts': quiz_attempts[:5],
+            'in_progress_quiz_attempts': in_progress_attempts,
+            'pending_quiz_attempts': quiz_attempts.filter(status=QuizAttempt.Status.AWAITING_MANUAL_GRADING),
+            'passed_quiz_count': QuizAttempt.objects.filter(student=request.user, passed=True).count(),
+            'failed_quiz_count': QuizAttempt.objects.filter(student=request.user, status=QuizAttempt.Status.GRADED, passed=False).count(),
+            'draft_assignments': assignment_submissions.filter(status=AssignmentSubmission.Status.DRAFT)[:5],
+            'returned_assignments': assignment_submissions.filter(status=AssignmentSubmission.Status.RETURNED)[:5],
+            'recent_assignment_submissions': assignment_submissions.exclude(status=AssignmentSubmission.Status.DRAFT)[:5],
+            'upcoming_assignments': upcoming_assignments,
+            'passed_assignment_count': assignment_submissions.filter(status=AssignmentSubmission.Status.GRADED, passed=True).count(),
+            'failed_assignment_count': assignment_submissions.filter(status=AssignmentSubmission.Status.GRADED, passed=False).count(),
         }
     )
 
@@ -297,6 +409,22 @@ def lesson_detail(request, course_slug, lesson_slug):
 
     if request.method == 'POST' and enrolment:
 
+        if lesson.lesson_type in [
+            Lesson.LessonType.QUIZ,
+            Lesson.LessonType.ASSIGNMENT,
+        ]:
+
+            messages.info(
+                request,
+                'This lesson is completed through its assessment workflow.'
+            )
+
+            return redirect(
+                'learning:lesson_detail',
+                course_slug=course.slug,
+                lesson_slug=lesson.slug
+            )
+
         mark_lesson_complete(
             request.user,
             enrolment,
@@ -314,6 +442,37 @@ def lesson_detail(request, course_slug, lesson_slug):
             lesson_slug=lesson.slug
         )
 
+    quiz = getattr(
+        lesson,
+        'quiz',
+        None
+    )
+    assignment = getattr(
+        lesson,
+        'assignment',
+        None
+    )
+    quiz_attempts = QuizAttempt.objects.none()
+    latest_quiz_attempt = None
+    assignment_submissions = AssignmentSubmission.objects.none()
+    latest_assignment_submission = None
+
+    if quiz and request.user.is_authenticated:
+
+        quiz_attempts = QuizAttempt.objects.filter(
+            student=request.user,
+            quiz=quiz
+        )
+        latest_quiz_attempt = quiz_attempts.first()
+
+    if assignment and request.user.is_authenticated:
+
+        assignment_submissions = AssignmentSubmission.objects.filter(
+            student=request.user,
+            assignment=assignment
+        )
+        latest_assignment_submission = assignment_submissions.first()
+
     return render(
         request,
         'learning/lesson_detail.html',
@@ -322,6 +481,12 @@ def lesson_detail(request, course_slug, lesson_slug):
             'lesson': lesson,
             'enrolment': enrolment,
             'progress': progress,
+            'quiz': quiz,
+            'quiz_attempts': quiz_attempts,
+            'latest_quiz_attempt': latest_quiz_attempt,
+            'assignment': assignment,
+            'assignment_submissions': assignment_submissions,
+            'latest_assignment_submission': latest_assignment_submission,
         }
     )
 
@@ -337,6 +502,14 @@ def instructor_dashboard(request):
         course__in=courses
     )
 
+    attempts = QuizAttempt.objects.filter(
+        quiz__lesson__module__course__in=courses
+    )
+
+    assignment_submissions = AssignmentSubmission.objects.filter(
+        assignment__lesson__module__course__in=courses
+    )
+
     return render(
         request,
         'learning/instructor/dashboard.html',
@@ -347,6 +520,21 @@ def instructor_dashboard(request):
             'draft_courses': courses.filter(status=Course.Status.DRAFT).count(),
             'total_students': enrolments.values('student').distinct().count(),
             'recent_enrolments': enrolments.select_related('student', 'course')[:5],
+            'total_quiz_attempts': attempts.count(),
+            'pending_grading_count': attempts.filter(status=QuizAttempt.Status.AWAITING_MANUAL_GRADING).count(),
+            'recent_quiz_attempts': attempts.select_related('student', 'quiz')[:5],
+            'average_quiz_score': attempts.filter(status=QuizAttempt.Status.GRADED).aggregate(avg=Avg('percentage'))['avg'],
+            'total_assignment_submissions': assignment_submissions.count(),
+            'pending_assignment_grading_count': assignment_submissions.filter(
+                status__in=[
+                    AssignmentSubmission.Status.SUBMITTED,
+                    AssignmentSubmission.Status.UNDER_REVIEW,
+                ]
+            ).count(),
+            'late_assignment_count': assignment_submissions.filter(is_late=True).count(),
+            'returned_assignment_count': assignment_submissions.filter(status=AssignmentSubmission.Status.RETURNED).count(),
+            'recent_assignment_submissions': assignment_submissions.select_related('student', 'assignment')[:5],
+            'average_assignment_score': assignment_submissions.filter(status=AssignmentSubmission.Status.GRADED).aggregate(avg=Avg('score'))['avg'],
         }
     )
 
@@ -551,6 +739,1599 @@ def instructor_course_modules(request, pk):
     )
 
 
+@login_required
+def announcement_list(request):
+
+    announcements = CourseAnnouncement.objects.select_related(
+        'course',
+        'author'
+    ).filter(
+        is_published=True,
+        course__enrolments__student=request.user,
+        course__enrolments__is_active=True,
+        course__enrolments__status__in=[
+            Enrolment.Status.ACTIVE,
+            Enrolment.Status.COMPLETED,
+        ],
+    ).distinct()
+
+    return render(
+        request,
+        'learning/announcements.html',
+        {
+            'announcements': announcements,
+        }
+    )
+
+
+@instructor_required
+def instructor_announcement_list(request):
+
+    announcements = CourseAnnouncement.objects.select_related(
+        'course',
+        'author'
+    )
+
+    if not request.user.is_staff:
+
+        announcements = announcements.filter(
+            course__instructor=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/announcement_list.html',
+        {
+            'announcements': announcements,
+        }
+    )
+
+
+@instructor_required
+def instructor_announcement_create(request):
+
+    if request.method == 'POST':
+
+        form = CourseAnnouncementForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            announcement = form.save(
+                commit=False
+            )
+            ensure_course_owner(
+                request.user,
+                announcement.course
+            )
+            announcement.author = request.user
+            announcement.save()
+
+            if announcement.is_published:
+
+                publish_announcement(
+                    announcement
+                )
+
+            messages.success(
+                request,
+                'Announcement created successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_announcements'
+            )
+
+    else:
+
+        form = CourseAnnouncementForm(
+            user=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/announcement_form.html',
+        {
+            'form': form,
+            'title': 'Create Announcement',
+        }
+    )
+
+
+@instructor_required
+def instructor_announcement_edit(request, pk):
+
+    announcements = CourseAnnouncement.objects.select_related(
+        'course'
+    )
+
+    if not request.user.is_staff:
+
+        announcements = announcements.filter(
+            course__instructor=request.user
+        )
+
+    announcement = get_object_or_404(
+        announcements,
+        pk=pk
+    )
+
+    if request.method == 'POST':
+
+        was_published = announcement.is_published
+        form = CourseAnnouncementForm(
+            request.POST,
+            instance=announcement,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            announcement = form.save(
+                commit=False
+            )
+            ensure_course_owner(
+                request.user,
+                announcement.course
+            )
+            announcement.save()
+
+            if announcement.is_published and not was_published:
+
+                publish_announcement(
+                    announcement
+                )
+
+            messages.success(
+                request,
+                'Announcement updated successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_announcements'
+            )
+
+    else:
+
+        form = CourseAnnouncementForm(
+            instance=announcement,
+            user=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/announcement_form.html',
+        {
+            'form': form,
+            'announcement': announcement,
+            'title': 'Edit Announcement',
+        }
+    )
+
+
+@login_required
+def notification_list(request):
+
+    notifications = Notification.objects.filter(
+        recipient=request.user
+    )
+
+    return render(
+        request,
+        'learning/notifications.html',
+        {
+            'notifications': notifications,
+        }
+    )
+
+
+@login_required
+def notification_read(request, pk):
+
+    notification = get_object_or_404(
+        Notification,
+        pk=pk,
+        recipient=request.user
+    )
+
+    notification.mark_read()
+
+    if notification.related_url:
+
+        return redirect(
+            notification.related_url
+        )
+
+    return redirect(
+        'learning:notifications'
+    )
+
+
+@login_required
+@require_POST
+def notifications_read_all(request):
+
+    Notification.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).update(
+        is_read=True,
+        read_at=timezone.now()
+    )
+
+    messages.success(
+        request,
+        'All notifications marked as read.'
+    )
+
+    return redirect(
+        'learning:notifications'
+    )
+
+
+@staff_member_required
+def admin_announcement_list(request):
+
+    return render(
+        request,
+        'learning/admin/announcement_list.html',
+        {
+            'announcements': CourseAnnouncement.objects.select_related(
+                'course',
+                'author'
+            ),
+        }
+    )
+
+
+@login_required
+def quiz_detail(request, pk):
+
+    quiz = get_object_or_404(
+        Quiz.objects.select_related(
+            'lesson',
+            'lesson__module',
+            'lesson__module__course'
+        ).prefetch_related(
+            'questions'
+        ),
+        pk=pk,
+        is_published=True
+    )
+
+    try:
+
+        enrolment = quiz_is_accessible(
+            request.user,
+            quiz
+        )
+
+    except PermissionDenied:
+
+        messages.warning(
+            request,
+            'Please enrol in this course to access this quiz.'
+        )
+
+        return redirect(
+            'learning:course_detail',
+            slug=quiz.course.slug
+        )
+
+    attempts = QuizAttempt.objects.filter(
+        student=request.user,
+        quiz=quiz
+    )
+    in_progress = attempts.filter(
+        status=QuizAttempt.Status.IN_PROGRESS
+    ).first()
+
+    if in_progress:
+
+        expire_quiz_attempt_if_needed(
+            in_progress
+        )
+
+    attempts_used = attempts.count()
+
+    return render(
+        request,
+        'learning/quiz_detail.html',
+        {
+            'quiz': quiz,
+            'enrolment': enrolment,
+            'attempts': attempts,
+            'attempts_used': attempts_used,
+            'attempts_remaining': max(quiz.attempts_allowed - attempts_used, 0),
+            'in_progress': attempts.filter(status=QuizAttempt.Status.IN_PROGRESS).first(),
+            'best_attempt': attempts.filter(status=QuizAttempt.Status.GRADED).order_by('-percentage').first(),
+        }
+    )
+
+
+@login_required
+def quiz_start(request, pk):
+
+    quiz = get_object_or_404(
+        Quiz,
+        pk=pk,
+        is_published=True
+    )
+
+    try:
+
+        attempt = start_quiz_attempt(
+            request.user,
+            quiz
+        )
+
+    except (PermissionDenied, ValidationError) as exc:
+
+        messages.error(
+            request,
+            exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+        )
+
+        return redirect(
+            'learning:quiz_detail',
+            pk=quiz.pk
+        )
+
+    return redirect(
+        'learning:quiz_attempt',
+        pk=attempt.pk
+    )
+
+
+@login_required
+def quiz_attempt(request, pk):
+
+    attempt = get_object_or_404(
+        QuizAttempt.objects.select_related(
+            'quiz',
+            'quiz__lesson',
+            'quiz__lesson__module',
+            'quiz__lesson__module__course'
+        ),
+        pk=pk,
+        student=request.user
+    )
+
+    attempt = expire_quiz_attempt_if_needed(
+        attempt
+    )
+
+    if attempt.status != QuizAttempt.Status.IN_PROGRESS:
+
+        return redirect(
+            'learning:quiz_result',
+            pk=attempt.pk
+        )
+
+    form = QuizAttemptForm(
+        quiz=attempt.quiz
+    )
+
+    return render(
+        request,
+        'learning/quiz_attempt.html',
+        {
+            'attempt': attempt,
+            'quiz': attempt.quiz,
+            'form': form,
+        }
+    )
+
+
+@login_required
+@require_POST
+def quiz_submit(request, pk):
+
+    attempt = get_object_or_404(
+        QuizAttempt.objects.select_related(
+            'quiz'
+        ),
+        pk=pk,
+        student=request.user
+    )
+
+    form = QuizAttemptForm(
+        request.POST,
+        quiz=attempt.quiz
+    )
+
+    if form.is_valid():
+
+        try:
+
+            submit_quiz_attempt(
+                attempt,
+                form.submitted_answers()
+            )
+
+            messages.success(
+                request,
+                'Quiz submitted successfully.'
+            )
+
+            return redirect(
+                'learning:quiz_result',
+                pk=attempt.pk
+            )
+
+        except ValidationError as exc:
+
+            messages.error(
+                request,
+                exc.messages[0]
+            )
+
+    return render(
+        request,
+        'learning/quiz_attempt.html',
+        {
+            'attempt': attempt,
+            'quiz': attempt.quiz,
+            'form': form,
+        }
+    )
+
+
+@login_required
+def quiz_result(request, pk):
+
+    attempt = get_object_or_404(
+        QuizAttempt.objects.select_related(
+            'quiz',
+            'quiz__lesson',
+            'quiz__lesson__module',
+            'quiz__lesson__module__course'
+        ).prefetch_related(
+            'answers__question',
+            'answers__question__choices',
+            'answers__selected_choices'
+        ),
+        pk=pk,
+        student=request.user
+    )
+
+    return render(
+        request,
+        'learning/quiz_result.html',
+        {
+            'attempt': attempt,
+            'quiz': attempt.quiz,
+        }
+    )
+
+
+@login_required
+def quiz_attempt_history(request, pk):
+
+    quiz = get_object_or_404(
+        Quiz,
+        pk=pk,
+        is_published=True
+    )
+
+    return render(
+        request,
+        'learning/quiz_attempt_history.html',
+        {
+            'quiz': quiz,
+            'attempts': QuizAttempt.objects.filter(
+                student=request.user,
+                quiz=quiz
+            ),
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_list(request):
+
+    quizzes = instructor_quizzes(
+        request.user
+    ).select_related(
+        'lesson',
+        'lesson__module',
+        'lesson__module__course'
+    ).annotate(
+        question_count=Count('questions'),
+        attempt_count=Count('attempts', distinct=True),
+        pending_count=Count(
+            'attempts',
+            filter=Q(attempts__status=QuizAttempt.Status.AWAITING_MANUAL_GRADING),
+            distinct=True
+        )
+    )
+
+    return render(
+        request,
+        'learning/instructor/quiz_list.html',
+        {
+            'quizzes': quizzes,
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_create(request):
+
+    if request.method == 'POST':
+
+        form = QuizForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            quiz = form.save(
+                commit=False
+            )
+            ensure_course_owner(
+                request.user,
+                quiz.lesson.module.course
+            )
+            quiz.save()
+
+            messages.success(
+                request,
+                'Quiz created successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_quiz_questions',
+                pk=quiz.pk
+            )
+
+    else:
+
+        form = QuizForm(
+            user=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/quiz_form.html',
+        {
+            'form': form,
+            'title': 'Create Quiz',
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_edit(request, pk):
+
+    quiz = get_instructor_quiz(
+        request.user,
+        pk
+    )
+
+    if request.method == 'POST':
+
+        form = QuizForm(
+            request.POST,
+            instance=quiz,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            quiz = form.save(
+                commit=False
+            )
+            ensure_course_owner(
+                request.user,
+                quiz.lesson.module.course
+            )
+            quiz.save()
+
+            messages.success(
+                request,
+                'Quiz updated successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_quizzes'
+            )
+
+    else:
+
+        form = QuizForm(
+            instance=quiz,
+            user=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/quiz_form.html',
+        {
+            'form': form,
+            'quiz': quiz,
+            'title': 'Edit Quiz',
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_questions(request, pk):
+
+    quiz = get_instructor_quiz(
+        request.user,
+        pk
+    )
+
+    question_form = QuestionForm(
+        quiz=quiz
+    )
+
+    if request.method == 'POST':
+
+        question_form = QuestionForm(
+            request.POST,
+            quiz=quiz
+        )
+
+        if question_form.is_valid():
+
+            question = question_form.save(
+                commit=False
+            )
+            question.quiz = quiz
+            question.save()
+
+            messages.success(
+                request,
+                'Question added successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_question_choices',
+                pk=question.pk
+            )
+
+    return render(
+        request,
+        'learning/instructor/quiz_questions.html',
+        {
+            'quiz': quiz,
+            'questions': quiz.questions.prefetch_related('choices'),
+            'question_form': question_form,
+        }
+    )
+
+
+@instructor_required
+def instructor_question_edit(request, pk):
+
+    question = get_instructor_question(
+        request.user,
+        pk
+    )
+
+    if request.method == 'POST':
+
+        form = QuestionForm(
+            request.POST,
+            instance=question,
+            quiz=question.quiz
+        )
+
+        if form.is_valid():
+
+            form.save()
+            messages.success(
+                request,
+                'Question updated successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_quiz_questions',
+                pk=question.quiz.pk
+            )
+
+    else:
+
+        form = QuestionForm(
+            instance=question,
+            quiz=question.quiz
+        )
+
+    return render(
+        request,
+        'learning/instructor/question_form.html',
+        {
+            'form': form,
+            'question': question,
+            'title': 'Edit Question',
+        }
+    )
+
+
+@instructor_required
+@require_POST
+def instructor_question_delete(request, pk):
+
+    question = get_instructor_question(
+        request.user,
+        pk
+    )
+    quiz_pk = question.quiz_id
+    question.delete()
+    messages.success(
+        request,
+        'Question deleted successfully.'
+    )
+
+    return redirect(
+        'learning:instructor_quiz_questions',
+        pk=quiz_pk
+    )
+
+
+@instructor_required
+def instructor_question_choices(request, pk):
+
+    question = get_instructor_question(
+        request.user,
+        pk
+    )
+
+    if not question.is_objective:
+
+        messages.info(
+            request,
+            'Short-answer questions do not use choices.'
+        )
+
+        return redirect(
+            'learning:instructor_quiz_questions',
+            pk=question.quiz.pk
+        )
+
+    form = ChoiceForm(
+        question=question
+    )
+
+    if request.method == 'POST':
+
+        form = ChoiceForm(
+            request.POST,
+            question=question
+        )
+
+        if form.is_valid():
+
+            choice = form.save(
+                commit=False
+            )
+            choice.question = question
+            choice.save()
+
+            messages.success(
+                request,
+                'Choice added successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_question_choices',
+                pk=question.pk
+            )
+
+    return render(
+        request,
+        'learning/instructor/question_choices.html',
+        {
+            'question': question,
+            'choices': question.choices.all(),
+            'form': form,
+            'choice_warning': choice_rule_warning(question),
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_attempt_list(request):
+
+    attempts = instructor_attempts(
+        request.user
+    ).select_related(
+        'student',
+        'quiz',
+        'quiz__lesson',
+        'quiz__lesson__module',
+        'quiz__lesson__module__course'
+    )
+
+    status = request.GET.get(
+        'status',
+        ''
+    )
+
+    if status:
+
+        attempts = attempts.filter(
+            status=status
+        )
+
+    return render(
+        request,
+        'learning/instructor/quiz_attempt_list.html',
+        {
+            'attempts': attempts,
+            'statuses': QuizAttempt.Status.choices,
+            'selected_status': status,
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_attempt_detail(request, pk):
+
+    attempt = get_instructor_attempt(
+        request.user,
+        pk
+    )
+
+    return render(
+        request,
+        'learning/instructor/quiz_attempt_detail.html',
+        {
+            'attempt': attempt,
+        }
+    )
+
+
+@instructor_required
+def instructor_quiz_attempt_grade(request, pk):
+
+    attempt = get_instructor_attempt(
+        request.user,
+        pk
+    )
+
+    short_answers = attempt.answers.select_related(
+        'question'
+    ).filter(
+        question__question_type=Question.QuestionType.SHORT_ANSWER
+    )
+
+    if request.method == 'POST':
+
+        grading_data = {
+            'instructor_feedback': request.POST.get(
+                'instructor_feedback',
+                ''
+            )
+        }
+
+        for answer in short_answers:
+
+            grading_data[str(answer.pk)] = {
+                'marks': request.POST.get(
+                    f'marks_{answer.pk}',
+                    '0'
+                ),
+                'feedback': request.POST.get(
+                    f'feedback_{answer.pk}',
+                    ''
+                ),
+            }
+
+        try:
+
+            grade_short_answers(
+                attempt,
+                request.user,
+                grading_data
+            )
+
+            messages.success(
+                request,
+                'Quiz attempt graded successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_quiz_attempt_detail',
+                pk=attempt.pk
+            )
+
+        except ValidationError as exc:
+
+            messages.error(
+                request,
+                exc.messages[0]
+            )
+
+    return render(
+        request,
+        'learning/instructor/quiz_grade.html',
+        {
+            'attempt': attempt,
+            'short_answers': short_answers,
+            'form': ManualQuizGradingForm(
+                initial={
+                    'instructor_feedback': attempt.instructor_feedback,
+                }
+            ),
+        }
+    )
+
+
+@login_required
+def assignment_detail(request, pk):
+
+    assignment = get_object_or_404(
+        Assignment.objects.select_related(
+            'lesson',
+            'lesson__module',
+            'lesson__module__course'
+        ),
+        pk=pk
+    )
+
+    try:
+
+        enrolment = can_access_assignment(
+            request.user,
+            assignment
+        )
+
+    except PermissionDenied as exc:
+
+        messages.warning(
+            request,
+            str(exc)
+        )
+
+        return redirect(
+            'learning:course_detail',
+            slug=assignment.course.slug
+        )
+
+    submissions = AssignmentSubmission.objects.filter(
+        assignment=assignment,
+        student=request.user
+    )
+    draft = submissions.filter(
+        status=AssignmentSubmission.Status.DRAFT
+    ).first()
+
+    return render(
+        request,
+        'learning/assignment_detail.html',
+        {
+            'assignment': assignment,
+            'enrolment': enrolment,
+            'submissions': submissions,
+            'draft': draft,
+            'latest_submission': submissions.first(),
+            'attempts_used': submissions.count(),
+            'attempts_remaining': max(assignment.maximum_attempts - submissions.count(), 0),
+        }
+    )
+
+
+@login_required
+def assignment_draft(request, pk):
+
+    assignment = get_object_or_404(
+        Assignment,
+        pk=pk,
+        is_published=True
+    )
+
+    try:
+
+        submission, enrolment = get_or_create_assignment_draft(
+            request.user,
+            assignment
+        )
+
+    except (PermissionDenied, ValidationError) as exc:
+
+        messages.error(
+            request,
+            exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+        )
+
+        return redirect(
+            'learning:assignment_detail',
+            pk=assignment.pk
+        )
+
+    if request.method == 'POST':
+
+        form = AssignmentSubmissionForm(
+            request.POST,
+            request.FILES,
+            instance=submission,
+            assignment=assignment
+        )
+
+        if form.is_valid():
+
+            try:
+
+                save_assignment_draft(
+                    submission,
+                    request.user,
+                    form.cleaned_data
+                )
+
+                messages.success(
+                    request,
+                    'Draft saved.'
+                )
+
+                return redirect(
+                    'learning:assignment_detail',
+                    pk=assignment.pk
+                )
+
+            except ValidationError as exc:
+
+                form.add_error(
+                    None,
+                    exc.messages[0]
+                )
+
+    else:
+
+        form = AssignmentSubmissionForm(
+            instance=submission,
+            assignment=assignment
+        )
+
+    return render(
+        request,
+        'learning/assignment_draft.html',
+        {
+            'assignment': assignment,
+            'submission': submission,
+            'form': form,
+        }
+    )
+
+
+@login_required
+@require_POST
+def assignment_submit(request, pk):
+
+    submission = get_object_or_404(
+        AssignmentSubmission,
+        assignment_id=pk,
+        student=request.user,
+        status=AssignmentSubmission.Status.DRAFT
+    )
+
+    try:
+
+        submit_assignment(
+            submission,
+            request.user
+        )
+
+        messages.success(
+            request,
+            'Assignment submitted successfully.'
+        )
+
+    except (PermissionDenied, ValidationError) as exc:
+
+        messages.error(
+            request,
+            exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+        )
+
+    return redirect(
+        'learning:submission_detail',
+        pk=submission.pk
+    )
+
+
+@login_required
+def assignment_history(request, pk):
+
+    assignment = get_object_or_404(
+        Assignment,
+        pk=pk,
+        is_published=True
+    )
+
+    return render(
+        request,
+        'learning/assignment_history.html',
+        {
+            'assignment': assignment,
+            'submissions': AssignmentSubmission.objects.filter(
+                assignment=assignment,
+                student=request.user
+            ),
+        }
+    )
+
+
+@login_required
+def submission_list(request):
+
+    submissions = AssignmentSubmission.objects.select_related(
+        'assignment',
+        'assignment__lesson',
+        'assignment__lesson__module',
+        'assignment__lesson__module__course'
+    ).filter(
+        student=request.user
+    )
+
+    return render(
+        request,
+        'learning/submission_list.html',
+        {
+            'submissions': submissions,
+        }
+    )
+
+
+@login_required
+def submission_detail(request, pk):
+
+    submission = get_object_or_404(
+        AssignmentSubmission.objects.select_related(
+            'assignment',
+            'assignment__lesson',
+            'assignment__lesson__module',
+            'assignment__lesson__module__course',
+            'graded_by'
+        ),
+        pk=pk,
+        student=request.user
+    )
+
+    return render(
+        request,
+        'learning/submission_detail.html',
+        {
+            'submission': submission,
+        }
+    )
+
+
+@login_required
+def submission_download(request, pk):
+
+    submission = get_object_or_404(
+        AssignmentSubmission.objects.select_related(
+            'assignment',
+            'assignment__lesson',
+            'assignment__lesson__module',
+            'assignment__lesson__module__course',
+            'student'
+        ),
+        pk=pk
+    )
+
+    is_owner = submission.student_id == request.user.id
+    is_instructor_owner = submission.assignment.course.instructor_id == request.user.id
+
+    if not (
+        is_owner
+        or is_instructor_owner
+        or request.user.is_staff
+    ):
+
+        raise Http404
+
+    if not submission.submission_file:
+
+        raise Http404
+
+    return FileResponse(
+        submission.submission_file.open('rb'),
+        as_attachment=True,
+        filename=submission.original_filename or submission.submission_file.name
+    )
+
+
+@login_required
+@require_POST
+def submission_revise(request, pk):
+
+    submission = get_object_or_404(
+        AssignmentSubmission,
+        pk=pk,
+        student=request.user
+    )
+
+    try:
+
+        draft, enrolment = get_or_create_assignment_draft(
+            request.user,
+            submission.assignment
+        )
+
+        return redirect(
+            'learning:assignment_draft',
+            pk=submission.assignment.pk
+        )
+
+    except (PermissionDenied, ValidationError) as exc:
+
+        messages.error(
+            request,
+            exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+        )
+
+        return redirect(
+            'learning:submission_detail',
+            pk=submission.pk
+        )
+
+
+@instructor_required
+def instructor_assignment_list(request):
+
+    assignments = instructor_assignments(
+        request.user
+    ).select_related(
+        'lesson',
+        'lesson__module',
+        'lesson__module__course'
+    ).annotate(
+        submission_count=Count('submissions', distinct=True),
+        pending_count=Count(
+            'submissions',
+            filter=Q(submissions__status__in=[
+                AssignmentSubmission.Status.SUBMITTED,
+                AssignmentSubmission.Status.UNDER_REVIEW,
+            ]),
+            distinct=True
+        ),
+        passed_count=Count(
+            'submissions',
+            filter=Q(submissions__passed=True),
+            distinct=True
+        ),
+    )
+
+    return render(
+        request,
+        'learning/instructor/assignment_list.html',
+        {
+            'assignments': assignments,
+        }
+    )
+
+
+@instructor_required
+def instructor_assignment_create(request):
+
+    if request.method == 'POST':
+
+        form = AssignmentForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            assignment = form.save(
+                commit=False
+            )
+            ensure_course_owner(
+                request.user,
+                assignment.lesson.module.course
+            )
+            assignment.save()
+            messages.success(
+                request,
+                'Assignment created successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_assignment_list'
+            )
+
+    else:
+
+        form = AssignmentForm(
+            user=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/assignment_form.html',
+        {
+            'form': form,
+            'title': 'Create Assignment',
+        }
+    )
+
+
+@instructor_required
+def instructor_assignment_edit(request, pk):
+
+    assignment = get_instructor_assignment(
+        request.user,
+        pk
+    )
+
+    if request.method == 'POST':
+
+        form = AssignmentForm(
+            request.POST,
+            instance=assignment,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            assignment = form.save(
+                commit=False
+            )
+            ensure_course_owner(
+                request.user,
+                assignment.lesson.module.course
+            )
+            assignment.save()
+            messages.success(
+                request,
+                'Assignment updated successfully.'
+            )
+
+            return redirect(
+                'learning:instructor_assignment_list'
+            )
+
+    else:
+
+        form = AssignmentForm(
+            instance=assignment,
+            user=request.user
+        )
+
+    return render(
+        request,
+        'learning/instructor/assignment_form.html',
+        {
+            'form': form,
+            'assignment': assignment,
+            'title': 'Edit Assignment',
+        }
+    )
+
+
+@instructor_required
+@require_POST
+def instructor_assignment_delete(request, pk):
+
+    assignment = get_instructor_assignment(
+        request.user,
+        pk
+    )
+    assignment.delete()
+    messages.success(
+        request,
+        'Assignment deleted successfully.'
+    )
+
+    return redirect(
+        'learning:instructor_assignment_list'
+    )
+
+
+@instructor_required
+def instructor_assignment_submissions(request, pk):
+
+    assignment = get_instructor_assignment(
+        request.user,
+        pk
+    )
+
+    return render(
+        request,
+        'learning/instructor/submission_list.html',
+        {
+            'assignment': assignment,
+            'submissions': assignment.submissions.select_related('student'),
+            'statuses': AssignmentSubmission.Status.choices,
+        }
+    )
+
+
+@instructor_required
+def instructor_submission_list(request):
+
+    submissions = instructor_submissions(
+        request.user
+    ).select_related(
+        'assignment',
+        'student',
+        'assignment__lesson__module__course'
+    )
+    status = request.GET.get(
+        'status',
+        ''
+    )
+
+    if status:
+
+        submissions = submissions.filter(
+            status=status
+        )
+
+    return render(
+        request,
+        'learning/instructor/submission_list.html',
+        {
+            'submissions': submissions,
+            'statuses': AssignmentSubmission.Status.choices,
+            'selected_status': status,
+        }
+    )
+
+
+@instructor_required
+def instructor_submission_detail(request, pk):
+
+    submission = get_instructor_submission(
+        request.user,
+        pk
+    )
+
+    return render(
+        request,
+        'learning/instructor/submission_detail.html',
+        {
+            'submission': submission,
+        }
+    )
+
+
+@instructor_required
+@require_POST
+def instructor_submission_review(request, pk):
+
+    submission = get_instructor_submission(
+        request.user,
+        pk
+    )
+    mark_submission_under_review(
+        submission,
+        request.user
+    )
+    messages.success(
+        request,
+        'Submission marked under review.'
+    )
+
+    return redirect(
+        'learning:instructor_submission_detail',
+        pk=submission.pk
+    )
+
+
+@instructor_required
+def instructor_submission_grade(request, pk):
+
+    submission = get_instructor_submission(
+        request.user,
+        pk
+    )
+
+    if request.method == 'POST':
+
+        form = AssignmentGradingForm(
+            request.POST,
+            submission=submission
+        )
+
+        if form.is_valid():
+
+            try:
+
+                grade_assignment_submission(
+                    submission,
+                    request.user,
+                    form.cleaned_data['score'],
+                    form.cleaned_data['instructor_feedback']
+                )
+                messages.success(
+                    request,
+                    'Submission graded successfully.'
+                )
+
+                return redirect(
+                    'learning:instructor_submission_detail',
+                    pk=submission.pk
+                )
+
+            except ValidationError as exc:
+
+                form.add_error(
+                    None,
+                    exc.messages[0]
+                )
+
+    else:
+
+        form = AssignmentGradingForm(
+            submission=submission,
+            initial={
+                'score': submission.score,
+                'instructor_feedback': submission.instructor_feedback,
+            }
+        )
+
+    return render(
+        request,
+        'learning/instructor/submission_grade.html',
+        {
+            'submission': submission,
+            'form': form,
+        }
+    )
+
+
+@instructor_required
+def instructor_submission_return(request, pk):
+
+    submission = get_instructor_submission(
+        request.user,
+        pk
+    )
+
+    if request.method == 'POST':
+
+        form = AssignmentRevisionForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            try:
+
+                return_assignment_for_revision(
+                    submission,
+                    request.user,
+                    form.cleaned_data['revision_message']
+                )
+                messages.success(
+                    request,
+                    'Submission returned for revision.'
+                )
+
+                return redirect(
+                    'learning:instructor_submission_detail',
+                    pk=submission.pk
+                )
+
+            except ValidationError as exc:
+
+                form.add_error(
+                    None,
+                    exc.messages[0]
+                )
+
+    else:
+
+        form = AssignmentRevisionForm()
+
+    return render(
+        request,
+        'learning/instructor/submission_return.html',
+        {
+            'submission': submission,
+            'form': form,
+        }
+    )
+
+
 def register_student(request):
 
     if request.method == 'POST':
@@ -639,6 +2420,164 @@ def instructor_courses(user):
     return courses.filter(
         instructor=user
     )
+
+
+def instructor_quizzes(user):
+
+    quizzes = Quiz.objects.all()
+
+    if user.is_staff:
+
+        return quizzes
+
+    return quizzes.filter(
+        lesson__module__course__instructor=user
+    )
+
+
+def get_instructor_quiz(user, pk):
+
+    return get_object_or_404(
+        instructor_quizzes(user).select_related(
+            'lesson',
+            'lesson__module',
+            'lesson__module__course'
+        ),
+        pk=pk
+    )
+
+
+def get_instructor_question(user, pk):
+
+    return get_object_or_404(
+        Question.objects.select_related(
+            'quiz',
+            'quiz__lesson',
+            'quiz__lesson__module',
+            'quiz__lesson__module__course'
+        ).filter(
+            quiz__in=instructor_quizzes(user)
+        ),
+        pk=pk
+    )
+
+
+def instructor_attempts(user):
+
+    attempts = QuizAttempt.objects.all()
+
+    if user.is_staff:
+
+        return attempts
+
+    return attempts.filter(
+        quiz__lesson__module__course__instructor=user
+    )
+
+
+def get_instructor_attempt(user, pk):
+
+    return get_object_or_404(
+        instructor_attempts(user).select_related(
+            'student',
+            'quiz',
+            'quiz__lesson',
+            'quiz__lesson__module',
+            'quiz__lesson__module__course'
+        ).prefetch_related(
+            'answers__question',
+            'answers__question__choices',
+            'answers__selected_choices'
+        ),
+        pk=pk
+    )
+
+
+def instructor_assignments(user):
+
+    assignments = Assignment.objects.all()
+
+    if user.is_staff:
+
+        return assignments
+
+    return assignments.filter(
+        lesson__module__course__instructor=user
+    )
+
+
+def get_instructor_assignment(user, pk):
+
+    return get_object_or_404(
+        instructor_assignments(user).select_related(
+            'lesson',
+            'lesson__module',
+            'lesson__module__course'
+        ),
+        pk=pk
+    )
+
+
+def instructor_submissions(user):
+
+    submissions = AssignmentSubmission.objects.all()
+
+    if user.is_staff:
+
+        return submissions
+
+    return submissions.filter(
+        assignment__lesson__module__course__instructor=user
+    )
+
+
+def get_instructor_submission(user, pk):
+
+    return get_object_or_404(
+        instructor_submissions(user).select_related(
+            'assignment',
+            'assignment__lesson',
+            'assignment__lesson__module',
+            'assignment__lesson__module__course',
+            'student',
+            'graded_by',
+            'returned_by'
+        ),
+        pk=pk
+    )
+
+
+def choice_rule_warning(question):
+
+    choices = question.choices.all()
+    correct_count = choices.filter(
+        is_correct=True
+    ).count()
+    total = choices.count()
+
+    if question.question_type == Question.QuestionType.MULTIPLE_CHOICE and correct_count != 1:
+
+        return 'Multiple-choice questions must have exactly one correct choice.'
+
+    if question.question_type == Question.QuestionType.MULTIPLE_SELECT and correct_count < 1:
+
+        return 'Multiple-select questions must have at least one correct choice.'
+
+    if question.question_type == Question.QuestionType.TRUE_FALSE:
+
+        values = {
+            choice.choice_text.strip().lower()
+            for choice in choices
+        }
+
+        if total != 2 or values != {
+            'true',
+            'false',
+        } or correct_count != 1:
+
+            return 'True-or-false questions must have exactly True and False choices with one correct answer.'
+
+    return ''
 
 
 def filter_courses(request, courses):
