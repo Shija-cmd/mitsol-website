@@ -7,6 +7,7 @@ from .models import (
     Course,
     CourseAnnouncement,
     CourseCategory,
+    CourseReview,
     Enrolment,
     InstructorProfile,
     Lesson,
@@ -21,7 +22,7 @@ from .models import (
     QuizAttempt,
     StudentAnswer,
 )
-from .services import confirm_payment, mark_submission_under_review, publish_announcement
+from .services import approve_course_review, confirm_payment, mark_submission_under_review, publish_announcement
 
 
 class LessonInline(admin.TabularInline):
@@ -501,6 +502,118 @@ class PaymentAdmin(admin.ModelAdmin):
         )
 
     confirm_selected_payments.short_description = 'Confirm selected pending payments'
+
+
+@admin.register(CourseReview)
+class CourseReviewAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'student',
+        'course',
+        'rating',
+        'status',
+        'is_approved',
+        'created_at',
+        'moderated_by',
+        'moderated_at',
+    )
+
+    list_filter = (
+        'status',
+        'is_approved',
+        'rating',
+        'course',
+        'created_at',
+        'moderated_at',
+    )
+
+    search_fields = (
+        'student__username',
+        'student__first_name',
+        'student__last_name',
+        'course__title',
+        'comment',
+        'moderation_notes',
+    )
+
+    autocomplete_fields = (
+        'student',
+        'course',
+        'enrolment',
+        'moderated_by',
+    )
+
+    readonly_fields = (
+        'student',
+        'course',
+        'enrolment',
+        'created_at',
+        'updated_at',
+        'moderated_by',
+        'moderated_at',
+    )
+
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        (
+            'Review',
+            {
+                'fields': (
+                    'student',
+                    'course',
+                    'enrolment',
+                    'rating',
+                    'comment',
+                    'status',
+                    'is_approved',
+                )
+            }
+        ),
+        (
+            'Moderation',
+            {
+                'fields': (
+                    'moderation_notes',
+                    'moderated_by',
+                    'moderated_at',
+                )
+            }
+        ),
+        (
+            'Timestamps',
+            {
+                'fields': (
+                    'created_at',
+                    'updated_at',
+                )
+            }
+        ),
+    )
+
+    actions = (
+        'approve_selected_reviews',
+    )
+
+    def approve_selected_reviews(self, request, queryset):
+
+        approved = 0
+
+        for review in queryset:
+
+            try:
+                approve_course_review(review, request.user)
+                approved += 1
+            except Exception:
+                continue
+
+        self.message_user(
+            request,
+            f'{approved} review(s) approved.'
+        )
+
+    approve_selected_reviews.short_description = 'Approve selected pending reviews'
+
 
 @admin.register(LessonProgress)
 class LessonProgressAdmin(admin.ModelAdmin):

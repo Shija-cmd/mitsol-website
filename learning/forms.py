@@ -2,8 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 
-from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, Lesson, Module, Payment, Question, Quiz
-from .services import proof_required_for_method, validate_assignment_file, validate_payment_proof
+from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, CourseReview, Lesson, Module, Payment, Question, Quiz
+from .services import proof_required_for_method, validate_assignment_file, validate_payment_proof, validate_review_comment
 
 
 User = get_user_model()
@@ -858,6 +858,78 @@ class PaymentSubmissionForm(BootstrapFormMixin, forms.ModelForm):
 
 
 class PaymentReasonForm(BootstrapFormMixin, forms.Form):
+
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4})
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+
+class CourseReviewForm(BootstrapFormMixin, forms.ModelForm):
+
+    rating = forms.ChoiceField(
+        choices=[
+            (5, '5 - Excellent'),
+            (4, '4 - Very good'),
+            (3, '3 - Good'),
+            (2, '2 - Fair'),
+            (1, '1 - Poor'),
+        ],
+        widget=forms.RadioSelect,
+        error_messages={
+            'required': 'Select a rating from 1 to 5.',
+            'invalid_choice': 'Select a rating from 1 to 5.',
+        }
+    )
+
+    class Meta:
+
+        model = CourseReview
+
+        fields = (
+            'rating',
+            'comment',
+        )
+
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+        self.fields['rating'].widget.attrs['class'] = 'learning-rating-options'
+
+    def clean_rating(self):
+
+        try:
+            rating = int(self.cleaned_data.get('rating'))
+        except (TypeError, ValueError):
+            raise forms.ValidationError('Select a rating from 1 to 5.')
+
+        if rating < 1 or rating > 5:
+            raise forms.ValidationError('Select a rating from 1 to 5.')
+
+        return rating
+
+    def clean_comment(self):
+
+        try:
+            return validate_review_comment(
+                self.cleaned_data.get('comment', '')
+            )
+        except Exception as exc:
+            raise forms.ValidationError(
+                exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            )
+
+
+class ReviewModerationReasonForm(BootstrapFormMixin, forms.Form):
 
     reason = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 4})

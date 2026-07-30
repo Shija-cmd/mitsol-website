@@ -893,6 +893,7 @@ class Notification(models.Model):
         PAYMENT = 'Payment', 'Payment'
         QUIZ = 'Quiz', 'Quiz'
         ASSIGNMENT = 'Assignment', 'Assignment'
+        REVIEW = 'Review', 'Review'
         ANNOUNCEMENT = 'Announcement', 'Announcement'
         COURSE_COMPLETION = 'Course Completion', 'Course Completion'
         CERTIFICATE = 'Certificate', 'Certificate'
@@ -2182,3 +2183,205 @@ class Payment(models.Model):
 
         if errors:
             raise ValidationError(errors)
+
+
+class CourseReview(models.Model):
+
+    class Status(models.TextChoices):
+
+        PENDING = 'Pending', 'Pending'
+        APPROVED = 'Approved', 'Approved'
+        REJECTED = 'Rejected', 'Rejected'
+        HIDDEN = 'Hidden', 'Hidden'
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='course_reviews'
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+
+    enrolment = models.ForeignKey(
+        Enrolment,
+        on_delete=models.PROTECT,
+        related_name='course_reviews'
+    )
+
+    rating = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(5),
+        ]
+    )
+
+    comment = models.TextField()
+
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+
+    is_approved = models.BooleanField(
+        default=False
+    )
+
+    moderation_notes = models.TextField(
+        blank=True
+    )
+
+    moderated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='moderated_course_reviews',
+        blank=True,
+        null=True
+    )
+
+    moderated_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-created_at',
+        )
+
+        indexes = (
+            models.Index(fields=('course', 'status'), name='learning_re_course_21dc8c_idx'),
+            models.Index(fields=('student', 'created_at'), name='learning_re_student_7bf2e7_idx'),
+            models.Index(fields=('status', 'created_at'), name='learning_re_status_6682c6_idx'),
+            models.Index(fields=('rating',), name='learning_re_rating_c80d28_idx'),
+            models.Index(fields=('moderated_at',), name='learning_re_moderat_2363f0_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'student',
+                    'course',
+                ),
+                name='unique_course_review_per_student'
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    'enrolment',
+                ),
+                name='unique_course_review_per_enrolment'
+            ),
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1) & models.Q(rating__lte=5),
+                name='course_review_rating_between_1_and_5'
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(status='Approved', is_approved=True)
+                    | models.Q(status__in=['Pending', 'Rejected', 'Hidden'], is_approved=False)
+                ),
+                name='course_review_approval_consistent'
+            ),
+        )
+
+        permissions = (
+            ('moderate_course_reviews', 'Can moderate course reviews'),
+            ('approve_course_review', 'Can approve course review'),
+            ('reject_course_review', 'Can reject course review'),
+            ('hide_course_review', 'Can hide course review'),
+            ('view_all_course_reviews', 'Can view all course reviews'),
+        )
+
+    def __str__(self):
+
+        return f'{self.course} - {self.student} - {self.rating}'
+
+    def clean(self):
+
+        errors = {}
+
+        if self.rating < 1 or self.rating > 5:
+            errors['rating'] = 'Rating must be between 1 and 5.'
+
+        if self.enrolment_id:
+            if self.student_id and self.enrolment.student_id != self.student_id:
+                errors['student'] = 'Review student must match enrolment student.'
+            if self.course_id and self.enrolment.course_id != self.course_id:
+                errors['course'] = 'Review course must match enrolment course.'
+
+        if self.status == self.Status.APPROVED and not self.is_approved:
+            errors['is_approved'] = 'Approved reviews must be marked approved.'
+
+        if self.status != self.Status.APPROVED and self.is_approved:
+            errors['is_approved'] = 'Only approved reviews may be publicly approved.'
+
+        if self.status in [self.Status.REJECTED, self.Status.HIDDEN] and not self.moderation_notes.strip():
+            errors['moderation_notes'] = 'Rejected or hidden reviews require a moderation reason.'
+
+        if self.status in [self.Status.APPROVED, self.Status.REJECTED, self.Status.HIDDEN] and not (
+            self.moderated_by_id and self.moderated_at
+        ):
+            errors['moderated_by'] = 'Moderated reviews require moderator and moderation time.'
+
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def safe_reviewer_name(self):
+
+        full_name = self.student.get_full_name().strip()
+
+        if full_name:
+            return full_name
+
+        first_name = (self.student.first_name or '').strip()
+        last_name = (self.student.last_name or '').strip()
+
+        if first_name and last_name:
+            return f'{first_name} {last_name[:1]}.'
+
+        if first_name:
+            return first_name
+
+        return 'Verified Learner'
+
+    @property
+    def is_verified_learner(self):
+
+        if not self.enrolment_id:
+            return False
+
+        if self.enrolment.student_id != self.student_id or self.enrolment.course_id != self.course_id:
+            return False
+
+        if self.course.is_free:
+            return (
+                self.enrolment.is_active
+                and self.enrolment.status in [
+                    Enrolment.Status.ACTIVE,
+                    Enrolment.Status.COMPLETED,
+                ]
+                and self.enrolment.payment_status == Enrolment.PaymentStatus.NOT_REQUIRED
+            )
+
+        return (
+            self.enrolment.is_active
+            and self.enrolment.status in [
+                Enrolment.Status.ACTIVE,
+                Enrolment.Status.COMPLETED,
+            ]
+            and self.enrolment.payment_status == Enrolment.PaymentStatus.PAID
+        )

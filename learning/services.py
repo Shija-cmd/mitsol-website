@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models, transaction
-from django.db.models import Max
+from django.db.models import Avg, Count, Max, Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -11,6 +11,7 @@ from .models import (
     Assignment,
     AssignmentSubmission,
     CourseAnnouncement,
+    CourseReview,
     Enrolment,
     LessonProgress,
     Notification,
@@ -24,6 +25,11 @@ from .models import (
     DANGEROUS_ASSIGNMENT_EXTENSIONS,
 )
 from .permissions import ensure_course_owner
+
+
+COURSE_REVIEW_MINIMUM_PROGRESS = 25
+COURSE_REVIEW_MINIMUM_COMMENT_LENGTH = 10
+COURSE_REVIEW_MAXIMUM_COMMENT_LENGTH = 2000
 
 
 def recalculate_enrolment_progress(enrolment):
@@ -198,6 +204,402 @@ def get_active_enrolment(student, course):
             Enrolment.PaymentStatus.PAID,
         ],
     ).first()
+
+
+def review_moderator_users():
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.filter(
+        is_active=True
+    ).filter(
+        Q(is_superuser=True)
+        | Q(user_permissions__codename='moderate_course_reviews')
+        | Q(groups__permissions__codename='moderate_course_reviews')
+        | Q(user_permissions__codename='approve_course_review')
+        | Q(groups__permissions__codename='approve_course_review')
+    ).distinct()
+
+
+def user_can_moderate_reviews(user, permission='moderate_course_reviews'):
+
+    if not user or not user.is_authenticated:
+        return False
+
+    return (
+        user.is_superuser
+        or user.has_perm(f'learning.{permission}')
+        or user.has_perm('learning.moderate_course_reviews')
+    )
+
+
+def validate_review_comment(comment):
+
+    cleaned = (comment or '').strip()
+
+    if len(cleaned) < COURSE_REVIEW_MINIMUM_COMMENT_LENGTH:
+        raise ValidationError(
+            f'Please provide at least {COURSE_REVIEW_MINIMUM_COMMENT_LENGTH} characters.'
+        )
+
+    if len(cleaned) > COURSE_REVIEW_MAXIMUM_COMMENT_LENGTH:
+        raise ValidationError(
+            f'Review comments cannot exceed {COURSE_REVIEW_MAXIMUM_COMMENT_LENGTH} characters.'
+        )
+
+    meaningful = ''.join(character for character in cleaned if character.isalnum())
+
+    if not meaningful:
+        raise ValidationError('Please write a meaningful review comment.')
+
+    if 'http://' in cleaned.lower() or 'https://' in cleaned.lower():
+        if cleaned.lower().count('http://') + cleaned.lower().count('https://') > 2:
+            raise ValidationError('Please remove excessive links from your review.')
+
+    return cleaned
+
+
+def get_review_enrolment(student, course):
+
+    return Enrolment.objects.filter(
+        student=student,
+        course=course,
+        status__in=[
+            Enrolment.Status.ACTIVE,
+            Enrolment.Status.COMPLETED,
+        ],
+        is_active=True,
+        payment_status__in=[
+            Enrolment.PaymentStatus.NOT_REQUIRED,
+            Enrolment.PaymentStatus.PAID,
+        ],
+    ).first()
+
+
+def can_student_review_course(student, course, include_existing_check=True):
+
+    if not student or not student.is_authenticated:
+        return False, None, 'Please sign in before reviewing this course.'
+
+    enrolment = get_review_enrolment(student, course)
+
+    if not enrolment:
+        return False, None, 'You must be actively enrolled with confirmed access before reviewing this course.'
+
+    if not course.is_free and enrolment.payment_status != Enrolment.PaymentStatus.PAID:
+        return False, enrolment, 'Payment must be confirmed before reviewing this course.'
+
+    if enrolment.status != Enrolment.Status.COMPLETED and enrolment.progress_percentage < COURSE_REVIEW_MINIMUM_PROGRESS:
+        return (
+            False,
+            enrolment,
+            f'You must complete at least {COURSE_REVIEW_MINIMUM_PROGRESS}% of this course before reviewing it.'
+        )
+
+    if include_existing_check and CourseReview.objects.filter(student=student, course=course).exists():
+        return False, enrolment, 'You have already reviewed this course.'
+
+    return True, enrolment, ''
+
+
+def get_course_rating_summary(course):
+
+    approved = CourseReview.objects.filter(
+        course=course,
+        status=CourseReview.Status.APPROVED,
+        is_approved=True
+    )
+
+    aggregate = approved.aggregate(
+        average=Avg('rating'),
+        count=Count('id'),
+        five=Count('id', filter=Q(rating=5)),
+        four=Count('id', filter=Q(rating=4)),
+        three=Count('id', filter=Q(rating=3)),
+        two=Count('id', filter=Q(rating=2)),
+        one=Count('id', filter=Q(rating=1)),
+    )
+
+    review_count = aggregate['count'] or 0
+
+    def percentage(value):
+        if not review_count:
+            return 0
+        return round((value or 0) * 100 / review_count)
+
+    return {
+        'average_rating': round(aggregate['average'] or 0, 1),
+        'review_count': review_count,
+        'five_star_count': aggregate['five'] or 0,
+        'four_star_count': aggregate['four'] or 0,
+        'three_star_count': aggregate['three'] or 0,
+        'two_star_count': aggregate['two'] or 0,
+        'one_star_count': aggregate['one'] or 0,
+        'five_star_percentage': percentage(aggregate['five']),
+        'four_star_percentage': percentage(aggregate['four']),
+        'three_star_percentage': percentage(aggregate['three']),
+        'two_star_percentage': percentage(aggregate['two']),
+        'one_star_percentage': percentage(aggregate['one']),
+    }
+
+
+def rating_summaries_for_courses(courses):
+
+    course_ids = [course.pk for course in courses]
+
+    if not course_ids:
+        return {}
+
+    rows = CourseReview.objects.filter(
+        course_id__in=course_ids,
+        status=CourseReview.Status.APPROVED,
+        is_approved=True
+    ).values(
+        'course_id'
+    ).annotate(
+        average=Avg('rating'),
+        count=Count('id')
+    )
+
+    return {
+        row['course_id']: {
+            'average_rating': round(row['average'] or 0, 1),
+            'review_count': row['count'] or 0,
+        }
+        for row in rows
+    }
+
+
+def attach_rating_summaries(courses):
+
+    courses = list(courses)
+    summaries = rating_summaries_for_courses(courses)
+
+    for course in courses:
+        course.rating_summary = summaries.get(
+            course.pk,
+            {
+                'average_rating': 0,
+                'review_count': 0,
+            }
+        )
+
+    return courses
+
+
+def notify_review_moderators(review, title, message, dedupe_suffix):
+
+    for moderator in review_moderator_users():
+        create_notification(
+            recipient=moderator,
+            title=title,
+            message=message,
+            notification_type=Notification.NotificationType.REVIEW,
+            related_url=reverse('learning:admin_review_detail', args=[review.pk]),
+            dedupe_key=f'course-review:{review.pk}:{dedupe_suffix}:moderator:{moderator.pk}:{review.updated_at:%Y%m%d%H%M%S}'
+        )
+
+
+@transaction.atomic
+def create_course_review(student, course, cleaned_data):
+
+    eligible, enrolment, reason = can_student_review_course(
+        student,
+        course,
+        include_existing_check=False
+    )
+
+    if not eligible:
+        raise PermissionDenied(reason)
+
+    enrolment = Enrolment.objects.select_for_update().get(pk=enrolment.pk)
+
+    if CourseReview.objects.select_for_update().filter(student=student, course=course).exists():
+        raise ValidationError('You have already reviewed this course.')
+
+    comment = validate_review_comment(cleaned_data.get('comment', ''))
+    rating = cleaned_data.get('rating')
+
+    review = CourseReview.objects.create(
+        student=student,
+        course=course,
+        enrolment=enrolment,
+        rating=rating,
+        comment=comment,
+        status=CourseReview.Status.PENDING,
+        is_approved=False,
+        moderation_notes='',
+        moderated_by=None,
+        moderated_at=None,
+    )
+
+    create_notification(
+        recipient=student,
+        title='Review submitted',
+        message=f'Your review for {course.title} is awaiting moderation.',
+        notification_type=Notification.NotificationType.REVIEW,
+        related_url=reverse('learning:course_review_detail', args=[review.pk]),
+        dedupe_key=f'course-review:{review.pk}:submitted-student'
+    )
+
+    notify_review_moderators(
+        review,
+        'Review awaiting moderation',
+        f'{student} submitted a review for {course.title}.',
+        'submitted'
+    )
+
+    return review
+
+
+@transaction.atomic
+def update_course_review(review, student, cleaned_data):
+
+    review = CourseReview.objects.select_for_update().select_related('course', 'student').get(pk=review.pk)
+
+    if review.student_id != student.id:
+        raise PermissionDenied('You can only edit your own reviews.')
+
+    review.rating = cleaned_data.get('rating')
+    review.comment = validate_review_comment(cleaned_data.get('comment', ''))
+    review.status = CourseReview.Status.PENDING
+    review.is_approved = False
+    review.moderation_notes = ''
+    review.moderated_by = None
+    review.moderated_at = None
+    review.save()
+
+    create_notification(
+        recipient=student,
+        title='Review updated',
+        message=f'Your updated review for {review.course.title} is awaiting moderation.',
+        notification_type=Notification.NotificationType.REVIEW,
+        related_url=reverse('learning:course_review_detail', args=[review.pk]),
+        dedupe_key=f'course-review:{review.pk}:updated-student:{review.updated_at:%Y%m%d%H%M%S}'
+    )
+
+    notify_review_moderators(
+        review,
+        'Updated review awaiting moderation',
+        f'{student} updated a review for {review.course.title}.',
+        'updated'
+    )
+
+    return review
+
+
+@transaction.atomic
+def approve_course_review(review, moderator):
+
+    if not user_can_moderate_reviews(moderator, 'approve_course_review'):
+        raise PermissionDenied('You cannot approve course reviews.')
+
+    review = CourseReview.objects.select_for_update().select_related('student', 'course').get(pk=review.pk)
+
+    if review.status == CourseReview.Status.APPROVED and review.is_approved:
+        return review
+
+    if review.status not in [
+        CourseReview.Status.PENDING,
+        CourseReview.Status.REJECTED,
+        CourseReview.Status.HIDDEN,
+    ]:
+        raise ValidationError('This review cannot be approved from its current status.')
+
+    review.status = CourseReview.Status.APPROVED
+    review.is_approved = True
+    review.moderation_notes = ''
+    review.moderated_by = moderator
+    review.moderated_at = timezone.now()
+    review.save()
+
+    create_notification(
+        recipient=review.student,
+        title='Review approved',
+        message=f'Your review for {review.course.title} has been approved.',
+        notification_type=Notification.NotificationType.REVIEW,
+        related_url=review.course.get_absolute_url(),
+        dedupe_key=f'course-review:{review.pk}:approved'
+    )
+
+    return review
+
+
+@transaction.atomic
+def reject_course_review(review, moderator, reason):
+
+    if not reason.strip():
+        raise ValidationError('Rejection reason is required.')
+
+    if not user_can_moderate_reviews(moderator, 'reject_course_review'):
+        raise PermissionDenied('You cannot reject course reviews.')
+
+    review = CourseReview.objects.select_for_update().select_related('student', 'course').get(pk=review.pk)
+
+    if review.status == CourseReview.Status.REJECTED:
+        return review
+
+    if review.status not in [
+        CourseReview.Status.PENDING,
+        CourseReview.Status.APPROVED,
+        CourseReview.Status.HIDDEN,
+    ]:
+        raise ValidationError('This review cannot be rejected from its current status.')
+
+    review.status = CourseReview.Status.REJECTED
+    review.is_approved = False
+    review.moderation_notes = reason.strip()
+    review.moderated_by = moderator
+    review.moderated_at = timezone.now()
+    review.save()
+
+    create_notification(
+        recipient=review.student,
+        title='Review rejected',
+        message=f'Your review for {review.course.title} was rejected. You may edit and resubmit it.',
+        notification_type=Notification.NotificationType.REVIEW,
+        related_url=reverse('learning:course_review_detail', args=[review.pk]),
+        dedupe_key=f'course-review:{review.pk}:rejected'
+    )
+
+    return review
+
+
+@transaction.atomic
+def hide_course_review(review, moderator, reason):
+
+    if not reason.strip():
+        raise ValidationError('Hide reason is required.')
+
+    if not user_can_moderate_reviews(moderator, 'hide_course_review'):
+        raise PermissionDenied('You cannot hide course reviews.')
+
+    review = CourseReview.objects.select_for_update().select_related('student', 'course').get(pk=review.pk)
+
+    if review.status == CourseReview.Status.HIDDEN:
+        return review
+
+    if review.status != CourseReview.Status.APPROVED:
+        raise ValidationError('Only approved reviews can be hidden.')
+
+    review.status = CourseReview.Status.HIDDEN
+    review.is_approved = False
+    review.moderation_notes = reason.strip()
+    review.moderated_by = moderator
+    review.moderated_at = timezone.now()
+    review.save()
+
+    create_notification(
+        recipient=review.student,
+        title='Review hidden',
+        message=f'Your review for {review.course.title} is no longer publicly visible.',
+        notification_type=Notification.NotificationType.REVIEW,
+        related_url=reverse('learning:course_review_detail', args=[review.pk]),
+        dedupe_key=f'course-review:{review.pk}:hidden'
+    )
+
+    return review
 
 
 def get_learning_payment_settings():

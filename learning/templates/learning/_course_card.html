@@ -27,6 +27,15 @@
             {{ course.category.name }}
         </p>
 
+        <p class="small text-muted mb-3">
+            <i class="fas fa-star text-warning me-1"></i>
+            {% if course.rating_summary.review_count %}
+            {{ course.rating_summary.average_rating }} ({{ course.rating_summary.review_count }} reviews)
+            {% else %}
+            New course
+            {% endif %}
+        </p>
+
         <div class="d-grid gap-2">
             <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-primary">
                 View Course

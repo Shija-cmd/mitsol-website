@@ -1,0 +1,74 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{% if mode == 'edit' %}Edit Review{% else %}Course Review{% endif %}</span>
+        <h1 class="fw-bold mt-3">{{ course.title }}</h1>
+        <p class="lead">Reviews are moderated before they appear publicly.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        {% if not eligible and mode != 'edit' %}
+                        <div class="alert alert-warning">{{ eligibility_reason }}</div>
+                        {% endif %}
+
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ form.non_field_errors }}
+                            <div class="mb-4">
+                                <label class="form-label d-block">Rating</label>
+                                <div class="d-flex flex-column gap-2">
+                                    {% for choice in form.rating %}
+                                    <label class="form-check">
+                                        {{ choice.tag }}
+                                        <span class="form-check-label">{{ choice.choice_label }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% for error in form.rating.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label" for="{{ form.comment.id_for_label }}">Review comment</label>
+                                {{ form.comment }}
+                                {% for error in form.comment.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                <div class="form-text">Write at least 10 characters. Avoid private information.</div>
+                            </div>
+                            <button class="btn btn-primary btn-lg" type="submit" {% if not eligible and mode != 'edit' %}disabled{% endif %}>
+                                {% if mode == 'edit' %}Update Review{% else %}Submit Review{% endif %}
+                            </button>
+                            <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Review Policy</h2>
+                        <ul class="learning-check-list mb-0">
+                            <li>You need meaningful course progress before reviewing.</li>
+                            <li>Only one review is allowed per course.</li>
+                            <li>Editing an approved review sends it back to moderation.</li>
+                            <li>Approved reviews show a safe public learner name.</li>
+                        </ul>
+                        {% if enrolment %}
+                        <hr>
+                        <p class="mb-1">Progress: <strong>{{ enrolment.progress_percentage }}%</strong></p>
+                        <p class="mb-0">Enrolment: <strong>{{ enrolment.status }}</strong></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

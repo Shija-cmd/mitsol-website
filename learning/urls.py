@@ -23,6 +23,11 @@ urlpatterns = [
         name='course_detail'
     ),
     path(
+        'courses/<slug:slug>/review/',
+        views.course_review_create,
+        name='course_review_create'
+    ),
+    path(
         'categories/<slug:slug>/',
         views.category_courses,
         name='category'
@@ -112,6 +117,9 @@ urlpatterns = [
         views.submission_revise,
         name='submission_revise'
     ),
+    path('reviews/', views.student_review_list, name='student_review_list'),
+    path('reviews/<int:pk>/', views.course_review_detail, name='course_review_detail'),
+    path('reviews/<int:pk>/edit/', views.course_review_edit, name='course_review_edit'),
     path('payments/', views.payment_list, name='payment_list'),
     path('payments/course/<slug:slug>/', views.payment_course, name='payment_course'),
     path('payments/<int:pk>/', views.payment_detail, name='payment_detail'),
@@ -223,6 +231,7 @@ urlpatterns = [
         name='instructor_submission_return'
     ),
     path('instructor/payments/', views.instructor_payment_list, name='instructor_payment_list'),
+    path('instructor/reviews/', views.instructor_review_list, name='instructor_review_list'),
     path(
         'instructor/quizzes/',
         views.instructor_quiz_list,
@@ -294,6 +303,11 @@ urlpatterns = [
     path('admin/payments/<int:pk>/reject/', views.admin_payment_reject, name='admin_payment_reject'),
     path('admin/payments/<int:pk>/refund/', views.admin_payment_refund, name='admin_payment_refund'),
     path('admin/payments/<int:pk>/proof/', views.admin_payment_proof, name='admin_payment_proof'),
+    path('admin/reviews/', views.admin_review_list, name='admin_review_list'),
+    path('admin/reviews/<int:pk>/', views.admin_review_detail, name='admin_review_detail'),
+    path('admin/reviews/<int:pk>/approve/', views.admin_review_approve, name='admin_review_approve'),
+    path('admin/reviews/<int:pk>/reject/', views.admin_review_reject, name='admin_review_reject'),
+    path('admin/reviews/<int:pk>/hide/', views.admin_review_hide, name='admin_review_hide'),
     path(
         'notifications/',
         views.notification_list,

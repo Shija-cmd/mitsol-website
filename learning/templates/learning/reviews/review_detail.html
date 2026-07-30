@@ -1,0 +1,34 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">My Review</span>
+        <h1 class="fw-bold mt-3">{{ review.course.title }}</h1>
+        <p class="lead">Track your review status and moderation response.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap justify-content-between gap-3 mb-4">
+                    <div>
+                        <h2 class="h4 fw-bold mb-1">{{ review.rating }} / 5 stars</h2>
+                        <span class="badge {% if review.status == 'Approved' %}bg-success{% elif review.status == 'Pending' %}bg-warning text-dark{% elif review.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %}">{{ review.status }}</span>
+                    </div>
+                    <a href="{% url 'learning:course_review_edit' review.pk %}" class="btn btn-primary">Edit Review</a>
+                </div>
+                <p class="text-muted">{{ review.comment|linebreaksbr }}</p>
+                {% if review.moderation_notes %}
+                <div class="alert alert-info">{{ review.moderation_notes|linebreaksbr }}</div>
+                {% endif %}
+                <p class="small text-muted mb-0">Submitted {{ review.created_at|date:"M d, Y H:i" }}. Updated {{ review.updated_at|date:"M d, Y H:i" }}.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

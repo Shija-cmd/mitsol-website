@@ -249,6 +249,11 @@
             Payments
         </a>
 
+        <a href="{% url 'learning:student_review_list' %}" class="learning-sidebar-link {% if '/learn/reviews/' in request.path %}active{% endif %}">
+            <i class="fas fa-star"></i>
+            My Reviews
+        </a>
+
         <a href="{% url 'learning:announcements' %}" class="learning-sidebar-link {% if '/learn/announcements/' in request.path %}active{% endif %}">
             <i class="fas fa-bullhorn"></i>
             Announcements
@@ -315,7 +320,19 @@
             Course Payments
         </a>
 
+        <a href="{% url 'learning:instructor_review_list' %}" class="learning-sidebar-link {% if '/learn/instructor/reviews/' in request.path %}active{% endif %}">
+            <i class="fas fa-star-half-stroke"></i>
+            Course Reviews
+        </a>
+
+        {% endif %}
+
         {% if request.user.is_staff %}
+
+        <div class="learning-sidebar-section">
+            Administration
+        </div>
+
         <a href="{% url 'learning:admin_announcements' %}" class="learning-sidebar-link {% if '/learn/admin/announcements/' in request.path %}active{% endif %}">
             <i class="fas fa-user-shield"></i>
             All Announcements
@@ -326,11 +343,15 @@
             Verify Payments
         </a>
 
+        <a href="{% url 'learning:admin_review_list' %}" class="learning-sidebar-link {% if '/learn/admin/reviews/' in request.path %}active{% endif %}">
+            <i class="fas fa-star"></i>
+            Moderate Reviews
+        </a>
+
         <a href="{% url 'admin:index' %}" class="learning-sidebar-link">
             <i class="fas fa-screwdriver-wrench"></i>
             Django Admin
         </a>
-        {% endif %}
 
         {% endif %}
 

@@ -77,6 +77,13 @@
         <div class="row g-4">
             <div class="col-lg-8">
                 <h2 class="fw-bold">About This Course</h2>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-star me-1"></i>
+                        {{ rating_summary.average_rating|floatformat:1 }} average
+                    </span>
+                    <span class="text-muted">{{ rating_summary.review_count }} approved review{{ rating_summary.review_count|pluralize }}</span>
+                </div>
                 <div class="text-muted mb-4">{{ course.full_description|linebreaks }}</div>
 
                 <div class="row g-4 mb-4">
@@ -141,6 +148,72 @@
                     {% empty %}
                     <div class="alert alert-info">Curriculum will be added soon.</div>
                     {% endfor %}
+                </div>
+
+                <div class="mt-5">
+                    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+                        <div>
+                            <h2 class="fw-bold mb-1">Learner Reviews</h2>
+                            <p class="text-muted mb-0">Only approved reviews from verified learners are shown publicly.</p>
+                        </div>
+                        {% if existing_review %}
+                        <a href="{% url 'learning:course_review_detail' existing_review.pk %}" class="btn btn-outline-primary">My Review</a>
+                        {% elif can_review %}
+                        <a href="{% url 'learning:course_review_create' course.slug %}" class="btn btn-primary">Write Review</a>
+                        {% elif request.user.is_authenticated and review_reason %}
+                        <span class="text-muted small">{{ review_reason }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="mb-2">5 stars <div class="progress"><div class="progress-bar" style="width: {{ rating_summary.five_star_percentage }}%">{{ rating_summary.five_star_count }}</div></div></div>
+                            <div class="mb-2">4 stars <div class="progress"><div class="progress-bar" style="width: {{ rating_summary.four_star_percentage }}%">{{ rating_summary.four_star_count }}</div></div></div>
+                            <div class="mb-2">3 stars <div class="progress"><div class="progress-bar" style="width: {{ rating_summary.three_star_percentage }}%">{{ rating_summary.three_star_count }}</div></div></div>
+                            <div class="mb-2">2 stars <div class="progress"><div class="progress-bar" style="width: {{ rating_summary.two_star_percentage }}%">{{ rating_summary.two_star_count }}</div></div></div>
+                            <div>1 star <div class="progress"><div class="progress-bar" style="width: {{ rating_summary.one_star_percentage }}%">{{ rating_summary.one_star_count }}</div></div></div>
+                        </div>
+                    </div>
+
+                    <form method="get" class="mb-3">
+                        <label class="form-label" for="review_sort">Sort reviews</label>
+                        <select id="review_sort" name="review_sort" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+                            <option value="recent" {% if review_sort == 'recent' %}selected{% endif %}>Most recent</option>
+                            <option value="oldest" {% if review_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+                            <option value="highest" {% if review_sort == 'highest' %}selected{% endif %}>Highest rating</option>
+                            <option value="lowest" {% if review_sort == 'lowest' %}selected{% endif %}>Lowest rating</option>
+                        </select>
+                    </form>
+
+                    {% for review in review_page %}
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                                <strong>{{ review.safe_reviewer_name }}</strong>
+                                <span class="text-warning">{% for star in "12345" %}{% if forloop.counter <= review.rating %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}{% endfor %}</span>
+                            </div>
+                            {% if review.is_verified_learner %}<span class="badge bg-success mb-2">Verified Learner</span>{% endif %}
+                            <p class="text-muted mb-2">{{ review.comment|linebreaksbr }}</p>
+                            <p class="small text-muted mb-0">{{ review.created_at|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-info">Approved learner reviews will appear here.</div>
+                    {% endfor %}
+
+                    {% if review_page.paginator.num_pages > 1 %}
+                    <nav aria-label="Review pagination">
+                        <ul class="pagination">
+                            {% if review_page.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?review_page={{ review_page.previous_page_number }}&review_sort={{ review_sort }}">Previous</a></li>
+                            {% endif %}
+                            <li class="page-item active"><span class="page-link">{{ review_page.number }} of {{ review_page.paginator.num_pages }}</span></li>
+                            {% if review_page.has_next %}
+                            <li class="page-item"><a class="page-link" href="?review_page={{ review_page.next_page_number }}&review_sort={{ review_sort }}">Next</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
                 </div>
             </div>
 

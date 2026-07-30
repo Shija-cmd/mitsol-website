@@ -20,6 +20,7 @@ from .forms import (
     AssignmentSubmissionForm,
     ChoiceForm,
     CourseAnnouncementForm,
+    CourseReviewForm,
     CourseForm,
     LessonForm,
     ManualQuizGradingForm,
@@ -29,6 +30,7 @@ from .forms import (
     QuestionForm,
     QuizAttemptForm,
     QuizForm,
+    ReviewModerationReasonForm,
     StudentRegistrationForm,
 )
 from .models import (
@@ -38,6 +40,7 @@ from .models import (
     Course,
     CourseAnnouncement,
     CourseCategory,
+    CourseReview,
     Enrolment,
     Lesson,
     LessonProgress,
@@ -52,13 +55,18 @@ from .models import (
 from .permissions import STUDENT_GROUP, ensure_course_owner, instructor_required, is_instructor
 from .services import (
     can_access_assignment,
+    approve_course_review,
+    attach_rating_summaries,
+    can_student_review_course,
     confirm_payment,
+    create_course_review,
     enrol_student_in_course,
     expire_quiz_attempt_if_needed,
     get_or_create_assignment_draft,
     get_or_create_paid_course_enrolment,
     get_course_payable_amount,
     get_learning_payment_settings,
+    get_course_rating_summary,
     grade_assignment_submission,
     grade_short_answers,
     mark_lesson_complete,
@@ -69,21 +77,24 @@ from .services import (
     recalculate_enrolment_progress,
     return_assignment_for_revision,
     reject_payment,
+    reject_course_review,
     save_assignment_draft,
+    hide_course_review,
     start_quiz_attempt,
     submit_assignment,
     submit_course_payment,
     submit_quiz_attempt,
+    update_course_review,
 )
 
 
 def learning_home(request):
 
-    featured_courses = published_courses().filter(
+    featured_courses = attach_rating_summaries(published_courses().filter(
         is_featured=True
-    )[:3]
+    )[:3])
 
-    recent_courses = published_courses()[:6]
+    recent_courses = attach_rating_summaries(published_courses()[:6])
 
     categories = CourseCategory.objects.filter(
         is_active=True
@@ -138,6 +149,7 @@ def course_catalogue(request):
     page_obj = paginator.get_page(
         request.GET.get('page')
     )
+    page_obj.object_list = attach_rating_summaries(page_obj.object_list)
 
     return render(
         request,
@@ -172,6 +184,7 @@ def category_courses(request, slug):
     page_obj = paginator.get_page(
         request.GET.get('page')
     )
+    page_obj.object_list = attach_rating_summaries(page_obj.object_list)
 
     context = catalogue_context(
         request,
@@ -207,6 +220,9 @@ def course_detail(request, slug):
 
     pending_payment = None
     latest_payment = None
+    existing_review = None
+    can_review = False
+    review_reason = ''
 
     if enrolment:
 
@@ -214,6 +230,53 @@ def course_detail(request, slug):
             status=Payment.Status.PENDING
         ).first()
         latest_payment = enrolment.payments.first()
+
+    if request.user.is_authenticated:
+
+        existing_review = CourseReview.objects.filter(
+            student=request.user,
+            course=course
+        ).first()
+        can_review, review_enrolment, review_reason = can_student_review_course(
+            request.user,
+            course,
+            include_existing_check=False
+        )
+
+        if existing_review:
+
+            can_review = False
+
+    approved_reviews = CourseReview.objects.select_related(
+        'student',
+        'enrolment'
+    ).filter(
+        course=course,
+        status=CourseReview.Status.APPROVED,
+        is_approved=True
+    )
+
+    review_sort = request.GET.get(
+        'review_sort',
+        'recent'
+    )
+    review_ordering = {
+        'recent': '-created_at',
+        'oldest': 'created_at',
+        'highest': '-rating',
+        'lowest': 'rating',
+    }
+    review_sort = review_sort if review_sort in review_ordering else 'recent'
+    approved_reviews = approved_reviews.order_by(
+        review_ordering[review_sort]
+    )
+    review_paginator = Paginator(
+        approved_reviews,
+        10
+    )
+    review_page = review_paginator.get_page(
+        request.GET.get('review_page')
+    )
 
     return render(
         request,
@@ -223,6 +286,12 @@ def course_detail(request, slug):
             'enrolment': enrolment,
             'pending_payment': pending_payment,
             'latest_payment': latest_payment,
+            'existing_review': existing_review,
+            'can_review': can_review,
+            'review_reason': review_reason,
+            'rating_summary': get_course_rating_summary(course),
+            'review_page': review_page,
+            'review_sort': review_sort,
         }
     )
 
@@ -375,6 +444,27 @@ def student_dashboard(request):
         student=request.user
     )
 
+    reviews = CourseReview.objects.select_related(
+        'course'
+    ).filter(
+        student=request.user
+    )
+
+    reviewed_course_ids = reviews.values_list(
+        'course_id',
+        flat=True
+    )
+    eligible_courses = []
+
+    for enrolment in enrolments.select_related('course'):
+        eligible, review_enrolment, reason = can_student_review_course(
+            request.user,
+            enrolment.course,
+            include_existing_check=False
+        )
+        if eligible and enrolment.course_id not in reviewed_course_ids:
+            eligible_courses.append(enrolment.course)
+
     return render(
         request,
         'learning/dashboard.html',
@@ -399,6 +489,11 @@ def student_dashboard(request):
             'recent_payments': payments[:5],
             'pending_payment_count': payments.filter(status=Payment.Status.PENDING).count(),
             'rejected_payment_count': payments.filter(status=Payment.Status.REJECTED).count(),
+            'recent_reviews': reviews[:5],
+            'pending_review_count': reviews.filter(status=CourseReview.Status.PENDING).count(),
+            'approved_review_count': reviews.filter(status=CourseReview.Status.APPROVED).count(),
+            'rejected_review_count': reviews.filter(status=CourseReview.Status.REJECTED).count(),
+            'eligible_review_courses': eligible_courses[:5],
         }
     )
 
@@ -565,6 +660,14 @@ def instructor_dashboard(request):
         course__in=courses
     )
 
+    reviews = CourseReview.objects.filter(
+        course__in=courses
+    )
+    approved_reviews = reviews.filter(
+        status=CourseReview.Status.APPROVED,
+        is_approved=True
+    )
+
     return render(
         request,
         'learning/instructor/dashboard.html',
@@ -605,6 +708,10 @@ def instructor_dashboard(request):
                 payment_status=Enrolment.PaymentStatus.PAID
             ).count(),
             'recent_payments': payments.select_related('student', 'course')[:5],
+            'average_review_rating': approved_reviews.aggregate(avg=Avg('rating'))['avg'] or 0,
+            'approved_review_count': approved_reviews.count(),
+            'low_rating_count': approved_reviews.filter(rating__in=[1, 2]).count(),
+            'recent_reviews': approved_reviews.select_related('student', 'course')[:5],
         }
     )
 
@@ -2654,6 +2761,295 @@ def instructor_payment_list(request):
     return render(request, 'learning/instructor/payment_list.html', {'payments': payments})
 
 
+@login_required
+def course_review_create(request, slug):
+
+    course = get_object_or_404(
+        published_courses(),
+        slug=slug
+    )
+
+    if CourseReview.objects.filter(student=request.user, course=course).exists():
+        messages.info(request, 'You have already reviewed this course. You can edit your existing review.')
+        review = CourseReview.objects.get(student=request.user, course=course)
+        return redirect('learning:course_review_edit', pk=review.pk)
+
+    eligible, enrolment, reason = can_student_review_course(
+        request.user,
+        course
+    )
+
+    if request.method == 'POST':
+        form = CourseReviewForm(request.POST)
+        if form.is_valid():
+            try:
+                review = create_course_review(request.user, course, form.cleaned_data)
+                messages.success(request, 'Your review was submitted for moderation.')
+                return redirect('learning:course_review_detail', pk=review.pk)
+            except (PermissionDenied, ValidationError) as exc:
+                form.add_error(None, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    else:
+        form = CourseReviewForm()
+
+    return render(
+        request,
+        'learning/reviews/review_form.html',
+        {
+            'course': course,
+            'enrolment': enrolment,
+            'eligible': eligible,
+            'eligibility_reason': reason,
+            'form': form,
+            'mode': 'create',
+        }
+    )
+
+
+@login_required
+def course_review_detail(request, pk):
+
+    review = get_object_or_404(
+        CourseReview.objects.select_related('course', 'student', 'enrolment', 'moderated_by'),
+        pk=pk,
+        student=request.user
+    )
+
+    return render(
+        request,
+        'learning/reviews/review_detail.html',
+        {
+            'review': review,
+        }
+    )
+
+
+@login_required
+def course_review_edit(request, pk):
+
+    review = get_object_or_404(
+        CourseReview.objects.select_related('course', 'enrolment'),
+        pk=pk,
+        student=request.user
+    )
+
+    if request.method == 'POST':
+        form = CourseReviewForm(request.POST, instance=review)
+        if form.is_valid():
+            try:
+                review = update_course_review(review, request.user, form.cleaned_data)
+                messages.success(request, 'Your updated review was submitted for moderation.')
+                return redirect('learning:course_review_detail', pk=review.pk)
+            except (PermissionDenied, ValidationError) as exc:
+                form.add_error(None, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    else:
+        form = CourseReviewForm(instance=review)
+
+    return render(
+        request,
+        'learning/reviews/review_form.html',
+        {
+            'course': review.course,
+            'enrolment': review.enrolment,
+            'eligible': True,
+            'eligibility_reason': '',
+            'form': form,
+            'review': review,
+            'mode': 'edit',
+        }
+    )
+
+
+@login_required
+def student_review_list(request):
+
+    reviews = CourseReview.objects.select_related(
+        'course',
+        'moderated_by'
+    ).filter(
+        student=request.user
+    )
+
+    return render(
+        request,
+        'learning/reviews/review_list.html',
+        {
+            'reviews': reviews,
+        }
+    )
+
+
+@instructor_required
+def instructor_review_list(request):
+
+    reviews = instructor_reviews(request.user).select_related(
+        'student',
+        'course'
+    )
+    status = request.GET.get('status', '')
+    rating = request.GET.get('rating', '')
+    course_id = request.GET.get('course', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    if status:
+        reviews = reviews.filter(status=status)
+    if rating:
+        reviews = reviews.filter(rating=rating)
+    if course_id:
+        reviews = reviews.filter(course_id=course_id)
+    if date_from:
+        reviews = reviews.filter(created_at__date__gte=date_from)
+    if date_to:
+        reviews = reviews.filter(created_at__date__lte=date_to)
+
+    return render(
+        request,
+        'learning/instructor/review_list.html',
+        {
+            'reviews': reviews,
+            'statuses': CourseReview.Status.choices,
+            'courses': instructor_courses(request.user),
+            'selected': {
+                'status': status,
+                'rating': rating,
+                'course': course_id,
+                'date_from': date_from,
+                'date_to': date_to,
+            }
+        }
+    )
+
+
+@staff_member_required
+def admin_review_list(request):
+
+    reviews = CourseReview.objects.select_related(
+        'student',
+        'course',
+        'course__instructor',
+        'moderated_by'
+    )
+    status = request.GET.get('status', '')
+    rating = request.GET.get('rating', '')
+    course_id = request.GET.get('course', '')
+    instructor_id = request.GET.get('instructor', '')
+    q = request.GET.get('q', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    all_reviews = reviews
+
+    if status:
+        reviews = reviews.filter(status=status)
+    if rating:
+        reviews = reviews.filter(rating=rating)
+    if course_id:
+        reviews = reviews.filter(course_id=course_id)
+    if instructor_id:
+        reviews = reviews.filter(course__instructor_id=instructor_id)
+    if q:
+        reviews = reviews.filter(
+            Q(course__title__icontains=q)
+            | Q(student__username__icontains=q)
+            | Q(student__first_name__icontains=q)
+            | Q(student__last_name__icontains=q)
+            | Q(comment__icontains=q)
+        )
+    if date_from:
+        reviews = reviews.filter(created_at__date__gte=date_from)
+    if date_to:
+        reviews = reviews.filter(created_at__date__lte=date_to)
+
+    totals = {
+        'pending': all_reviews.filter(status=CourseReview.Status.PENDING).count(),
+        'approved': all_reviews.filter(status=CourseReview.Status.APPROVED).count(),
+        'rejected': all_reviews.filter(status=CourseReview.Status.REJECTED).count(),
+        'hidden': all_reviews.filter(status=CourseReview.Status.HIDDEN).count(),
+        'average': all_reviews.filter(status=CourseReview.Status.APPROVED).aggregate(avg=Avg('rating'))['avg'] or 0,
+    }
+
+    return render(
+        request,
+        'learning/admin/reviews/review_list.html',
+        {
+            'reviews': reviews,
+            'statuses': CourseReview.Status.choices,
+            'courses': Course.objects.filter(reviews__isnull=False).distinct().order_by('title'),
+            'instructors': User.objects.filter(learning_courses__reviews__isnull=False).distinct().order_by('first_name', 'last_name', 'username'),
+            'selected': {
+                'status': status,
+                'rating': rating,
+                'course': course_id,
+                'instructor': instructor_id,
+                'q': q,
+                'date_from': date_from,
+                'date_to': date_to,
+            },
+            'totals': totals,
+        }
+    )
+
+
+@staff_member_required
+def admin_review_detail(request, pk):
+
+    review = get_object_or_404(
+        CourseReview.objects.select_related('student', 'course', 'course__instructor', 'enrolment', 'moderated_by'),
+        pk=pk
+    )
+
+    return render(
+        request,
+        'learning/admin/reviews/review_detail.html',
+        {
+            'review': review,
+            'reason_form': ReviewModerationReasonForm(),
+        }
+    )
+
+
+@staff_member_required
+@require_POST
+def admin_review_approve(request, pk):
+
+    review = get_object_or_404(CourseReview, pk=pk)
+    try:
+        approve_course_review(review, request.user)
+        messages.success(request, 'Review approved.')
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_review_detail', pk=pk)
+
+
+@staff_member_required
+@require_POST
+def admin_review_reject(request, pk):
+
+    review = get_object_or_404(CourseReview, pk=pk)
+    form = ReviewModerationReasonForm(request.POST)
+    if form.is_valid():
+        try:
+            reject_course_review(review, request.user, form.cleaned_data['reason'])
+            messages.success(request, 'Review rejected.')
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_review_detail', pk=pk)
+
+
+@staff_member_required
+@require_POST
+def admin_review_hide(request, pk):
+
+    review = get_object_or_404(CourseReview, pk=pk)
+    form = ReviewModerationReasonForm(request.POST)
+    if form.is_valid():
+        try:
+            hide_course_review(review, request.user, form.cleaned_data['reason'])
+            messages.success(request, 'Review hidden.')
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_review_detail', pk=pk)
+
+
 def register_student(request):
 
     if request.method == 'POST':
@@ -2877,6 +3273,16 @@ def instructor_payments(user):
         return payments
 
     return payments.filter(course__instructor=user)
+
+
+def instructor_reviews(user):
+
+    reviews = CourseReview.objects.all()
+
+    if user.is_staff:
+        return reviews
+
+    return reviews.filter(course__instructor=user)
 
 
 def choice_rule_warning(question):

@@ -48,6 +48,12 @@
             <div class="col-md-6"><div class="learning-stat-card"><strong>{{ active_paid_enrolment_count }}</strong><span>Active Paid Students</span></div></div>
         </div>
 
+        <div class="row g-4 mb-5">
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ average_review_rating|floatformat:1 }}</strong><span>Average Rating</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ approved_review_count }}</strong><span>Approved Reviews</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ low_rating_count }}</strong><span>Low Ratings</span></div></div>
+        </div>
+
         <div class="row g-4">
             <div class="col-lg-7">
                 <h2 class="fw-bold mb-3">Recent Courses</h2>
@@ -80,6 +86,26 @@
                 </div>
                 {% empty %}
                 <div class="alert alert-info">Recent enrolments will appear here.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 fw-bold mb-0">Recent Approved Reviews</h2>
+                    <a href="{% url 'learning:instructor_review_list' %}" class="btn btn-outline-primary btn-sm">Open Reviews</a>
+                </div>
+                {% for review in recent_reviews %}
+                <div class="learning-list-item mb-2">
+                    <i class="fas fa-star"></i>
+                    <div>
+                        <strong>{{ review.safe_reviewer_name }}</strong>
+                        <span>{{ review.course.title }} / {{ review.rating }} out of 5</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info mb-0">Approved learner reviews will appear here.</div>
                 {% endfor %}
             </div>
         </div>

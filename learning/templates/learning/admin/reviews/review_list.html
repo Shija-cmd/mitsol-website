@@ -1,0 +1,103 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Review Moderation</span>
+        <h1 class="fw-bold mt-3">Course Review Queue</h1>
+        <p class="lead">Approve, reject, or hide learner reviews before they appear publicly.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4 mb-4">
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.pending }}</strong><span>Pending</span></div></div>
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.approved }}</strong><span>Approved</span></div></div>
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.rejected }}</strong><span>Rejected</span></div></div>
+            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.hidden }}</strong><span>Hidden</span></div></div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-12"><div class="learning-stat-card"><strong>{{ totals.average|floatformat:1 }}</strong><span>Average Platform Rating</span></div></div>
+        </div>
+
+        <form method="get" class="card filter-card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-2 col-md-4">
+                        <label class="form-label" for="status">Status</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">All</option>
+                            {% for value, label in statuses %}
+                            <option value="{{ value }}" {% if selected.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-4">
+                        <label class="form-label" for="rating">Rating</label>
+                        <select id="rating" name="rating" class="form-select">
+                            <option value="">Any</option>
+                            {% for value in "12345" %}
+                            <option value="{{ value }}" {% if selected.rating == value %}selected{% endif %}>{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-4">
+                        <label class="form-label" for="course">Course</label>
+                        <select id="course" name="course" class="form-select">
+                            <option value="">All courses</option>
+                            {% for course in courses %}
+                            <option value="{{ course.pk }}" {% if selected.course == course.pk|stringformat:"s" %}selected{% endif %}>{{ course.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-4">
+                        <label class="form-label" for="instructor">Instructor</label>
+                        <select id="instructor" name="instructor" class="form-select">
+                            <option value="">All instructors</option>
+                            {% for instructor in instructors %}
+                            <option value="{{ instructor.pk }}" {% if selected.instructor == instructor.pk|stringformat:"s" %}selected{% endif %}>{{ instructor.get_full_name|default:instructor.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-4">
+                        <label class="form-label" for="q">Search</label>
+                        <input id="q" name="q" class="form-control" value="{{ selected.q }}" placeholder="Course, learner, comment">
+                    </div>
+                    <div class="col-lg-2 col-md-4 d-grid"><button class="btn btn-primary">Filter</button></div>
+                    <div class="col-lg-2 col-md-4 d-grid"><a href="{% url 'learning:admin_review_list' %}" class="btn btn-outline-secondary">Clear</a></div>
+                </div>
+            </div>
+        </form>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Learner</th><th>Course</th><th>Instructor</th><th>Rating</th><th>Status</th><th>Submitted</th><th>Moderator</th><th class="text-end">Action</th></tr></thead>
+                        <tbody>
+                            {% for review in reviews %}
+                            <tr>
+                                <td>{{ review.safe_reviewer_name }}</td>
+                                <td>{{ review.course.title }}</td>
+                                <td>{{ review.course.instructor.get_full_name|default:review.course.instructor.username }}</td>
+                                <td>{{ review.rating }} / 5</td>
+                                <td><span class="badge {% if review.status == 'Approved' %}bg-success{% elif review.status == 'Pending' %}bg-warning text-dark{% elif review.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %}">{{ review.status }}</span></td>
+                                <td>{{ review.created_at|date:"M d, Y H:i" }}</td>
+                                <td>{% if review.moderated_by %}{{ review.moderated_by.get_full_name|default:review.moderated_by.username }}{% else %}-{% endif %}</td>
+                                <td class="text-end"><a href="{% url 'learning:admin_review_detail' review.pk %}" class="btn btn-outline-primary btn-sm">Review</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted py-5">No course reviews match this filter.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

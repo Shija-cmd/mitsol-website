@@ -139,3 +139,42 @@ Upload policy:
 - Payment proof uploads allow PDF and common image formats only: `pdf`, `jpg`, `jpeg`, `png`, `webp`.
 - The server rejects dangerous extensions, empty files, very long filenames, and files larger than 5 MB.
 - Configure persistent media storage in production so uploaded proofs remain available after deployment restarts.
+
+# MITSOL Learning Course Reviews
+
+Stage 5 adds moderated course reviews and ratings.
+
+Review eligibility:
+- A learner must be enrolled in the course.
+- The enrolment must be `Active` or `Completed`.
+- Paid courses require confirmed payment status.
+- A learner must complete at least 25% of the course, unless the course is already completed.
+- Each learner can submit one review per course.
+
+Review statuses:
+- `Pending`: submitted or edited and awaiting moderation.
+- `Approved`: publicly visible on the course detail page.
+- `Rejected`: preserved privately for the learner to edit and resubmit.
+- `Hidden`: previously approved but removed from public display by moderation.
+
+Moderation workflow:
+- New reviews are submitted as `Pending`.
+- Editing an approved, rejected, or hidden review sends it back to `Pending`.
+- Authorized moderators can approve, reject, or hide reviews from the learning moderation queue.
+- Rejection and hiding require a reason.
+- Instructors can view review status for their own courses but cannot moderate reviews unless separately authorized.
+
+Public display policy:
+- Only approved reviews are displayed publicly.
+- Public reviews show a safe learner name: full name when available, otherwise `Verified Learner`.
+- Email addresses, usernames, enrolment details, payment details, and moderation notes are not displayed publicly.
+- The `Verified Learner` badge requires a matching valid enrolment and confirmed access.
+
+Rating policy:
+- Course rating summaries use approved reviews only.
+- Average rating is calculated dynamically and rounded to one decimal place.
+- Rating distribution counts 1-star through 5-star reviews and safely handles courses with no reviews.
+
+Notifications:
+- Learners are notified when reviews are submitted, approved, rejected, hidden, or resubmitted after editing.
+- Review moderators are notified when a new or updated review awaits moderation.
