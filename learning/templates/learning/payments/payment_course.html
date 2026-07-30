@@ -1,0 +1,83 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Course Payment</span>
+        <h1 class="fw-bold mt-3">{{ course.title }}</h1>
+        <p class="lead">Submit your payment reference and proof for MITSOL verification.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold mb-3">Submit Payment</h2>
+                        <div class="alert alert-info">
+                            Amount due: <strong>{{ settings_obj.currency }} {{ amount|floatformat:0|intcomma }}</strong>
+                        </div>
+
+                        {% if pending_payment %}
+                        <div class="alert alert-warning">
+                            You already have a payment pending verification.
+                            <a href="{% url 'learning:payment_detail' pending_payment.pk %}">View payment</a>
+                        </div>
+                        {% endif %}
+
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {{ form.non_field_errors }}
+                            {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary btn-lg">Submit for Verification</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Payment Instructions</h2>
+                        {% if settings_obj.general_payment_instructions %}
+                        <div class="text-muted">{{ settings_obj.general_payment_instructions|linebreaks }}</div>
+                        {% else %}
+                        <p class="text-muted">Pay using one of the configured methods, then submit the transaction reference for verification.</p>
+                        {% endif %}
+                        <ul class="learning-check-list mb-0">
+                            {% if settings_obj.mpesa_business_number %}<li>M-Pesa: {{ settings_obj.mpesa_business_number }}{% if settings_obj.mpesa_account_name %} - {{ settings_obj.mpesa_account_name }}{% endif %}</li>{% endif %}
+                            {% if settings_obj.airtel_business_number %}<li>Airtel Money: {{ settings_obj.airtel_business_number }}{% if settings_obj.airtel_account_name %} - {{ settings_obj.airtel_account_name }}{% endif %}</li>{% endif %}
+                            {% if settings_obj.mixx_business_number %}<li>Mixx by Yas: {{ settings_obj.mixx_business_number }}{% if settings_obj.mixx_account_name %} - {{ settings_obj.mixx_account_name }}{% endif %}</li>{% endif %}
+                            {% if settings_obj.bank_account_number %}<li>Bank: {{ settings_obj.bank_name }} - {{ settings_obj.bank_account_number }}</li>{% endif %}
+                            {% if settings_obj.payment_support_email %}<li>Support email: {{ settings_obj.payment_support_email }}</li>{% endif %}
+                            {% if settings_obj.payment_support_phone %}<li>Support phone: {{ settings_obj.payment_support_phone }}</li>{% endif %}
+                        </ul>
+                    </div>
+                </div>
+
+                {% if latest_payment %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Latest Payment</h2>
+                        <p class="mb-1">{{ latest_payment.transaction_reference }} - {{ latest_payment.status }}</p>
+                        <a href="{% url 'learning:payment_detail' latest_payment.pk %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

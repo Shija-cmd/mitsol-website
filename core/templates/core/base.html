@@ -244,6 +244,11 @@
             My Courses
         </a>
 
+        <a href="{% url 'learning:payment_list' %}" class="learning-sidebar-link {% if '/learn/payments/' in request.path %}active{% endif %}">
+            <i class="fas fa-receipt"></i>
+            Payments
+        </a>
+
         <a href="{% url 'learning:announcements' %}" class="learning-sidebar-link {% if '/learn/announcements/' in request.path %}active{% endif %}">
             <i class="fas fa-bullhorn"></i>
             Announcements
@@ -305,10 +310,20 @@
             Manage Announcements
         </a>
 
+        <a href="{% url 'learning:instructor_payment_list' %}" class="learning-sidebar-link {% if '/learn/instructor/payments/' in request.path %}active{% endif %}">
+            <i class="fas fa-money-check-dollar"></i>
+            Course Payments
+        </a>
+
         {% if request.user.is_staff %}
         <a href="{% url 'learning:admin_announcements' %}" class="learning-sidebar-link {% if '/learn/admin/announcements/' in request.path %}active{% endif %}">
             <i class="fas fa-user-shield"></i>
             All Announcements
+        </a>
+
+        <a href="{% url 'learning:admin_payment_list' %}" class="learning-sidebar-link {% if '/learn/admin/payments/' in request.path %}active{% endif %}">
+            <i class="fas fa-shield-halved"></i>
+            Verify Payments
         </a>
 
         <a href="{% url 'admin:index' %}" class="learning-sidebar-link">

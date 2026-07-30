@@ -59,6 +59,21 @@ DANGEROUS_ASSIGNMENT_EXTENSIONS = [
     'jar',
 ]
 
+PAYMENT_PROOF_EXTENSIONS = [
+    'pdf',
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+]
+
+DANGEROUS_PAYMENT_EXTENSIONS = DANGEROUS_ASSIGNMENT_EXTENSIONS + [
+    'html',
+    'htm',
+    'js',
+    'php',
+]
+
 
 def assignment_submission_upload_to(instance, filename):
 
@@ -75,6 +90,15 @@ def assignment_submission_upload_to(instance, filename):
         f'learning/assignments/{course_id}/'
         f'{assignment_id}/{student_id}/{safe_name}'
     )
+
+
+def payment_proof_upload_to(instance, filename):
+
+    safe_name = Path(filename).name
+    course_id = instance.course_id or 'new-course'
+    student_id = instance.student_id or 'new-student'
+
+    return f'learning/payment_proofs/{course_id}/{student_id}/{safe_name}'
 
 
 class CourseCategory(models.Model):
@@ -1984,3 +2008,177 @@ class AssignmentSubmission(models.Model):
         return self.status in [
             self.Status.DRAFT,
         ]
+
+
+class LearningPaymentSettings(models.Model):
+
+    currency = models.CharField(
+        max_length=10,
+        default='TZS'
+    )
+
+    mpesa_business_number = models.CharField(max_length=100, blank=True)
+    mpesa_account_name = models.CharField(max_length=200, blank=True)
+    airtel_business_number = models.CharField(max_length=100, blank=True)
+    airtel_account_name = models.CharField(max_length=200, blank=True)
+    mixx_business_number = models.CharField(max_length=100, blank=True)
+    mixx_account_name = models.CharField(max_length=200, blank=True)
+    bank_name = models.CharField(max_length=200, blank=True)
+    bank_account_name = models.CharField(max_length=200, blank=True)
+    bank_account_number = models.CharField(max_length=100, blank=True)
+    bank_branch = models.CharField(max_length=200, blank=True)
+    card_instructions = models.TextField(blank=True)
+    general_payment_instructions = models.TextField(blank=True)
+    require_proof_for_mobile_money = models.BooleanField(default=True)
+    require_proof_for_bank_transfer = models.BooleanField(default=True)
+    payment_support_email = models.EmailField(blank=True)
+    payment_support_phone = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+
+        verbose_name_plural = 'Learning payment settings'
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=('is_active',),
+                condition=models.Q(is_active=True),
+                name='unique_active_learning_payment_settings'
+            ),
+        )
+
+    def __str__(self):
+
+        return f'Learning payment settings ({self.currency})'
+
+
+class Payment(models.Model):
+
+    class PaymentMethod(models.TextChoices):
+
+        MPESA = 'M-Pesa', 'M-Pesa'
+        AIRTEL = 'Airtel Money', 'Airtel Money'
+        MIXX = 'Mixx by Yas', 'Mixx by Yas'
+        BANK = 'Bank Transfer', 'Bank Transfer'
+        CARD = 'Card', 'Card'
+        OTHER = 'Other', 'Other'
+
+    class Status(models.TextChoices):
+
+        PENDING = 'Pending', 'Pending'
+        PAID = 'Paid', 'Paid'
+        FAILED = 'Failed', 'Failed'
+        REJECTED = 'Rejected', 'Rejected'
+        REFUNDED = 'Refunded', 'Refunded'
+        CANCELLED = 'Cancelled', 'Cancelled'
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='learning_payments'
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.PROTECT,
+        related_name='learning_payments'
+    )
+
+    enrolment = models.ForeignKey(
+        Enrolment,
+        on_delete=models.PROTECT,
+        related_name='payments'
+    )
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10, default='TZS')
+    payment_method = models.CharField(max_length=40, choices=PaymentMethod.choices)
+    transaction_reference = models.CharField(max_length=120)
+    proof_of_payment = models.FileField(upload_to=payment_proof_upload_to, blank=True, null=True)
+    original_filename = models.CharField(max_length=255, blank=True)
+    proof_file_size = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING)
+    student_notes = models.TextField(blank=True)
+    administrator_notes = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(default=timezone.now)
+    verified_at = models.DateTimeField(blank=True, null=True)
+    verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='verified_learning_payments', blank=True, null=True)
+    rejected_at = models.DateTimeField(blank=True, null=True)
+    rejected_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='rejected_learning_payments', blank=True, null=True)
+    refunded_at = models.DateTimeField(blank=True, null=True)
+    refunded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='refunded_learning_payments', blank=True, null=True)
+    refund_reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+
+        ordering = ('-submitted_at',)
+
+        indexes = (
+            models.Index(fields=('student', 'status'), name='learning_pa_student_7ab4f0_idx'),
+            models.Index(fields=('course', 'status'), name='learning_pa_course_612e8c_idx'),
+            models.Index(fields=('enrolment', 'status'), name='learning_pa_enrolm_2f7614_idx'),
+            models.Index(fields=('transaction_reference',), name='learning_pa_transa_4bd0b5_idx'),
+            models.Index(fields=('submitted_at',), name='learning_pa_submitt_2403e6_idx'),
+            models.Index(fields=('verified_at',), name='learning_pa_verifie_b25777_idx'),
+            models.Index(fields=('payment_method', 'status'), name='learning_pa_payment_ad4f6d_idx'),
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=('enrolment',),
+                condition=models.Q(status='Pending'),
+                name='unique_pending_learning_payment_per_enrolment'
+            ),
+            models.UniqueConstraint(
+                fields=('enrolment',),
+                condition=models.Q(status='Paid'),
+                name='unique_paid_learning_payment_per_enrolment'
+            ),
+            models.UniqueConstraint(
+                fields=('transaction_reference',),
+                condition=~models.Q(transaction_reference=''),
+                name='unique_learning_payment_reference'
+            ),
+        )
+
+        permissions = (
+            ('verify_learning_payment', 'Can verify learning payment'),
+            ('reject_learning_payment', 'Can reject learning payment'),
+            ('refund_learning_payment', 'Can refund learning payment'),
+            ('view_all_learning_payments', 'Can view all learning payments'),
+        )
+
+    def __str__(self):
+
+        return f'{self.student} - {self.course} - {self.status}'
+
+    def clean(self):
+
+        errors = {}
+
+        if self.amount <= 0:
+            errors['amount'] = 'Payment amount must be greater than zero.'
+
+        if self.enrolment_id:
+            if self.student_id and self.enrolment.student_id != self.student_id:
+                errors['student'] = 'Payment student must match enrolment student.'
+            if self.course_id and self.enrolment.course_id != self.course_id:
+                errors['course'] = 'Payment course must match enrolment course.'
+
+        if self.course_id and self.course.is_free:
+            errors['course'] = 'Free courses cannot have learning payments.'
+
+        if self.status == self.Status.PAID and not (self.verified_by_id and self.verified_at):
+            errors['verified_by'] = 'Paid payments require verifier and verification time.'
+
+        if self.status == self.Status.REJECTED and not (self.rejected_by_id and self.rejected_at and self.administrator_notes.strip()):
+            errors['administrator_notes'] = 'Rejected payments require rejection notes and audit fields.'
+
+        if self.status == self.Status.REFUNDED and not (self.refunded_by_id and self.refunded_at and self.refund_reason.strip()):
+            errors['refund_reason'] = 'Refunded payments require a refund reason and audit fields.'
+
+        if errors:
+            raise ValidationError(errors)

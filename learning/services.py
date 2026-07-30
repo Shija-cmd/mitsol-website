@@ -2,7 +2,7 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Max
 from django.urls import reverse
 from django.utils import timezone
@@ -14,6 +14,10 @@ from .models import (
     Enrolment,
     LessonProgress,
     Notification,
+    Payment,
+    LearningPaymentSettings,
+    PAYMENT_PROOF_EXTENSIONS,
+    DANGEROUS_PAYMENT_EXTENSIONS,
     Question,
     QuizAttempt,
     StudentAnswer,
@@ -188,8 +192,361 @@ def get_active_enrolment(student, course):
             Enrolment.Status.ACTIVE,
             Enrolment.Status.COMPLETED,
         ],
+        is_active=True,
+        payment_status__in=[
+            Enrolment.PaymentStatus.NOT_REQUIRED,
+            Enrolment.PaymentStatus.PAID,
+        ],
+    ).first()
+
+
+def get_learning_payment_settings():
+
+    settings_obj = LearningPaymentSettings.objects.filter(
         is_active=True
     ).first()
+
+    if settings_obj:
+        return settings_obj
+
+    return LearningPaymentSettings(currency='TZS')
+
+
+def get_course_payable_amount(course):
+
+    if course.price < 0 or (course.discount_price is not None and course.discount_price < 0):
+        raise ValidationError('Course price cannot be negative.')
+
+    if course.is_free:
+        return Decimal('0')
+
+    if course.price <= 0:
+        raise ValidationError('Paid courses must have a price greater than zero.')
+
+    if course.discount_price is not None:
+        if course.discount_price > course.price:
+            raise ValidationError('Discount price cannot exceed normal price.')
+        if course.discount_price < course.price:
+            return course.discount_price
+
+    return course.price
+
+
+@transaction.atomic
+def get_or_create_paid_course_enrolment(student, course):
+
+    if course.is_free:
+        raise ValidationError('Free courses do not require payment.')
+
+    if not course.is_published:
+        raise PermissionDenied('This course is not available.')
+
+    enrolment, created = Enrolment.objects.select_for_update().get_or_create(
+        student=student,
+        course=course,
+        defaults={
+            'status': Enrolment.Status.PENDING,
+            'payment_status': Enrolment.PaymentStatus.PENDING,
+            'is_active': False,
+        }
+    )
+
+    if enrolment.status in [Enrolment.Status.ACTIVE, Enrolment.Status.COMPLETED]:
+        return enrolment, created
+
+    if enrolment.status != Enrolment.Status.PENDING or enrolment.is_active:
+        enrolment.status = Enrolment.Status.PENDING
+        enrolment.is_active = False
+        enrolment.payment_status = Enrolment.PaymentStatus.PENDING
+        enrolment.save(update_fields=['status', 'is_active', 'payment_status'])
+
+    if created:
+        create_notification(
+            recipient=student,
+            title='Paid-course enrolment created',
+            message=f'Your enrolment request for {course.title} is pending payment.',
+            notification_type=Notification.NotificationType.PAYMENT,
+            related_url=reverse('learning:payment_course', args=[course.slug]),
+            dedupe_key=f'paid-enrolment:{enrolment.pk}:created'
+        )
+
+    return enrolment, created
+
+
+def payment_file_extension(filename):
+    return filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+
+
+def validate_payment_proof(uploaded_file, required=False):
+
+    if not uploaded_file:
+        if required:
+            raise ValidationError('Proof of payment is required.')
+        return
+
+    filename = uploaded_file.name or ''
+
+    if len(filename) > 255:
+        raise ValidationError('The filename is too long.')
+
+    extension = payment_file_extension(filename)
+
+    if not extension or extension in DANGEROUS_PAYMENT_EXTENSIONS or extension not in PAYMENT_PROOF_EXTENSIONS:
+        raise ValidationError('The selected proof file type is not allowed.')
+
+    if uploaded_file.size <= 0:
+        raise ValidationError('The proof file is empty.')
+
+    if uploaded_file.size > 5 * 1024 * 1024:
+        raise ValidationError('The proof file exceeds the maximum size of 5 MB.')
+
+
+def proof_required_for_method(method, settings_obj=None):
+
+    settings_obj = settings_obj or get_learning_payment_settings()
+
+    if method in [Payment.PaymentMethod.MPESA, Payment.PaymentMethod.AIRTEL, Payment.PaymentMethod.MIXX]:
+        return settings_obj.require_proof_for_mobile_money
+
+    if method == Payment.PaymentMethod.BANK:
+        return settings_obj.require_proof_for_bank_transfer
+
+    return False
+
+
+def payment_admin_users():
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return User.objects.filter(
+        is_active=True
+    ).filter(
+        models.Q(is_superuser=True)
+        | models.Q(user_permissions__codename='verify_learning_payment')
+        | models.Q(groups__permissions__codename='verify_learning_payment')
+    ).distinct()
+
+
+@transaction.atomic
+def submit_course_payment(student, enrolment, cleaned_data):
+
+    enrolment = Enrolment.objects.select_for_update().select_related('course').get(pk=enrolment.pk)
+
+    if enrolment.student_id != student.id:
+        raise PermissionDenied('You cannot submit payment for this enrolment.')
+
+    course = enrolment.course
+
+    if course.is_free:
+        raise ValidationError('This course is free and does not require payment.')
+
+    if enrolment.status != Enrolment.Status.PENDING:
+        raise ValidationError('This enrolment is not awaiting payment.')
+
+    pending = Payment.objects.select_for_update().filter(
+        enrolment=enrolment,
+        status=Payment.Status.PENDING
+    ).first()
+
+    if pending:
+        return pending
+
+    method = cleaned_data['payment_method']
+    reference = cleaned_data['transaction_reference'].strip().upper()
+    proof = cleaned_data.get('proof_of_payment')
+    settings_obj = get_learning_payment_settings()
+
+    if not reference:
+        raise ValidationError('Transaction reference is required.')
+
+    if Payment.objects.filter(transaction_reference=reference).exclude(status=Payment.Status.REJECTED).exists():
+        raise ValidationError('This transaction reference has already been used.')
+
+    validate_payment_proof(
+        proof,
+        required=proof_required_for_method(method, settings_obj)
+    )
+
+    payment = Payment.objects.create(
+        student=student,
+        course=course,
+        enrolment=enrolment,
+        amount=get_course_payable_amount(course),
+        currency=settings_obj.currency,
+        payment_method=method,
+        transaction_reference=reference,
+        proof_of_payment=proof,
+        original_filename=proof.name if proof else '',
+        proof_file_size=proof.size if proof else 0,
+        student_notes=cleaned_data.get('student_notes', ''),
+        submitted_at=timezone.now()
+    )
+
+    if (
+        enrolment.status != Enrolment.Status.PENDING
+        or enrolment.payment_status != Enrolment.PaymentStatus.PENDING
+        or enrolment.is_active
+    ):
+        enrolment.status = Enrolment.Status.PENDING
+        enrolment.payment_status = Enrolment.PaymentStatus.PENDING
+        enrolment.is_active = False
+        enrolment.save(
+            update_fields=[
+                'status',
+                'payment_status',
+                'is_active',
+            ]
+        )
+
+    create_notification(
+        recipient=student,
+        title='Payment submitted',
+        message=f'Your payment for {course.title} is awaiting verification.',
+        notification_type=Notification.NotificationType.PAYMENT,
+        related_url=reverse('learning:payment_detail', args=[payment.pk]),
+        dedupe_key=f'learning-payment:{payment.pk}:submitted-student'
+    )
+
+    for admin_user in payment_admin_users():
+        create_notification(
+            recipient=admin_user,
+            title='Payment awaiting verification',
+            message=f'{student} submitted payment for {course.title}.',
+            notification_type=Notification.NotificationType.PAYMENT,
+            related_url=reverse('learning:admin_payment_detail', args=[payment.pk]),
+            dedupe_key=f'learning-payment:{payment.pk}:submitted-admin:{admin_user.pk}'
+        )
+
+    return payment
+
+
+@transaction.atomic
+def confirm_payment(payment, administrator):
+
+    payment = Payment.objects.select_for_update().select_related('enrolment', 'course', 'student').get(pk=payment.pk)
+    enrolment = Enrolment.objects.select_for_update().get(pk=payment.enrolment_id)
+
+    if not administrator.is_staff and not administrator.has_perm('learning.verify_learning_payment'):
+        raise PermissionDenied('You cannot verify payments.')
+
+    if payment.status == Payment.Status.PAID:
+        return payment
+
+    if payment.status != Payment.Status.PENDING:
+        raise ValidationError('Only pending payments can be confirmed.')
+
+    if payment.amount != get_course_payable_amount(payment.course):
+        raise ValidationError('Payment amount does not match the current course amount.')
+
+    payment.status = Payment.Status.PAID
+    payment.verified_by = administrator
+    payment.verified_at = timezone.now()
+    payment.rejected_by = None
+    payment.rejected_at = None
+    payment.administrator_notes = ''
+    payment.save()
+
+    enrolment.payment_status = Enrolment.PaymentStatus.PAID
+    if enrolment.status != Enrolment.Status.COMPLETED:
+        enrolment.status = Enrolment.Status.ACTIVE
+    enrolment.is_active = True
+    if not enrolment.activated_at:
+        enrolment.activated_at = timezone.now()
+    enrolment.save(update_fields=['payment_status', 'status', 'is_active', 'activated_at'])
+
+    create_notification(
+        recipient=payment.student,
+        title='Payment confirmed',
+        message=f'Your payment for {payment.course.title} has been confirmed and access is active.',
+        notification_type=Notification.NotificationType.PAYMENT,
+        related_url=payment.course.get_absolute_url(),
+        dedupe_key=f'learning-payment:{payment.pk}:confirmed'
+    )
+
+    return payment
+
+
+@transaction.atomic
+def reject_payment(payment, administrator, reason):
+
+    if not reason.strip():
+        raise ValidationError('Rejection reason is required.')
+
+    payment = Payment.objects.select_for_update().select_related('enrolment', 'course', 'student').get(pk=payment.pk)
+
+    if not administrator.is_staff and not administrator.has_perm('learning.reject_learning_payment'):
+        raise PermissionDenied('You cannot reject payments.')
+
+    if payment.status == Payment.Status.REJECTED:
+        return payment
+
+    if payment.status != Payment.Status.PENDING:
+        raise ValidationError('Only pending payments can be rejected.')
+
+    payment.status = Payment.Status.REJECTED
+    payment.administrator_notes = reason
+    payment.rejected_by = administrator
+    payment.rejected_at = timezone.now()
+    payment.save()
+
+    enrolment = payment.enrolment
+    enrolment.payment_status = Enrolment.PaymentStatus.REJECTED
+    enrolment.status = Enrolment.Status.PENDING
+    enrolment.is_active = False
+    enrolment.save(update_fields=['payment_status', 'status', 'is_active'])
+
+    create_notification(
+        recipient=payment.student,
+        title='Payment rejected',
+        message=f'Your payment for {payment.course.title} was rejected. Please review and resubmit.',
+        notification_type=Notification.NotificationType.PAYMENT,
+        related_url=reverse('learning:payment_detail', args=[payment.pk]),
+        dedupe_key=f'learning-payment:{payment.pk}:rejected'
+    )
+
+    return payment
+
+
+@transaction.atomic
+def mark_payment_refunded(payment, administrator, reason):
+
+    if not reason.strip():
+        raise ValidationError('Refund reason is required.')
+
+    payment = Payment.objects.select_for_update().select_related('enrolment', 'course', 'student').get(pk=payment.pk)
+
+    if not administrator.is_staff and not administrator.has_perm('learning.refund_learning_payment'):
+        raise PermissionDenied('You cannot refund payments.')
+
+    if payment.status == Payment.Status.REFUNDED:
+        return payment
+
+    if payment.status != Payment.Status.PAID:
+        raise ValidationError('Only paid payments can be refunded.')
+
+    payment.status = Payment.Status.REFUNDED
+    payment.refund_reason = reason
+    payment.refunded_by = administrator
+    payment.refunded_at = timezone.now()
+    payment.save()
+
+    enrolment = payment.enrolment
+    enrolment.payment_status = Enrolment.PaymentStatus.REFUNDED
+    enrolment.status = Enrolment.Status.SUSPENDED
+    enrolment.is_active = False
+    enrolment.save(update_fields=['payment_status', 'status', 'is_active'])
+
+    create_notification(
+        recipient=payment.student,
+        title='Payment refunded',
+        message=f'Your payment for {payment.course.title} was marked refunded and access is suspended.',
+        notification_type=Notification.NotificationType.PAYMENT,
+        related_url=reverse('learning:payment_detail', args=[payment.pk]),
+        dedupe_key=f'learning-payment:{payment.pk}:refunded'
+    )
+
+    return payment
 
 
 def quiz_is_accessible(student, quiz):

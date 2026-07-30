@@ -11,15 +11,17 @@ from .models import (
     InstructorProfile,
     Lesson,
     LessonProgress,
+    LearningPaymentSettings,
     Module,
     Notification,
+    Payment,
     Choice,
     Question,
     Quiz,
     QuizAttempt,
     StudentAnswer,
 )
-from .services import mark_submission_under_review, publish_announcement
+from .services import confirm_payment, mark_submission_under_review, publish_announcement
 
 
 class LessonInline(admin.TabularInline):
@@ -300,6 +302,205 @@ class EnrolmentAdmin(admin.ModelAdmin):
         'completed_at',
     )
 
+
+@admin.register(LearningPaymentSettings)
+class LearningPaymentSettingsAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'currency',
+        'is_active',
+        'payment_support_email',
+        'payment_support_phone',
+        'updated_at',
+    )
+
+    list_filter = (
+        'is_active',
+        'currency',
+    )
+
+    fieldsets = (
+        (
+            'General',
+            {
+                'fields': (
+                    'currency',
+                    'general_payment_instructions',
+                    'is_active',
+                )
+            }
+        ),
+        (
+            'Mobile Money',
+            {
+                'fields': (
+                    'mpesa_business_number',
+                    'mpesa_account_name',
+                    'airtel_business_number',
+                    'airtel_account_name',
+                    'mixx_business_number',
+                    'mixx_account_name',
+                    'require_proof_for_mobile_money',
+                )
+            }
+        ),
+        (
+            'Bank and Card',
+            {
+                'fields': (
+                    'bank_name',
+                    'bank_account_name',
+                    'bank_account_number',
+                    'bank_branch',
+                    'card_instructions',
+                    'require_proof_for_bank_transfer',
+                )
+            }
+        ),
+        (
+            'Support',
+            {
+                'fields': (
+                    'payment_support_email',
+                    'payment_support_phone',
+                    'updated_at',
+                )
+            }
+        ),
+    )
+
+    readonly_fields = (
+        'updated_at',
+    )
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'student',
+        'course',
+        'amount',
+        'currency',
+        'payment_method',
+        'transaction_reference',
+        'status',
+        'submitted_at',
+        'verified_at',
+    )
+
+    list_filter = (
+        'status',
+        'payment_method',
+        'currency',
+        'course',
+        'submitted_at',
+        'verified_at',
+    )
+
+    search_fields = (
+        'student__username',
+        'student__first_name',
+        'student__last_name',
+        'student__email',
+        'course__title',
+        'transaction_reference',
+    )
+
+    autocomplete_fields = (
+        'student',
+        'course',
+        'enrolment',
+        'verified_by',
+        'rejected_by',
+        'refunded_by',
+    )
+
+    readonly_fields = (
+        'amount',
+        'currency',
+        'original_filename',
+        'proof_file_size',
+        'submitted_at',
+        'verified_at',
+        'verified_by',
+        'rejected_at',
+        'rejected_by',
+        'refunded_at',
+        'refunded_by',
+        'created_at',
+        'updated_at',
+    )
+
+    fieldsets = (
+        (
+            'Payment',
+            {
+                'fields': (
+                    'student',
+                    'course',
+                    'enrolment',
+                    'amount',
+                    'currency',
+                    'status',
+                    'payment_method',
+                    'transaction_reference',
+                    'proof_of_payment',
+                    'original_filename',
+                    'proof_file_size',
+                )
+            }
+        ),
+        (
+            'Notes',
+            {
+                'fields': (
+                    'student_notes',
+                    'administrator_notes',
+                    'refund_reason',
+                )
+            }
+        ),
+        (
+            'Audit',
+            {
+                'fields': (
+                    'submitted_at',
+                    'verified_by',
+                    'verified_at',
+                    'rejected_by',
+                    'rejected_at',
+                    'refunded_by',
+                    'refunded_at',
+                    'created_at',
+                    'updated_at',
+                )
+            }
+        ),
+    )
+
+    actions = (
+        'confirm_selected_payments',
+    )
+
+    def confirm_selected_payments(self, request, queryset):
+
+        confirmed = 0
+
+        for payment in queryset:
+
+            try:
+                confirm_payment(payment, request.user)
+                confirmed += 1
+            except Exception:
+                continue
+
+        self.message_user(
+            request,
+            f'{confirmed} payment(s) confirmed.'
+        )
+
+    confirm_selected_payments.short_description = 'Confirm selected pending payments'
 
 @admin.register(LessonProgress)
 class LessonProgressAdmin(admin.ModelAdmin):

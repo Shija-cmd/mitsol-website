@@ -38,6 +38,16 @@
             <div class="col-md-3"><div class="learning-stat-card"><strong>{{ returned_assignment_count }}</strong><span>Returned</span></div></div>
         </div>
 
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ pending_payment_count }}</strong><span>Pending Course Payments</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ paid_payment_count }}</strong><span>Confirmed Course Payments</span></div></div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ pending_paid_enrolment_count }}</strong><span>Pending Paid Enrolments</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ active_paid_enrolment_count }}</strong><span>Active Paid Students</span></div></div>
+        </div>
+
         <div class="row g-4">
             <div class="col-lg-7">
                 <h2 class="fw-bold mb-3">Recent Courses</h2>
@@ -46,7 +56,7 @@
                     <div class="card-body d-flex flex-wrap justify-content-between gap-3">
                         <div>
                             <h3 class="h5 fw-bold">{{ course.title }}</h3>
-                            <p class="text-muted mb-0">{{ course.status }} • {{ course.category.name }}</p>
+                            <p class="text-muted mb-0">{{ course.status }} / {{ course.category.name }}</p>
                         </div>
                         <div class="d-flex gap-2">
                             <a href="{% url 'learning:instructor_course_edit' course.pk %}" class="btn btn-outline-primary btn-sm">Edit</a>
@@ -77,6 +87,26 @@
         <div class="card border-0 shadow-sm mt-4">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 fw-bold mb-0">Recent Payments</h2>
+                    <a href="{% url 'learning:instructor_payment_list' %}" class="btn btn-outline-primary btn-sm">Open Payments</a>
+                </div>
+                {% for payment in recent_payments %}
+                <div class="learning-list-item mb-2">
+                    <i class="fas fa-money-check-dollar"></i>
+                    <div>
+                        <strong>{{ payment.student.get_full_name|default:payment.student.username }}</strong>
+                        <span>{{ payment.course.title }} / {{ payment.status }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info mb-0">Course payment activity will appear here.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2 class="h4 fw-bold mb-0">Recent Quiz Attempts</h2>
                     <a href="{% url 'learning:instructor_quiz_attempts' %}" class="btn btn-outline-primary btn-sm">Open Grading Queue</a>
                 </div>
@@ -85,7 +115,7 @@
                     <i class="fas fa-clipboard-check"></i>
                     <div>
                         <strong>{{ attempt.student.get_full_name|default:attempt.student.username }}</strong>
-                        <span>{{ attempt.quiz.title }} • {{ attempt.status }}</span>
+                        <span>{{ attempt.quiz.title }} / {{ attempt.status }}</span>
                     </div>
                 </div>
                 {% empty %}
@@ -105,7 +135,7 @@
                     <i class="fas fa-file-pen"></i>
                     <div>
                         <strong>{{ submission.student.get_full_name|default:submission.student.username }}</strong>
-                        <span>{{ submission.assignment.title }} • {{ submission.status }}</span>
+                        <span>{{ submission.assignment.title }} / {{ submission.status }}</span>
                     </div>
                 </div>
                 {% empty %}

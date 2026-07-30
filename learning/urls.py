@@ -112,6 +112,11 @@ urlpatterns = [
         views.submission_revise,
         name='submission_revise'
     ),
+    path('payments/', views.payment_list, name='payment_list'),
+    path('payments/course/<slug:slug>/', views.payment_course, name='payment_course'),
+    path('payments/<int:pk>/', views.payment_detail, name='payment_detail'),
+    path('payments/<int:pk>/proof/', views.payment_proof, name='payment_proof'),
+    path('payments/<int:pk>/resubmit/', views.payment_resubmit, name='payment_resubmit'),
     path(
         'dashboard/',
         views.student_dashboard,
@@ -217,6 +222,7 @@ urlpatterns = [
         views.instructor_submission_return,
         name='instructor_submission_return'
     ),
+    path('instructor/payments/', views.instructor_payment_list, name='instructor_payment_list'),
     path(
         'instructor/quizzes/',
         views.instructor_quiz_list,
@@ -282,6 +288,12 @@ urlpatterns = [
         views.admin_announcement_list,
         name='admin_announcements'
     ),
+    path('admin/payments/', views.admin_payment_list, name='admin_payment_list'),
+    path('admin/payments/<int:pk>/', views.admin_payment_detail, name='admin_payment_detail'),
+    path('admin/payments/<int:pk>/confirm/', views.admin_payment_confirm, name='admin_payment_confirm'),
+    path('admin/payments/<int:pk>/reject/', views.admin_payment_reject, name='admin_payment_reject'),
+    path('admin/payments/<int:pk>/refund/', views.admin_payment_refund, name='admin_payment_refund'),
+    path('admin/payments/<int:pk>/proof/', views.admin_payment_proof, name='admin_payment_proof'),
     path(
         'notifications/',
         views.notification_list,

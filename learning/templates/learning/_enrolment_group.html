@@ -7,10 +7,16 @@
                 <div class="card-body">
                     <h3 class="h5 fw-bold">{{ enrolment.course.title }}</h3>
                     <p class="text-muted">{{ enrolment.course.short_description|truncatewords:18 }}</p>
+                    <p class="small text-muted mb-3">{{ enrolment.status }} / {{ enrolment.payment_status }}</p>
                     <div class="progress mb-3">
                         <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%">{{ enrolment.progress_percentage }}%</div>
                     </div>
-                    <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                        {% if enrolment.payment_status == 'Pending' or enrolment.payment_status == 'Rejected' %}
+                        <a href="{% url 'learning:payment_course' enrolment.course.slug %}" class="btn btn-primary">Payment</a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

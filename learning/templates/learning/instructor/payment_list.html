@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Instructor Payments</span>
+        <h1 class="fw-bold mt-3">Course Payment Status</h1>
+        <p class="lead">View payment progress for your courses. Verification remains handled by MITSOL administrators.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Course</th>
+                                <th>Reference</th>
+                                <th>Amount</th>
+                                <th>Enrolment</th>
+                                <th>Payment</th>
+                                <th>Method</th>
+                                <th>Submitted</th>
+                                <th>Verified</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>{{ payment.student.get_full_name|default:payment.student.username }}</td>
+                                <td>{{ payment.course.title }}</td>
+                                <td>{{ payment.transaction_reference }}</td>
+                                <td>{{ payment.currency }} {{ payment.amount|floatformat:0|intcomma }}</td>
+                                <td>{{ payment.enrolment.status }}</td>
+                                <td>{{ payment.enrolment.payment_status }}</td>
+                                <td>{{ payment.payment_method }}</td>
+                                <td>{{ payment.submitted_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ payment.verified_at|date:"M d, Y H:i"|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-5">Payment records for your courses will appear here.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -3,12 +3,12 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import FileResponse, Http404
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -24,6 +24,8 @@ from .forms import (
     LessonForm,
     ManualQuizGradingForm,
     ModuleForm,
+    PaymentReasonForm,
+    PaymentSubmissionForm,
     QuestionForm,
     QuizAttemptForm,
     QuizForm,
@@ -40,6 +42,8 @@ from .models import (
     Lesson,
     LessonProgress,
     Notification,
+    Payment,
+    LearningPaymentSettings,
     Question,
     Quiz,
     QuizAttempt,
@@ -48,20 +52,27 @@ from .models import (
 from .permissions import STUDENT_GROUP, ensure_course_owner, instructor_required, is_instructor
 from .services import (
     can_access_assignment,
+    confirm_payment,
     enrol_student_in_course,
     expire_quiz_attempt_if_needed,
     get_or_create_assignment_draft,
+    get_or_create_paid_course_enrolment,
+    get_course_payable_amount,
+    get_learning_payment_settings,
     grade_assignment_submission,
     grade_short_answers,
     mark_lesson_complete,
     mark_submission_under_review,
+    mark_payment_refunded,
     publish_announcement,
     quiz_is_accessible,
     recalculate_enrolment_progress,
     return_assignment_for_revision,
+    reject_payment,
     save_assignment_draft,
     start_quiz_attempt,
     submit_assignment,
+    submit_course_payment,
     submit_quiz_attempt,
 )
 
@@ -194,12 +205,24 @@ def course_detail(request, slug):
             course=course
         ).first()
 
+    pending_payment = None
+    latest_payment = None
+
+    if enrolment:
+
+        pending_payment = enrolment.payments.filter(
+            status=Payment.Status.PENDING
+        ).first()
+        latest_payment = enrolment.payments.first()
+
     return render(
         request,
         'learning/course_detail.html',
         {
             'course': course,
             'enrolment': enrolment,
+            'pending_payment': pending_payment,
+            'latest_payment': latest_payment,
         }
     )
 
@@ -212,10 +235,24 @@ def enrol_course(request, slug):
         slug=slug
     )
 
-    enrolment, created = enrol_student_in_course(
-        request.user,
-        course
-    )
+    if not course.is_free:
+
+        enrolment, created = get_or_create_paid_course_enrolment(
+            request.user,
+            course
+        )
+
+        messages.info(
+            request,
+            'Your enrolment request is ready. Please submit payment for verification.'
+        )
+
+        return redirect(
+            'learning:payment_course',
+            slug=course.slug
+        )
+
+    enrolment, created = enrol_student_in_course(request.user, course)
 
     if created and course.is_free:
 
@@ -332,6 +369,12 @@ def student_dashboard(request):
         'due_date'
     )[:5]
 
+    payments = Payment.objects.select_related(
+        'course'
+    ).filter(
+        student=request.user
+    )
+
     return render(
         request,
         'learning/dashboard.html',
@@ -353,6 +396,9 @@ def student_dashboard(request):
             'upcoming_assignments': upcoming_assignments,
             'passed_assignment_count': assignment_submissions.filter(status=AssignmentSubmission.Status.GRADED, passed=True).count(),
             'failed_assignment_count': assignment_submissions.filter(status=AssignmentSubmission.Status.GRADED, passed=False).count(),
+            'recent_payments': payments[:5],
+            'pending_payment_count': payments.filter(status=Payment.Status.PENDING).count(),
+            'rejected_payment_count': payments.filter(status=Payment.Status.REJECTED).count(),
         }
     )
 
@@ -382,7 +428,12 @@ def lesson_detail(request, course_slug, lesson_slug):
             status__in=[
                 Enrolment.Status.ACTIVE,
                 Enrolment.Status.COMPLETED,
-            ]
+            ],
+            is_active=True,
+            payment_status__in=[
+                Enrolment.PaymentStatus.NOT_REQUIRED,
+                Enrolment.PaymentStatus.PAID,
+            ],
         ).first()
 
     if not lesson.is_preview and not enrolment:
@@ -510,6 +561,10 @@ def instructor_dashboard(request):
         assignment__lesson__module__course__in=courses
     )
 
+    payments = Payment.objects.filter(
+        course__in=courses
+    )
+
     return render(
         request,
         'learning/instructor/dashboard.html',
@@ -535,6 +590,21 @@ def instructor_dashboard(request):
             'returned_assignment_count': assignment_submissions.filter(status=AssignmentSubmission.Status.RETURNED).count(),
             'recent_assignment_submissions': assignment_submissions.select_related('student', 'assignment')[:5],
             'average_assignment_score': assignment_submissions.filter(status=AssignmentSubmission.Status.GRADED).aggregate(avg=Avg('score'))['avg'],
+            'pending_payment_count': payments.filter(status=Payment.Status.PENDING).count(),
+            'paid_payment_count': payments.filter(status=Payment.Status.PAID).count(),
+            'pending_paid_enrolment_count': enrolments.filter(
+                course__is_free=False,
+                status=Enrolment.Status.PENDING
+            ).count(),
+            'active_paid_enrolment_count': enrolments.filter(
+                course__is_free=False,
+                status__in=[
+                    Enrolment.Status.ACTIVE,
+                    Enrolment.Status.COMPLETED,
+                ],
+                payment_status=Enrolment.PaymentStatus.PAID
+            ).count(),
+            'recent_payments': payments.select_related('student', 'course')[:5],
         }
     )
 
@@ -2332,6 +2402,258 @@ def instructor_submission_return(request, pk):
     )
 
 
+@login_required
+@login_required
+def payment_list(request):
+
+    payments = Payment.objects.select_related('course', 'enrolment').filter(student=request.user)
+
+    return render(request, 'learning/payments/payment_list.html', {'payments': payments})
+
+
+@login_required
+def payment_course(request, slug):
+
+    course = get_object_or_404(published_courses(), slug=slug)
+
+    if course.is_free:
+        messages.info(request, 'This course is free and does not require payment.')
+        return redirect('learning:course_detail', slug=course.slug)
+
+    enrolment, created = get_or_create_paid_course_enrolment(request.user, course)
+    settings_obj = get_learning_payment_settings()
+    pending_payment = enrolment.payments.filter(status=Payment.Status.PENDING).first()
+    latest_payment = enrolment.payments.first()
+
+    if request.method == 'POST':
+        form = PaymentSubmissionForm(request.POST, request.FILES, settings_obj=settings_obj)
+        if form.is_valid():
+            try:
+                payment = submit_course_payment(request.user, enrolment, form.cleaned_data)
+                messages.success(request, 'Payment submitted for verification.')
+                return redirect('learning:payment_detail', pk=payment.pk)
+            except (PermissionDenied, ValidationError) as exc:
+                form.add_error(None, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    else:
+        form = PaymentSubmissionForm(settings_obj=settings_obj)
+
+    return render(
+        request,
+        'learning/payments/payment_course.html',
+        {
+            'course': course,
+            'enrolment': enrolment,
+            'settings_obj': settings_obj,
+            'amount': get_course_payable_amount(course),
+            'pending_payment': pending_payment,
+            'latest_payment': latest_payment,
+            'form': form,
+        }
+    )
+
+
+@login_required
+def payment_detail(request, pk):
+
+    payment = get_object_or_404(
+        Payment.objects.select_related('course', 'enrolment', 'verified_by', 'rejected_by', 'refunded_by'),
+        pk=pk,
+        student=request.user
+    )
+
+    return render(request, 'learning/payments/payment_detail.html', {'payment': payment})
+
+
+@login_required
+def payment_proof(request, pk):
+
+    payment = get_object_or_404(Payment.objects.select_related('student'), pk=pk)
+
+    is_owner = payment.student_id == request.user.id
+    is_admin = (
+        request.user.is_staff
+        or request.user.is_superuser
+        or request.user.has_perm('learning.verify_learning_payment')
+    )
+
+    if not (is_owner or is_admin):
+        raise Http404
+
+    if not payment.proof_of_payment:
+        raise Http404
+
+    return FileResponse(
+        payment.proof_of_payment.open('rb'),
+        as_attachment=True,
+        filename=payment.original_filename or payment.proof_of_payment.name
+    )
+
+
+@login_required
+def payment_resubmit(request, pk):
+
+    payment = get_object_or_404(Payment, pk=pk, student=request.user, status=Payment.Status.REJECTED)
+    return redirect('learning:payment_course', slug=payment.course.slug)
+
+
+@staff_member_required
+def admin_payment_list(request):
+
+    payments = Payment.objects.select_related(
+        'student',
+        'course',
+        'course__instructor',
+        'verified_by'
+    )
+    status = request.GET.get('status', '')
+    method = request.GET.get('method', '')
+    course_id = request.GET.get('course', '')
+    instructor_id = request.GET.get('instructor', '')
+    q = request.GET.get('q', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    all_payments = payments
+    if status:
+        payments = payments.filter(status=status)
+    if method:
+        payments = payments.filter(payment_method=method)
+    if course_id:
+        payments = payments.filter(course_id=course_id)
+    if instructor_id:
+        payments = payments.filter(course__instructor_id=instructor_id)
+    if q:
+        payments = payments.filter(
+            Q(transaction_reference__icontains=q)
+            | Q(student__username__icontains=q)
+            | Q(student__first_name__icontains=q)
+            | Q(student__last_name__icontains=q)
+            | Q(student__email__icontains=q)
+            | Q(course__title__icontains=q)
+        )
+    if date_from:
+        payments = payments.filter(submitted_at__date__gte=date_from)
+    if date_to:
+        payments = payments.filter(submitted_at__date__lte=date_to)
+
+    totals = {
+        'pending': all_payments.filter(status=Payment.Status.PENDING).count(),
+        'paid': all_payments.filter(status=Payment.Status.PAID).count(),
+        'rejected': all_payments.filter(status=Payment.Status.REJECTED).count(),
+        'refunded': all_payments.filter(status=Payment.Status.REFUNDED).count(),
+    }
+
+    pending_totals = all_payments.filter(
+        status=Payment.Status.PENDING
+    ).values(
+        'currency'
+    ).annotate(
+        total=Sum('amount')
+    ).order_by('currency')
+
+    confirmed_totals = all_payments.filter(
+        status=Payment.Status.PAID
+    ).values(
+        'currency'
+    ).annotate(
+        total=Sum('amount')
+    ).order_by('currency')
+
+    instructors = User.objects.filter(
+        learning_courses__learning_payments__isnull=False
+    ).distinct().order_by(
+        'first_name',
+        'last_name',
+        'username'
+    )
+
+    return render(
+        request,
+        'learning/admin/payments/payment_list.html',
+        {
+            'payments': payments,
+            'statuses': Payment.Status.choices,
+            'methods': Payment.PaymentMethod.choices,
+            'courses': Course.objects.filter(learning_payments__isnull=False).distinct().order_by('title'),
+            'instructors': instructors,
+            'selected': {
+                'status': status,
+                'method': method,
+                'course': course_id,
+                'instructor': instructor_id,
+                'q': q,
+                'date_from': date_from,
+                'date_to': date_to,
+            },
+            'totals': totals,
+            'pending_totals': pending_totals,
+            'confirmed_totals': confirmed_totals,
+        }
+    )
+
+
+@staff_member_required
+def admin_payment_detail(request, pk):
+
+    payment = get_object_or_404(Payment.objects.select_related('student', 'course', 'enrolment'), pk=pk)
+    return render(request, 'learning/admin/payments/payment_detail.html', {'payment': payment, 'reason_form': PaymentReasonForm()})
+
+
+@staff_member_required
+@require_POST
+def admin_payment_confirm(request, pk):
+
+    payment = get_object_or_404(Payment, pk=pk)
+    try:
+        confirm_payment(payment, request.user)
+        messages.success(request, 'Payment confirmed and enrolment activated.')
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_payment_detail', pk=pk)
+
+
+@staff_member_required
+@require_POST
+def admin_payment_reject(request, pk):
+
+    payment = get_object_or_404(Payment, pk=pk)
+    form = PaymentReasonForm(request.POST)
+    if form.is_valid():
+        try:
+            reject_payment(payment, request.user, form.cleaned_data['reason'])
+            messages.success(request, 'Payment rejected.')
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_payment_detail', pk=pk)
+
+
+@staff_member_required
+@require_POST
+def admin_payment_refund(request, pk):
+
+    payment = get_object_or_404(Payment, pk=pk)
+    form = PaymentReasonForm(request.POST)
+    if form.is_valid():
+        try:
+            mark_payment_refunded(payment, request.user, form.cleaned_data['reason'])
+            messages.success(request, 'Payment marked refunded and enrolment suspended.')
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_payment_detail', pk=pk)
+
+
+@staff_member_required
+def admin_payment_proof(request, pk):
+
+    return payment_proof(request, pk)
+
+
+@instructor_required
+def instructor_payment_list(request):
+
+    payments = instructor_payments(request.user).select_related('student', 'course', 'enrolment')
+    return render(request, 'learning/instructor/payment_list.html', {'payments': payments})
+
+
 def register_student(request):
 
     if request.method == 'POST':
@@ -2545,6 +2867,16 @@ def get_instructor_submission(user, pk):
         ),
         pk=pk
     )
+
+
+def instructor_payments(user):
+
+    payments = Payment.objects.all()
+
+    if user.is_staff:
+        return payments
+
+    return payments.filter(course__instructor=user)
 
 
 def choice_rule_warning(question):

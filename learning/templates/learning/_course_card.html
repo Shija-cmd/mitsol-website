@@ -27,8 +27,15 @@
             {{ course.category.name }}
         </p>
 
-        <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-primary">
-            View Course
-        </a>
+        <div class="d-grid gap-2">
+            <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-primary">
+                View Course
+            </a>
+            {% if not course.is_free %}
+            <a href="{% url 'learning:enrol' course.slug %}" class="btn btn-primary">
+                Enrol and Pay
+            </a>
+            {% endif %}
+        </div>
     </div>
 </div>

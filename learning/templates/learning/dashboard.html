@@ -28,6 +28,11 @@
             <div class="col-md-6"><div class="learning-stat-card"><strong>{{ failed_assignment_count }}</strong><span>Failed Assignments</span></div></div>
         </div>
 
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ pending_payment_count }}</strong><span>Pending Payments</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ rejected_payment_count }}</strong><span>Rejected Payments</span></div></div>
+        </div>
+
         <div class="row g-4">
             <div class="col-lg-8">
                 <h2 class="fw-bold mb-3">Enrolled Courses</h2>
@@ -37,9 +42,14 @@
                         <div class="d-flex flex-wrap justify-content-between gap-3">
                             <div>
                                 <h3 class="h5 fw-bold">{{ enrolment.course.title }}</h3>
-                                <p class="text-muted mb-2">{{ enrolment.status }} • {{ enrolment.payment_status }}</p>
+                                <p class="text-muted mb-2">{{ enrolment.status }} / {{ enrolment.payment_status }}</p>
                             </div>
-                            <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                                {% if enrolment.payment_status == 'Pending' or enrolment.payment_status == 'Rejected' %}
+                                <a href="{% url 'learning:payment_course' enrolment.course.slug %}" class="btn btn-primary">Payment</a>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="progress mt-3">
                             <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%">{{ enrolment.progress_percentage }}%</div>
@@ -66,6 +76,26 @@
 
                 <div class="card border-0 shadow-sm mt-4">
                     <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                            <h3 class="h5 fw-bold mb-0">Recent Payments</h3>
+                            <a href="{% url 'learning:payment_list' %}" class="btn btn-outline-primary btn-sm">View All</a>
+                        </div>
+                        {% for payment in recent_payments %}
+                        <a href="{% url 'learning:payment_detail' payment.pk %}" class="learning-list-item text-decoration-none mb-2">
+                            <i class="fas fa-receipt"></i>
+                            <div>
+                                <strong>{{ payment.course.title }}</strong>
+                                <span>{{ payment.transaction_reference }} / {{ payment.status }}</span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <p class="text-muted mb-0">Paid-course payments will appear here.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-body">
                         <h3 class="h5 fw-bold">Recent Announcements</h3>
                         {% for announcement in recent_announcements %}
                         <a href="{% url 'learning:announcements' %}" class="learning-list-item text-decoration-none mb-2">
@@ -89,7 +119,7 @@
                             <i class="fas fa-circle-question"></i>
                             <div>
                                 <strong>{{ attempt.quiz.title }}</strong>
-                                <span>{{ attempt.status }} • {{ attempt.percentage }}%</span>
+                                <span>{{ attempt.status }} / {{ attempt.percentage }}%</span>
                             </div>
                         </a>
                         {% empty %}

@@ -2,8 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 
-from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, Lesson, Module, Question, Quiz
-from .services import validate_assignment_file
+from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, Lesson, Module, Payment, Question, Quiz
+from .services import proof_required_for_method, validate_assignment_file, validate_payment_proof
 
 
 User = get_user_model()
@@ -794,6 +794,73 @@ class AssignmentRevisionForm(BootstrapFormMixin, forms.Form):
                 'rows': 5,
             }
         )
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+
+class PaymentSubmissionForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = Payment
+
+        fields = (
+            'payment_method',
+            'transaction_reference',
+            'proof_of_payment',
+            'student_notes',
+        )
+
+        widgets = {
+            'student_notes': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        self.settings_obj = kwargs.pop('settings_obj', None)
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+    def clean_transaction_reference(self):
+
+        reference = self.cleaned_data.get('transaction_reference', '').strip().upper()
+
+        if not reference:
+            raise forms.ValidationError('Transaction reference is required.')
+
+        if len(reference) < 3:
+            raise forms.ValidationError('Transaction reference is too short.')
+
+        return reference
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+        method = cleaned_data.get('payment_method')
+        proof = cleaned_data.get('proof_of_payment')
+
+        if method:
+            try:
+                validate_payment_proof(
+                    proof,
+                    required=proof_required_for_method(method, self.settings_obj)
+                )
+            except forms.ValidationError:
+                raise
+            except Exception as exc:
+                self.add_error('proof_of_payment', str(exc))
+
+        return cleaned_data
+
+
+class PaymentReasonForm(BootstrapFormMixin, forms.Form):
+
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4})
     )
 
     def __init__(self, *args, **kwargs):

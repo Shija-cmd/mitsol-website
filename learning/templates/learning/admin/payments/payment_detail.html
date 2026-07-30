@@ -1,0 +1,92 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Verify Payment</span>
+        <h1 class="fw-bold mt-3">{{ payment.course.title }}</h1>
+        <p class="lead">{{ payment.student.get_full_name|default:payment.student.username }} submitted {{ payment.currency }} {{ payment.amount|floatformat:0|intcomma }}.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold">Payment Record</h2>
+                        <dl class="row mb-0">
+                            <dt class="col-md-4">Student</dt><dd class="col-md-8">{{ payment.student.get_full_name|default:payment.student.username }}{% if payment.student.email %} ({{ payment.student.email }}){% endif %}</dd>
+                            <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ payment.course.title }}</dd>
+                            <dt class="col-md-4">Amount</dt><dd class="col-md-8">{{ payment.currency }} {{ payment.amount|floatformat:0|intcomma }}</dd>
+                            <dt class="col-md-4">Method</dt><dd class="col-md-8">{{ payment.payment_method }}</dd>
+                            <dt class="col-md-4">Reference</dt><dd class="col-md-8">{{ payment.transaction_reference }}</dd>
+                            <dt class="col-md-4">Status</dt><dd class="col-md-8"><span class="badge {% if payment.status == 'Paid' %}bg-success{% elif payment.status == 'Pending' %}bg-warning text-dark{% elif payment.status == 'Rejected' %}bg-danger{% elif payment.status == 'Refunded' %}bg-secondary{% else %}bg-info text-dark{% endif %}">{{ payment.status }}</span></dd>
+                            <dt class="col-md-4">Enrolment</dt><dd class="col-md-8">{{ payment.enrolment.status }} / {{ payment.enrolment.payment_status }}</dd>
+                            <dt class="col-md-4">Submitted</dt><dd class="col-md-8">{{ payment.submitted_at|date:"M d, Y H:i" }}</dd>
+                            {% if payment.student_notes %}<dt class="col-md-4">Student Notes</dt><dd class="col-md-8">{{ payment.student_notes|linebreaksbr }}</dd>{% endif %}
+                            {% if payment.administrator_notes %}<dt class="col-md-4">Admin Notes</dt><dd class="col-md-8">{{ payment.administrator_notes|linebreaksbr }}</dd>{% endif %}
+                            {% if payment.refund_reason %}<dt class="col-md-4">Refund Reason</dt><dd class="col-md-8">{{ payment.refund_reason|linebreaksbr }}</dd>{% endif %}
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Verification Actions</h2>
+                        <div class="d-grid gap-2">
+                            {% if payment.proof_of_payment %}
+                            <a href="{% url 'learning:admin_payment_proof' payment.pk %}" class="btn btn-outline-primary">Download Proof</a>
+                            {% endif %}
+                            {% if payment.status == 'Pending' %}
+                            <form method="post" action="{% url 'learning:admin_payment_confirm' payment.pk %}" onsubmit="return confirm('Confirm this payment and activate course access?');">
+                                {% csrf_token %}
+                                <button class="btn btn-success w-100" type="submit">Confirm and Activate</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if payment.status == 'Pending' %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Reject Payment</h2>
+                        <form method="post" action="{% url 'learning:admin_payment_reject' payment.pk %}" onsubmit="return confirm('Reject this payment submission?');">
+                            {% csrf_token %}
+                            {{ reason_form.reason }}
+                            <button class="btn btn-outline-danger w-100 mt-3" type="submit">Reject Payment</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if payment.status == 'Paid' %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Refund Payment</h2>
+                        <form method="post" action="{% url 'learning:admin_payment_refund' payment.pk %}" onsubmit="return confirm('Mark this payment as refunded and suspend access?');">
+                            {% csrf_token %}
+                            {{ reason_form.reason }}
+                            <button class="btn btn-outline-warning w-100 mt-3" type="submit">Mark Refunded</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

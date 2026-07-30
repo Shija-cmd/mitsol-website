@@ -25,10 +25,38 @@
                         <p class="text-muted mb-1">Course price</p>
                         <h2 class="fw-bold text-success">{{ course.display_price }}</h2>
                         {% if enrolment %}
-                        <div class="alert alert-info">Your enrolment status: <strong>{{ enrolment.status }}</strong></div>
+                        <div class="alert alert-info">
+                            Your enrolment status: <strong>{{ enrolment.status }}</strong><br>
+                            Payment status: <strong>{{ enrolment.payment_status }}</strong>
+                        </div>
+                        {% if enrolment.status == 'Active' %}
+                        <a href="#courseCurriculum" class="btn btn-primary btn-lg w-100">
+                            Continue Learning
+                        </a>
+                        {% elif enrolment.status == 'Completed' %}
+                        <a href="#courseCurriculum" class="btn btn-outline-primary btn-lg w-100">
+                            View Completed Course
+                        </a>
+                        {% elif pending_payment %}
+                        <a href="{% url 'learning:payment_detail' pending_payment.pk %}" class="btn btn-warning btn-lg w-100">
+                            Payment Under Review
+                        </a>
+                        {% elif enrolment.payment_status == 'Pending' %}
+                        <a href="{% url 'learning:payment_course' course.slug %}" class="btn btn-primary btn-lg w-100">
+                            Submit Payment
+                        </a>
+                        {% elif enrolment.payment_status == 'Rejected' %}
+                        <a href="{% url 'learning:payment_course' course.slug %}" class="btn btn-warning btn-lg w-100">
+                            Resubmit Payment
+                        </a>
+                        {% elif enrolment.payment_status == 'Refunded' or enrolment.status == 'Suspended' %}
+                        <div class="alert alert-warning mb-0">
+                            Course access is currently suspended. Please contact MITSOL support.
+                        </div>
+                        {% endif %}
                         {% else %}
                         <a href="{% url 'learning:enrol' course.slug %}" class="btn btn-primary btn-lg w-100">
-                            {% if course.is_free %}Enrol Free{% else %}Request Enrolment{% endif %}
+                            {% if course.is_free %}Enrol Free{% else %}Enrol and Pay{% endif %}
                         </a>
                         {% endif %}
                     </div>
