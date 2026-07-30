@@ -1,0 +1,68 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Student Dashboard</span>
+        <h1 class="fw-bold mt-3">Welcome, {{ request.user.get_full_name|default:request.user.username }}</h1>
+        <p class="lead">Continue learning, track your course progress, and manage your MITSOL training journey.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4 mb-5">
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ active_count }}</strong><span>Active Courses</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ pending_count }}</strong><span>Pending Enrolments</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ completed_count }}</strong><span>Completed Courses</span></div></div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <h2 class="fw-bold mb-3">Enrolled Courses</h2>
+                {% for enrolment in enrolments %}
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between gap-3">
+                            <div>
+                                <h3 class="h5 fw-bold">{{ enrolment.course.title }}</h3>
+                                <p class="text-muted mb-2">{{ enrolment.status }} • {{ enrolment.payment_status }}</p>
+                            </div>
+                            <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                        </div>
+                        <div class="progress mt-3">
+                            <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%">{{ enrolment.progress_percentage }}%</div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">You have not enrolled in any courses yet.</div>
+                {% endfor %}
+            </div>
+            <div class="col-lg-4">
+                <h2 class="fw-bold mb-3">Recently Accessed</h2>
+                {% for progress in recent_progress %}
+                <a class="learning-list-item text-decoration-none" href="{% url 'learning:lesson_detail' progress.lesson.module.course.slug progress.lesson.slug %}">
+                    <i class="fas fa-play-circle"></i>
+                    <div>
+                        <strong>{{ progress.lesson.title }}</strong>
+                        <span>{{ progress.lesson.module.course.title }}</span>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="alert alert-info">Recently accessed lessons will appear here.</div>
+                {% endfor %}
+
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-body">
+                        <h3 class="h5 fw-bold">Phase 2 Areas</h3>
+                        <p class="text-muted mb-0">Assignments, quiz results, certificates, announcements, and payment history will appear after Phase 2 is implemented.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

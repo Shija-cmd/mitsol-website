@@ -1,0 +1,144 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-8">
+                <span class="section-kicker">{{ course.category.name }}</span>
+                <h1 class="fw-bold mt-3">{{ course.title }}</h1>
+                <p class="lead">{{ course.short_description }}</p>
+                <div class="hero-chip-row">
+                    <span class="hero-chip"><i class="fas fa-signal"></i>{{ course.level }}</span>
+                    <span class="hero-chip"><i class="fas fa-laptop"></i>{{ course.delivery_mode }}</span>
+                    <span class="hero-chip"><i class="fas fa-clock"></i>{{ course.estimated_duration|default:"Flexible duration" }}</span>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card border-0 shadow">
+                    {% if course.cover_image %}
+                    <img src="{{ course.cover_image.url }}" class="card-img-top" alt="{{ course.title }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Course price</p>
+                        <h2 class="fw-bold text-success">{{ course.display_price }}</h2>
+                        {% if enrolment %}
+                        <div class="alert alert-info">Your enrolment status: <strong>{{ enrolment.status }}</strong></div>
+                        {% else %}
+                        <a href="{% url 'learning:enrol' course.slug %}" class="btn btn-primary btn-lg w-100">
+                            {% if course.is_free %}Enrol Free{% else %}Request Enrolment{% endif %}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <h2 class="fw-bold">About This Course</h2>
+                <div class="text-muted mb-4">{{ course.full_description|linebreaks }}</div>
+
+                <div class="row g-4 mb-4">
+                    {% if course.outcome_list %}
+                    <div class="col-md-6">
+                        <h3 class="h5 fw-bold">Learning Outcomes</h3>
+                        <ul class="learning-check-list">
+                            {% for outcome in course.outcome_list %}
+                            <li>{{ outcome }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% if course.requirement_list %}
+                    <div class="col-md-6">
+                        <h3 class="h5 fw-bold">Requirements</h3>
+                        <ul class="learning-check-list">
+                            {% for requirement in course.requirement_list %}
+                            <li>{{ requirement }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h2 class="fw-bold mb-3">Course Curriculum</h2>
+                <div class="accordion" id="courseCurriculum">
+                    {% for module in course.modules.all %}
+                    {% if module.is_published %}
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
+                                Module {{ module.order }}: {{ module.title }}
+                            </button>
+                        </h3>
+                        <div id="module{{ module.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#courseCurriculum">
+                            <div class="accordion-body">
+                                {% if module.description %}
+                                <p class="text-muted">{{ module.description }}</p>
+                                {% endif %}
+                                <div class="list-group">
+                                    {% for lesson in module.lessons.all %}
+                                    {% if lesson.is_published %}
+                                    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'learning:lesson_detail' course.slug lesson.slug %}">
+                                        <span>
+                                            <i class="fas fa-play-circle me-2 text-primary"></i>
+                                            {{ lesson.title }}
+                                        </span>
+                                        <span class="badge {% if lesson.is_preview %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {% if lesson.is_preview %}Preview{% else %}Enrolled{% endif %}
+                                        </span>
+                                    </a>
+                                    {% endif %}
+                                    {% empty %}
+                                    <div class="list-group-item text-muted">Lessons will be added soon.</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <div class="alert alert-info">Curriculum will be added soon.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h2 class="h4 fw-bold">Instructor</h2>
+                        <p class="mb-1">{{ course.instructor.get_full_name|default:course.instructor.username }}</p>
+                        <p class="text-muted mb-0">MITSOL learning instructor</p>
+                    </div>
+                </div>
+                {% if course.target_audience_list %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="h4 fw-bold">Who This Is For</h2>
+                        <ul class="learning-check-list mb-0">
+                            {% for audience in course.target_audience_list %}
+                            <li>{{ audience }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -6,6 +6,8 @@ from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from django.views.static import serve
 from core.sitemaps import (
+    LearningCategorySitemap,
+    LearningCourseSitemap,
     ResearchPublicationSitemap,
     SoftwareProductSitemap,
     StaticViewSitemap,
@@ -18,6 +20,8 @@ sitemaps = {
     'static': StaticViewSitemap,
     'software': SoftwareProductSitemap,
     'research': ResearchPublicationSitemap,
+    'learning_courses': LearningCourseSitemap,
+    'learning_categories': LearningCategorySitemap,
 
 }
 
@@ -59,6 +63,16 @@ urlpatterns = [
     path(
         'software/',
         include('software_store.urls')
+    ),
+
+    path(
+        'learn/',
+        include('learning.urls')
+    ),
+
+    path(
+        'accounts/',
+        include('django.contrib.auth.urls')
     ),
 
     path(

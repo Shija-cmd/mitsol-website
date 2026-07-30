@@ -1,0 +1,98 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">{{ course.title }}</span>
+        <h1 class="fw-bold mt-3">{{ lesson.title }}</h1>
+        <p class="lead">{{ lesson.lesson_type }} lesson{% if lesson.duration_minutes %} • {{ lesson.duration_minutes }} minutes{% endif %}</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                {% if lesson.embedded_video_url %}
+                <div class="ratio ratio-16x9 shadow-sm mb-4">
+                    <iframe
+                        src="{{ lesson.embedded_video_url }}"
+                        title="{{ lesson.title }}"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                {% endif %}
+
+                {% if lesson.video_file %}
+                <video class="w-100 rounded shadow-sm mb-4" controls>
+                    <source src="{{ lesson.video_file.url }}">
+                </video>
+                {% endif %}
+
+                {% if lesson.written_content %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        {{ lesson.written_content|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2">
+                    {% if lesson.downloadable_file %}
+                    <a class="btn btn-outline-primary" href="{{ lesson.downloadable_file.url }}" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-file-download me-2"></i>
+                        Download Document
+                    </a>
+                    {% endif %}
+                    {% if lesson.source_code_file %}
+                    <a class="btn btn-outline-dark" href="{{ lesson.source_code_file.url }}" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-code me-2"></i>
+                        Download Source Code
+                    </a>
+                    {% endif %}
+                    {% if lesson.external_resource_url %}
+                    <a class="btn btn-outline-success" href="{{ lesson.external_resource_url }}" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-arrow-up-right-from-square me-2"></i>
+                        External Resource
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="h4 fw-bold">Lesson Progress</h2>
+                        {% if enrolment %}
+                        <p class="text-muted">Course progress: {{ enrolment.progress_percentage }}%</p>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%"></div>
+                        </div>
+                        {% if progress and progress.is_completed %}
+                        <div class="alert alert-success">This lesson is complete.</div>
+                        {% else %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary w-100">Mark Lesson Complete</button>
+                        </form>
+                        {% endif %}
+                        {% else %}
+                        <div class="alert alert-info">This is a preview lesson. Enrol to track progress.</div>
+                        {% endif %}
+                        <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-secondary w-100 mt-2">Back to Course</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

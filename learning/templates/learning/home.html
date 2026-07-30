@@ -1,0 +1,245 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero learning-hero">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <span class="section-kicker">MITSOL Learn</span>
+                <h1 class="fw-bold mt-3">
+                    Build Practical Digital Skills for Your Career and Business
+                </h1>
+                <p class="lead">
+                    Learn software development, cybersecurity, artificial intelligence, networking and digital innovation through practical, project-based courses.
+                </p>
+                <div class="page-hero-actions">
+                    <a href="{% url 'learning:course_list' %}" class="btn btn-primary btn-lg">
+                        Explore Courses
+                    </a>
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'learning:dashboard' %}" class="btn btn-outline-light btn-lg">
+                        Start Learning
+                    </a>
+                    {% else %}
+                    <a href="{% url 'learning:register' %}" class="btn btn-outline-light btn-lg">
+                        Start Learning
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="learning-hero-panel">
+                    <h2 class="h4 text-white">Practical Training Areas</h2>
+                    <div class="hero-chip-row justify-content-start">
+                        <span class="hero-chip"><i class="fas fa-code"></i>Software</span>
+                        <span class="hero-chip"><i class="fas fa-shield-halved"></i>Security</span>
+                        <span class="hero-chip"><i class="fas fa-brain"></i>AI</span>
+                        <span class="hero-chip"><i class="fas fa-network-wired"></i>Networking</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form action="{% url 'learning:course_list' %}" method="get" class="card filter-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-7">
+                        <label class="form-label" for="learnSearch">Search courses</label>
+                        <input id="learnSearch" name="q" type="search" class="form-control" placeholder="Search software, cybersecurity, AI, networking...">
+                    </div>
+                    <div class="col-lg-3">
+                        <label class="form-label" for="learnCategory">Category</label>
+                        <select id="learnCategory" name="category" class="form-select">
+                            <option value="">All categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.slug }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 d-grid">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search me-2"></i>
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="section-kicker">Featured Courses</span>
+            <h2 class="fw-bold mt-2">Learn by Building Real Projects</h2>
+            <p class="section-lead">
+                Practical courses designed for learners, professionals, institutions, and business teams.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            {% for course in featured_courses %}
+            <div class="col-lg-4 col-md-6">
+                {% include 'learning/_course_card.html' %}
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    Featured courses will appear here once published.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="section-kicker">Categories</span>
+            <h2 class="fw-bold mt-2">Explore Course Categories</h2>
+        </div>
+        <div class="row g-3">
+            {% for category in categories %}
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <a href="{% url 'learning:category' category.slug %}" class="learning-category-card">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>{{ category.name }}</span>
+                    <small>{{ category.course_count }} courses</small>
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">Categories will appear here soon.</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+            <div>
+                <span class="section-kicker">Recently Added</span>
+                <h2 class="fw-bold mt-2 mb-0">New Courses</h2>
+            </div>
+            <a href="{% url 'learning:course_list' %}" class="btn btn-outline-primary">View All Courses</a>
+        </div>
+        <div class="row g-4">
+            {% for course in recent_courses %}
+            <div class="col-lg-4 col-md-6">
+                {% include 'learning/_course_card.html' %}
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">Courses will appear here once published.</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="learning-stat-card"><strong>{{ stats.courses }}</strong><span>Published Courses</span></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="learning-stat-card"><strong>{{ stats.categories }}</strong><span>Skill Categories</span></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="learning-stat-card"><strong>{{ stats.students }}</strong><span>Learners Enrolled</span></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="learning-stat-card"><strong>{{ stats.lessons }}</strong><span>Learning Lessons</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <h2 class="fw-bold">Why Learn with MITSOL?</h2>
+                <p class="text-muted">
+                    Courses are designed around practical systems, secure engineering, and real institutional technology needs.
+                </p>
+            </div>
+            <div class="col-lg-8">
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="learning-feature"><i class="fas fa-laptop-code"></i><strong>Project-based lessons</strong><span>Build practical systems while learning.</span></div></div>
+                    <div class="col-md-6"><div class="learning-feature"><i class="fas fa-shield-halved"></i><strong>Security-aware training</strong><span>Learn with safe, professional practices.</span></div></div>
+                    <div class="col-md-6"><div class="learning-feature"><i class="fas fa-user-tie"></i><strong>Instructor support</strong><span>Get guidance from experienced practitioners.</span></div></div>
+                    <div class="col-md-6"><div class="learning-feature"><i class="fas fa-certificate"></i><strong>Career progression</strong><span>Prepare for professional digital work.</span></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-6">
+                <h2 class="fw-bold">Popular Instructors</h2>
+                {% for instructor in instructors %}
+                <div class="learning-list-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <div>
+                        <strong>{{ instructor.instructor__first_name }} {{ instructor.instructor__last_name|default:instructor.instructor__username }}</strong>
+                        <span>{{ instructor.course_count }} courses</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Instructor profiles will appear when courses are published.</p>
+                {% endfor %}
+            </div>
+            <div class="col-lg-6">
+                <h2 class="fw-bold">Student Testimonials</h2>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <p class="mb-2">“MITSOL training focuses on practical digital skills that can be applied directly in business and institutional work.”</p>
+                        <strong>MITSOL Learner</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">Frequently Asked Questions</h2>
+        </div>
+        <div class="accordion" id="learnFaq">
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faqOne">Can I enrol in free courses immediately?</button></h3>
+                <div id="faqOne" class="accordion-collapse collapse show" data-bs-parent="#learnFaq"><div class="accordion-body">Yes. Free courses are activated automatically after enrolment.</div></div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqTwo">How are paid courses handled?</button></h3>
+                <div id="faqTwo" class="accordion-collapse collapse" data-bs-parent="#learnFaq"><div class="accordion-body">Paid course enrolment requests remain pending until payment verification is implemented in Phase 2.</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-primary text-white">
+    <div class="container text-center">
+        <h2 class="fw-bold text-white">Ready to build practical digital skills?</h2>
+        <p class="lead">Explore MITSOL courses and start learning with a project-based approach.</p>
+        <a href="{% url 'learning:course_list' %}" class="btn btn-light btn-lg">Explore Courses</a>
+    </div>
+</section>
+
+{% endblock %}

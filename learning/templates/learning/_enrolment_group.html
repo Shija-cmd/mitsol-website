@@ -1,0 +1,23 @@
+<div class="mb-5">
+    <h2 class="fw-bold mb-3">{{ title }}</h2>
+    <div class="row g-4">
+        {% for enrolment in enrolments %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h3 class="h5 fw-bold">{{ enrolment.course.title }}</h3>
+                    <p class="text-muted">{{ enrolment.course.short_description|truncatewords:18 }}</p>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%">{{ enrolment.progress_percentage }}%</div>
+                    </div>
+                    <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">{{ empty }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>

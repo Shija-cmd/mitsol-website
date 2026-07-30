@@ -135,6 +135,17 @@
 
                 <li class="nav-item">
 
+                    <a class="nav-link {% if '/learn/' in request.path %}active-link{% endif %}"
+                    href="{% url 'learning:home' %}">
+
+                        Learn
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
                     <a class="nav-link {% if '/services/' in request.path %}active-link{% endif %}"
                     href="{% url 'services' %}">
 
@@ -274,6 +285,17 @@
                         class="footer-link">
 
                             Software
+
+                        </a>
+
+                    </li>
+
+                    <li>
+
+                        <a href="{% url 'learning:home' %}"
+                        class="footer-link">
+
+                            Learn
 
                         </a>
 

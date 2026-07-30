@@ -1,0 +1,77 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Course Builder</span>
+        <h1 class="fw-bold mt-3">{{ course.title }}</h1>
+        <p class="lead">Add modules and lessons for this course. Keep order numbers unique within each course/module.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <h2 class="fw-bold mb-3">Current Curriculum</h2>
+                {% for module in course.modules.all %}
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h3 class="h5 fw-bold">Module {{ module.order }}: {{ module.title }}</h3>
+                        {% if module.description %}<p class="text-muted">{{ module.description }}</p>{% endif %}
+                        <div class="list-group">
+                            {% for lesson in module.lessons.all %}
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>{{ lesson.order }}. {{ lesson.title }}</span>
+                                <span class="badge bg-secondary">{{ lesson.lesson_type }}</span>
+                            </div>
+                            {% empty %}
+                            <div class="list-group-item text-muted">No lessons yet.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">No modules yet.</div>
+                {% endfor %}
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h2 class="h4 fw-bold">Add Module</h2>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="module">
+                            {{ module_form.as_p }}
+                            <button class="btn btn-primary w-100" type="submit">Add Module</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="h4 fw-bold">Add Lesson</h2>
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="lesson">
+                            {{ lesson_form.as_p }}
+                            <button class="btn btn-primary w-100" type="submit">Add Lesson</button>
+                        </form>
+                    </div>
+                </div>
+
+                <a href="{% url 'learning:instructor_courses' %}" class="btn btn-outline-secondary w-100 mt-3">Back to Courses</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

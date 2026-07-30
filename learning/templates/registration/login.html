@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Learner Login</span>
+        <h1 class="fw-bold mt-3">Access Your MITSOL Learning Account</h1>
+        <p class="lead">Log in to continue courses, access lessons, and track progress.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-5">
+                <form method="post" class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary w-100">Log In</button>
+                        <p class="text-center mt-3 mb-0">
+                            New learner?
+                            <a href="{% url 'learning:register' %}">Create account</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

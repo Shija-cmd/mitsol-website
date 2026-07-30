@@ -736,6 +736,241 @@ footer{
 
 }
 
+/* LEARNING */
+
+.learning-hero .learning-hero-panel{
+
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:8px;
+    padding:24px;
+
+}
+
+.learning-course-card{
+
+    border:1px solid var(--mitsol-border);
+
+}
+
+.learning-course-card .card-img-top{
+
+    height:190px;
+
+}
+
+.learning-category-card{
+
+    align-items:flex-start;
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    color:var(--mitsol-ink);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-height:145px;
+    padding:20px;
+    text-decoration:none;
+
+}
+
+.learning-category-card:hover{
+
+    border-color:var(--mitsol-blue);
+    box-shadow:var(--mitsol-shadow);
+    color:var(--mitsol-ink);
+    transform:translateY(-3px);
+
+}
+
+.learning-category-card i{
+
+    color:var(--mitsol-blue);
+    font-size:1.5rem;
+
+}
+
+.learning-category-card span{
+
+    font-weight:800;
+
+}
+
+.learning-category-card small{
+
+    color:var(--mitsol-muted);
+
+}
+
+.learning-stat-card{
+
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+    padding:24px;
+    text-align:center;
+
+}
+
+.learning-stat-card strong{
+
+    color:var(--mitsol-blue);
+    display:block;
+    font-size:2.4rem;
+    line-height:1;
+
+}
+
+.learning-stat-card span{
+
+    color:var(--mitsol-muted);
+    display:block;
+    font-weight:700;
+    margin-top:8px;
+
+}
+
+.learning-feature,
+.learning-list-item{
+
+    align-items:flex-start;
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    display:flex;
+    gap:14px;
+    padding:16px;
+
+}
+
+.learning-feature i,
+.learning-list-item i{
+
+    color:var(--mitsol-blue);
+    font-size:1.25rem;
+    margin-top:3px;
+
+}
+
+.learning-feature strong,
+.learning-list-item strong{
+
+    display:block;
+
+}
+
+.learning-feature span,
+.learning-list-item span{
+
+    color:var(--mitsol-muted);
+    display:block;
+    font-size:.95rem;
+
+}
+
+.learning-check-list{
+
+    list-style:none;
+    padding-left:0;
+
+}
+
+.learning-check-list li{
+
+    margin-bottom:10px;
+    padding-left:28px;
+    position:relative;
+
+}
+
+.learning-check-list li::before{
+
+    color:var(--mitsol-green);
+    content:"\f00c";
+    font-family:"Font Awesome 6 Free";
+    font-weight:900;
+    left:0;
+    position:absolute;
+    top:0;
+
+}
+
+.progress{
+
+    background:#E2E8F0;
+    border-radius:999px;
+    height:12px;
+
+}
+
+.progress-bar{
+
+    background:var(--mitsol-blue);
+    border-radius:999px;
+
+}
+
+.learning-auth-card{
+
+    overflow:hidden;
+
+}
+
+.learning-auth-side{
+
+    background:var(--mitsol-navy);
+    color:#fff;
+
+}
+
+.learning-auth-side p{
+
+    color:rgba(255,255,255,.82);
+
+}
+
+.learning-auth-benefit{
+
+    align-items:center;
+    display:flex;
+    font-weight:700;
+    gap:10px;
+    margin-top:14px;
+
+}
+
+.learning-auth-benefit i{
+
+    color:var(--mitsol-cyan);
+
+}
+
+.learning-password-note{
+
+    background:#F1F7FF;
+    border:1px solid #CFE5FF;
+    border-radius:8px;
+    padding:14px 16px;
+
+}
+
+.learning-password-note strong,
+.learning-password-note span{
+
+    display:block;
+
+}
+
+.learning-password-note span{
+
+    color:var(--mitsol-muted);
+    font-size:.95rem;
+    margin-top:4px;
+
+}
+
 @media (max-width:767.98px){
 
     .software-card-title,

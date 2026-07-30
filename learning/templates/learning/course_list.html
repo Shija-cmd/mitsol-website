@@ -1,0 +1,114 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Course Catalogue</span>
+        <h1 class="fw-bold mt-3">
+            {% if current_category %}{{ current_category.name }} Courses{% else %}Explore Practical MITSOL Courses{% endif %}
+        </h1>
+        <p class="lead">
+            Search and filter courses in software development, cybersecurity, AI, networking, cloud computing, and digital business skills.
+        </p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="get" class="card filter-card border-0 shadow-sm mb-5">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label" for="q">Search</label>
+                        <input id="q" class="form-control" type="search" name="q" value="{{ selected.q }}" placeholder="Keyword">
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label" for="category">Category</label>
+                        <select id="category" class="form-select" name="category">
+                            <option value="">All categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.slug }}" {% if selected.category == category.slug %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label" for="level">Level</label>
+                        <select id="level" class="form-select" name="level">
+                            <option value="">All levels</option>
+                            {% for value, label in levels %}
+                            <option value="{{ value }}" {% if selected.level == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label" for="delivery_mode">Mode</label>
+                        <select id="delivery_mode" class="form-select" name="delivery_mode">
+                            <option value="">All modes</option>
+                            {% for value, label in delivery_modes %}
+                            <option value="{{ value }}" {% if selected.delivery_mode == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label" for="pricing">Pricing</label>
+                        <select id="pricing" class="form-select" name="pricing">
+                            <option value="">All</option>
+                            <option value="free" {% if selected.pricing == 'free' %}selected{% endif %}>Free</option>
+                            <option value="paid" {% if selected.pricing == 'paid' %}selected{% endif %}>Paid</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label" for="min_price">Min price</label>
+                        <input id="min_price" class="form-control" type="number" name="min_price" value="{{ selected.min_price }}">
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label" for="max_price">Max price</label>
+                        <input id="max_price" class="form-control" type="number" name="max_price" value="{{ selected.max_price }}">
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label" for="sort">Sort</label>
+                        <select id="sort" class="form-select" name="sort">
+                            <option value="newest" {% if selected.sort == 'newest' %}selected{% endif %}>Newest</option>
+                            <option value="popular" {% if selected.sort == 'popular' %}selected{% endif %}>Most popular</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6 d-grid">
+                        <button type="submit" class="btn btn-primary">Filter Courses</button>
+                    </div>
+                    <div class="col-lg-3 col-md-6 d-grid">
+                        <a href="{% url 'learning:course_list' %}" class="btn btn-outline-secondary">Clear Filters</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="row g-4">
+            {% for course in page_obj %}
+            <div class="col-lg-4 col-md-6">
+                {% include 'learning/_course_card.html' %}
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">No published courses match your filters yet.</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="mt-5" aria-label="Course pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}

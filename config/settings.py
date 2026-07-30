@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'contact',
     'about',
     'software_store',
+    'learning',
     'django.contrib.sitemaps',
     'django.contrib.humanize',
 ]
@@ -86,6 +87,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'learning.context_processors.learning_context',
             ],
         },
     },
@@ -264,7 +266,7 @@ JAZZMIN_SETTINGS = {
 
 JAZZMIN_UI_TWEAKS = {
     "theme": "solar",
-    "dark_mode_theme": "solar",
+    "default_theme_mode": "auto",
 
     "navbar": "navbar-dark",
     "brand_colour": "navbar-dark",
@@ -320,3 +322,9 @@ ADMINS = [
 ]
 
 SERVER_EMAIL = 'info@mitsol.com.se'
+
+LOGIN_URL = 'login'
+
+LOGIN_REDIRECT_URL = 'learning:dashboard'
+
+LOGOUT_REDIRECT_URL = 'home'

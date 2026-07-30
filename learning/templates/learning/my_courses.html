@@ -1,0 +1,22 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">My Courses</span>
+        <h1 class="fw-bold mt-3">Your Learning Enrolments</h1>
+        <p class="lead">View active, pending, completed, and suspended courses in one place.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% include 'learning/_enrolment_group.html' with title='Active Courses' enrolments=active_enrolments empty='You have no active courses yet.' %}
+        {% include 'learning/_enrolment_group.html' with title='Pending Enrolments' enrolments=pending_enrolments empty='You have no pending enrolments.' %}
+        {% include 'learning/_enrolment_group.html' with title='Completed Courses' enrolments=completed_enrolments empty='You have no completed courses yet.' %}
+        {% include 'learning/_enrolment_group.html' with title='Suspended Courses' enrolments=suspended_enrolments empty='You have no suspended courses.' %}
+    </div>
+</section>
+
+{% endblock %}
