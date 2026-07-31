@@ -18,8 +18,10 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <h2 class="h4 fw-bold mb-3">Submit Payment</h2>
-                        <div class="alert alert-info">
-                            Amount due: <strong>{{ settings_obj.currency }} {{ amount|floatformat:0|intcomma }}</strong>
+                        <div class="learning-highlight-panel mb-4">
+                            <span class="text-muted d-block mb-1">Amount due</span>
+                            <strong class="fs-3">{{ settings_obj.currency }} {{ amount|floatformat:0|intcomma }}</strong>
+                            <p class="text-muted mb-0 mt-2">Your enrolment will be activated after MITSOL verifies the submitted reference.</p>
                         </div>
 
                         {% if pending_payment %}
@@ -40,7 +42,7 @@
                                 {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
                             {% endfor %}
-                            <button type="submit" class="btn btn-primary btn-lg">Submit for Verification</button>
+                            <button type="submit" class="btn btn-primary btn-lg w-100">Submit for Verification</button>
                         </form>
                     </div>
                 </div>
@@ -63,6 +65,17 @@
                             {% if settings_obj.payment_support_email %}<li>Support email: {{ settings_obj.payment_support_email }}</li>{% endif %}
                             {% if settings_obj.payment_support_phone %}<li>Support phone: {{ settings_obj.payment_support_phone }}</li>{% endif %}
                         </ul>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">What Happens Next</h2>
+                        <ol class="learning-step-list">
+                            <li><span>Submit your transaction reference and proof of payment.</span></li>
+                            <li><span>MITSOL verifies the payment from the admin panel.</span></li>
+                            <li><span>Your course access becomes active after approval.</span></li>
+                        </ol>
                     </div>
                 </div>
 

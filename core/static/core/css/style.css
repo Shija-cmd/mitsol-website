@@ -1169,6 +1169,81 @@ body.learning-page > footer{
 
 }
 
+.learning-highlight-panel{
+
+    background:linear-gradient(135deg, #ecfeff, #f8fafc);
+    border:1px solid #bae6fd;
+    border-radius:8px;
+    padding:18px;
+
+}
+
+.learning-highlight-panel strong{
+
+    color:var(--mitsol-ink);
+
+}
+
+.learning-step-list{
+
+    counter-reset:learning-step;
+    display:grid;
+    gap:12px;
+    list-style:none;
+    margin:0;
+    padding:0;
+
+}
+
+.learning-step-list li{
+
+    align-items:flex-start;
+    display:flex;
+    gap:12px;
+
+}
+
+.learning-step-list li::before{
+
+    align-items:center;
+    background:var(--mitsol-blue);
+    border-radius:50%;
+    color:#fff;
+    content:counter(learning-step);
+    counter-increment:learning-step;
+    display:flex;
+    flex:0 0 auto;
+    font-size:.8rem;
+    font-weight:900;
+    height:28px;
+    justify-content:center;
+    width:28px;
+
+}
+
+.learning-detail-list dt{
+
+    color:var(--mitsol-muted);
+    font-size:.86rem;
+    font-weight:800;
+    text-transform:uppercase;
+
+}
+
+.learning-detail-list dd{
+
+    color:var(--mitsol-ink);
+    margin-bottom:14px;
+
+}
+
+.learning-verify-result{
+
+    border-left:5px solid var(--mitsol-blue);
+    border-radius:8px;
+
+}
+
 .learning-category-card{
 
     align-items:flex-start;

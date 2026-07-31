@@ -12,26 +12,32 @@
 
 <section class="py-5 bg-light">
     <div class="container">
-        <form method="post" class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
-                {% csrf_token %}
-                <label class="form-label" for="{{ form.certificate_number_or_code.id_for_label }}">{{ form.certificate_number_or_code.label }}</label>
-                {{ form.certificate_number_or_code }}
-                {% for error in form.certificate_number_or_code.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                <button class="btn btn-primary mt-3">Verify Certificate</button>
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <form method="post" class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        {% csrf_token %}
+                        <h2 class="h4 fw-bold">Check Authenticity</h2>
+                        <p class="text-muted">Use the certificate number or verification code printed on the PDF certificate.</p>
+                        <label class="form-label" for="{{ form.certificate_number_or_code.id_for_label }}">{{ form.certificate_number_or_code.label }}</label>
+                        {{ form.certificate_number_or_code }}
+                        {% for error in form.certificate_number_or_code.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        <button class="btn btn-primary w-100 mt-3">Verify Certificate</button>
+                    </div>
+                </form>
             </div>
-        </form>
 
+            <div class="col-lg-7">
         {% if searched %}
             {% if certificate %}
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm learning-verify-result">
                 <div class="card-body p-4">
                     {% if certificate.is_valid %}
-                    <div class="alert alert-success">This certificate is valid.</div>
+                    <div class="alert alert-success"><i class="fas fa-circle-check me-2"></i>This certificate is valid.</div>
                     {% else %}
-                    <div class="alert alert-danger">This certificate has been revoked.</div>
+                    <div class="alert alert-danger"><i class="fas fa-triangle-exclamation me-2"></i>This certificate has been revoked.</div>
                     {% endif %}
-                    <dl class="row mb-0">
+                    <dl class="row mb-0 learning-detail-list">
                         <dt class="col-md-4">Student</dt><dd class="col-md-8">{{ certificate.public_student_name }}</dd>
                         <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ certificate.course.title }}</dd>
                         <dt class="col-md-4">Certificate Number</dt><dd class="col-md-8">{{ certificate.certificate_number }}</dd>
@@ -47,7 +53,16 @@
             {% else %}
             <div class="alert alert-warning">Certificate not found or invalid.</div>
             {% endif %}
+        {% else %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="h5 fw-bold">Verification Protects Trust</h2>
+                    <p class="text-muted mb-0">A valid result confirms the learner, course, issue date, and certificate number recorded by MITSOL.</p>
+                </div>
+            </div>
         {% endif %}
+            </div>
+        </div>
     </div>
 </section>
 

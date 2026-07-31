@@ -6,14 +6,35 @@
     <div class="container text-center">
         <span class="section-kicker">Certificates</span>
         <h1 class="fw-bold mt-3">Learning Certificates</h1>
-        <p class="lead">Certificates will be generated after Phase 2 completion rules are implemented.</p>
+        <p class="lead">View earned certificates, download valid awards, and verify MITSOL learning credentials.</p>
     </div>
 </section>
 
 <section class="py-5 bg-light">
     <div class="container">
-        <div class="alert alert-info text-center">
-            Certificate downloads are planned for Phase 2.
+        <div class="row g-4 justify-content-center">
+            <div class="col-lg-5">
+                <div class="learning-highlight-panel h-100">
+                    <span class="section-kicker">Learners</span>
+                    <h2 class="h4 fw-bold mt-2">My Certificates</h2>
+                    <p class="mb-4">Access your issued course certificates and download valid PDF copies.</p>
+                    <a href="{% url 'learning:certificate_list' %}" class="btn btn-primary">
+                        <i class="fa-solid fa-award me-2"></i>View My Certificates
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <span class="section-kicker">Verification</span>
+                        <h2 class="h4 fw-bold mt-2">Verify a Certificate</h2>
+                        <p class="text-muted mb-4">Confirm whether a MITSOL certificate number or verification code is valid.</p>
+                        <a href="{% url 'learning:certificate_verify' %}" class="btn btn-outline-primary">
+                            <i class="fa-solid fa-shield-check me-2"></i>Open Verification
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
