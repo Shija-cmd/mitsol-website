@@ -39,6 +39,11 @@
             <div class="col-md-4"><div class="learning-stat-card"><strong>{{ rejected_review_count }}</strong><span>Reviews Needing Edit</span></div></div>
         </div>
 
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ certificate_count }}</strong><span>Valid Certificates</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ revoked_certificate_count }}</strong><span>Revoked Certificates</span></div></div>
+        </div>
+
         <div class="row g-4">
             <div class="col-lg-8">
                 <h2 class="fw-bold mb-3">Enrolled Courses</h2>
@@ -52,6 +57,9 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2">
                                 <a href="{% url 'learning:course_detail' enrolment.course.slug %}" class="btn btn-outline-primary">Open Course</a>
+                                {% if enrolment.certificate %}
+                                <a href="{% url 'learning:certificate_detail' enrolment.certificate.pk %}" class="btn btn-success">Certificate</a>
+                                {% endif %}
                                 {% if enrolment.payment_status == 'Pending' or enrolment.payment_status == 'Rejected' %}
                                 <a href="{% url 'learning:payment_course' enrolment.course.slug %}" class="btn btn-primary">Payment</a>
                                 {% endif %}
@@ -79,6 +87,26 @@
                 {% empty %}
                 <div class="alert alert-info">Recently accessed lessons will appear here.</div>
                 {% endfor %}
+
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                            <h3 class="h5 fw-bold mb-0">Certificates</h3>
+                            <a href="{% url 'learning:certificate_list' %}" class="btn btn-outline-primary btn-sm">View All</a>
+                        </div>
+                        {% for certificate in recent_certificates %}
+                        <a href="{% url 'learning:certificate_detail' certificate.pk %}" class="learning-list-item text-decoration-none mb-2">
+                            <i class="fas fa-certificate"></i>
+                            <div>
+                                <strong>{{ certificate.course.title }}</strong>
+                                <span>{{ certificate.certificate_number }} / {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <p class="text-muted mb-0">Completed course certificates will appear here.</p>
+                        {% endfor %}
+                    </div>
+                </div>
 
                 <div class="card border-0 shadow-sm mt-4">
                     <div class="card-body">

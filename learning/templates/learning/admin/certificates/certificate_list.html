@@ -1,0 +1,118 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Certificate Administration</span>
+        <h1 class="fw-bold mt-3">Learning Certificates</h1>
+        <p class="lead">Monitor issued certificates, verification status, revocations, and course completion records.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ totals.total }}</strong><span>Total Certificates</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ totals.valid }}</strong><span>Valid Certificates</span></div></div>
+            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ totals.revoked }}</strong><span>Revoked Certificates</span></div></div>
+        </div>
+
+        <form method="get" class="card filter-card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-2 col-md-4">
+                        <label class="form-label" for="status">Status</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">All</option>
+                            <option value="valid" {% if selected.status == 'valid' %}selected{% endif %}>Valid</option>
+                            <option value="revoked" {% if selected.status == 'revoked' %}selected{% endif %}>Revoked</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-4">
+                        <label class="form-label" for="course">Course</label>
+                        <select id="course" name="course" class="form-select">
+                            <option value="">All courses</option>
+                            {% for course in courses %}
+                            <option value="{{ course.pk }}" {% if selected.course == course.pk|stringformat:"s" %}selected{% endif %}>{{ course.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-4">
+                        <label class="form-label" for="instructor">Instructor</label>
+                        <select id="instructor" name="instructor" class="form-select">
+                            <option value="">All instructors</option>
+                            {% for instructor in instructors %}
+                            <option value="{{ instructor.pk }}" {% if selected.instructor == instructor.pk|stringformat:"s" %}selected{% endif %}>{{ instructor.get_full_name|default:instructor.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-8">
+                        <label class="form-label" for="q">Search</label>
+                        <input id="q" name="q" type="search" class="form-control" value="{{ selected.q }}" placeholder="Certificate, student, course">
+                    </div>
+                    <div class="col-lg-1 col-md-4">
+                        <button class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Certificate</th>
+                                <th>Student</th>
+                                <th>Course</th>
+                                <th>Issued</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for certificate in certificates %}
+                            <tr>
+                                <td>{{ certificate.certificate_number }}</td>
+                                <td>{{ certificate.student.get_full_name|default:certificate.student.username }}</td>
+                                <td>{{ certificate.course.title }}</td>
+                                <td>{{ certificate.issued_at|date:"M d, Y" }}</td>
+                                <td><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></td>
+                                <td class="text-end">
+                                    <a href="{% url 'learning:admin_certificate_detail' certificate.pk %}" class="btn btn-outline-primary btn-sm">Manage</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-5">No certificates match the current filters.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if certificates.paginator.num_pages > 1 %}
+        <nav class="mt-4" aria-label="Certificate pagination">
+            <ul class="pagination">
+                {% if certificates.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ certificates.previous_page_number }}&status={{ selected.status }}&course={{ selected.course }}&instructor={{ selected.instructor }}&q={{ selected.q }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ certificates.number }} of {{ certificates.paginator.num_pages }}</span></li>
+                {% if certificates.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ certificates.next_page_number }}&status={{ selected.status }}&course={{ selected.course }}&instructor={{ selected.instructor }}&q={{ selected.q }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}

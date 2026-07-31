@@ -4,6 +4,7 @@ from django.utils import timezone
 from .models import (
     Assignment,
     AssignmentSubmission,
+    Certificate,
     Course,
     CourseAnnouncement,
     CourseCategory,
@@ -22,7 +23,7 @@ from .models import (
     QuizAttempt,
     StudentAnswer,
 )
-from .services import approve_course_review, confirm_payment, mark_submission_under_review, publish_announcement
+from .services import approve_course_review, confirm_payment, mark_submission_under_review, publish_announcement, restore_certificate
 
 
 class LessonInline(admin.TabularInline):
@@ -613,6 +614,122 @@ class CourseReviewAdmin(admin.ModelAdmin):
         )
 
     approve_selected_reviews.short_description = 'Approve selected pending reviews'
+
+
+@admin.register(Certificate)
+class CertificateAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'certificate_number',
+        'student',
+        'course',
+        'issued_at',
+        'is_valid',
+        'revoked_at',
+    )
+
+    list_filter = (
+        'is_valid',
+        'course',
+        'issued_at',
+        'revoked_at',
+    )
+
+    search_fields = (
+        'certificate_number',
+        'verification_code',
+        'student__username',
+        'student__first_name',
+        'student__last_name',
+        'course__title',
+    )
+
+    autocomplete_fields = (
+        'student',
+        'course',
+        'enrolment',
+        'revoked_by',
+        'restored_by',
+    )
+
+    readonly_fields = (
+        'student',
+        'course',
+        'enrolment',
+        'certificate_number',
+        'verification_code',
+        'issued_at',
+        'revoked_at',
+        'revoked_by',
+        'restored_at',
+        'restored_by',
+        'created_at',
+        'updated_at',
+    )
+
+    date_hierarchy = 'issued_at'
+
+    fieldsets = (
+        (
+            'Certificate',
+            {
+                'fields': (
+                    'student',
+                    'course',
+                    'enrolment',
+                    'certificate_number',
+                    'verification_code',
+                    'issued_at',
+                    'certificate_file',
+                    'is_valid',
+                )
+            }
+        ),
+        (
+            'Revocation and Restoration',
+            {
+                'fields': (
+                    'revocation_reason',
+                    'revoked_by',
+                    'revoked_at',
+                    'restored_by',
+                    'restored_at',
+                )
+            }
+        ),
+        (
+            'Timestamps',
+            {
+                'fields': (
+                    'created_at',
+                    'updated_at',
+                )
+            }
+        ),
+    )
+
+    actions = (
+        'restore_selected_certificates',
+    )
+
+    def restore_selected_certificates(self, request, queryset):
+
+        restored = 0
+
+        for certificate in queryset:
+
+            try:
+                restore_certificate(certificate, request.user)
+                restored += 1
+            except Exception:
+                continue
+
+        self.message_user(
+            request,
+            f'{restored} certificate(s) restored.'
+        )
+
+    restore_selected_certificates.short_description = 'Restore selected certificates'
 
 
 @admin.register(LessonProgress)

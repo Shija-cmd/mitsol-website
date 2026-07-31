@@ -1,0 +1,44 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">My Certificates</span>
+        <h1 class="fw-bold mt-3">Certificates Earned</h1>
+        <p class="lead">View, download, and verify your MITSOL course completion certificates.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Course</th><th>Certificate No.</th><th>Issued</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+                        <tbody>
+                            {% for certificate in certificates %}
+                            <tr>
+                                <td>{{ certificate.course.title }}</td>
+                                <td>{{ certificate.certificate_number }}</td>
+                                <td>{{ certificate.issued_at|date:"M d, Y" }}</td>
+                                <td><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></td>
+                                <td class="text-end">
+                                    <a href="{% url 'learning:certificate_detail' certificate.pk %}" class="btn btn-outline-primary btn-sm">View</a>
+                                    {% if certificate.is_valid %}<a href="{% url 'learning:certificate_download' certificate.pk %}" class="btn btn-primary btn-sm">Download</a>{% endif %}
+                                    <a href="{% url 'learning:certificate_verify_code' certificate.verification_code %}" class="btn btn-outline-secondary btn-sm">Verify</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-5">You have not earned any certificates yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

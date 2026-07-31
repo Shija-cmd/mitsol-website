@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">Certificate Verification</span>
+        <h1 class="fw-bold mt-3">Verify a MITSOL Certificate</h1>
+        <p class="lead">Enter a certificate number or verification code.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <form method="post" class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                {% csrf_token %}
+                <label class="form-label" for="{{ form.certificate_number_or_code.id_for_label }}">{{ form.certificate_number_or_code.label }}</label>
+                {{ form.certificate_number_or_code }}
+                {% for error in form.certificate_number_or_code.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                <button class="btn btn-primary mt-3">Verify Certificate</button>
+            </div>
+        </form>
+
+        {% if searched %}
+            {% if certificate %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    {% if certificate.is_valid %}
+                    <div class="alert alert-success">This certificate is valid.</div>
+                    {% else %}
+                    <div class="alert alert-danger">This certificate has been revoked.</div>
+                    {% endif %}
+                    <dl class="row mb-0">
+                        <dt class="col-md-4">Student</dt><dd class="col-md-8">{{ certificate.public_student_name }}</dd>
+                        <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ certificate.course.title }}</dd>
+                        <dt class="col-md-4">Certificate Number</dt><dd class="col-md-8">{{ certificate.certificate_number }}</dd>
+                        <dt class="col-md-4">Issued</dt><dd class="col-md-8">{{ certificate.issued_at|date:"M d, Y" }}</dd>
+                        <dt class="col-md-4">Instructor</dt><dd class="col-md-8">{{ certificate.course.instructor.get_full_name|default:certificate.course.instructor.username }}</dd>
+                        {% if not certificate.is_valid %}
+                        <dt class="col-md-4">Revoked</dt><dd class="col-md-8">{{ certificate.revoked_at|date:"M d, Y" }}</dd>
+                        <dt class="col-md-4">Reason</dt><dd class="col-md-8">{{ certificate.revocation_reason }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">Certificate not found or invalid.</div>
+            {% endif %}
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}

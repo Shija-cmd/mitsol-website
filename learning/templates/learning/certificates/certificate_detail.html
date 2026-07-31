@@ -1,0 +1,50 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Certificate Details</span>
+        <h1 class="fw-bold mt-3">{{ certificate.course.title }}</h1>
+        <p class="lead">{{ certificate.certificate_number }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <dl class="row mb-0">
+                            <dt class="col-md-4">Student</dt><dd class="col-md-8">{{ certificate.public_student_name }}</dd>
+                            <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ certificate.course.title }}</dd>
+                            <dt class="col-md-4">Completed</dt><dd class="col-md-8">{{ certificate.enrolment.completed_at|date:"M d, Y" }}</dd>
+                            <dt class="col-md-4">Issued</dt><dd class="col-md-8">{{ certificate.issued_at|date:"M d, Y" }}</dd>
+                            <dt class="col-md-4">Status</dt><dd class="col-md-8"><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></dd>
+                            <dt class="col-md-4">Verification URL</dt><dd class="col-md-8"><a href="{{ verification_url }}">{{ verification_url }}</a></dd>
+                            {% if not certificate.is_valid %}
+                            <dt class="col-md-4">Revoked</dt><dd class="col-md-8">{{ certificate.revoked_at|date:"M d, Y" }}</dd>
+                            <dt class="col-md-4">Reason</dt><dd class="col-md-8">{{ certificate.revocation_reason|linebreaksbr }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Actions</h2>
+                        <div class="d-grid gap-2">
+                            {% if certificate.is_valid %}<a href="{% url 'learning:certificate_download' certificate.pk %}" class="btn btn-primary">Download PDF</a>{% endif %}
+                            <a href="{% url 'learning:certificate_verify_code' certificate.verification_code %}" class="btn btn-outline-primary">Public Verification</a>
+                            <a href="{% url 'learning:certificate_list' %}" class="btn btn-outline-secondary">All Certificates</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

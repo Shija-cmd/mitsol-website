@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Instructor Certificates</span>
+        <h1 class="fw-bold mt-3">Course Certificates</h1>
+        <p class="lead">View certificates issued for courses you own.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Student</th><th>Course</th><th>Certificate</th><th>Issued</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for certificate in certificates %}
+                            <tr>
+                                <td>{{ certificate.public_student_name }}</td>
+                                <td>{{ certificate.course.title }}</td>
+                                <td>{{ certificate.certificate_number }}</td>
+                                <td>{{ certificate.issued_at|date:"M d, Y" }}</td>
+                                <td><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-5">Certificates for your courses will appear here.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

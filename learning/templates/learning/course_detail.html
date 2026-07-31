@@ -29,6 +29,11 @@
                             Your enrolment status: <strong>{{ enrolment.status }}</strong><br>
                             Payment status: <strong>{{ enrolment.payment_status }}</strong>
                         </div>
+                        {% if enrolment.certificate %}
+                        <a href="{% url 'learning:certificate_detail' enrolment.certificate.pk %}" class="btn btn-success btn-lg w-100 mb-2">
+                            View Certificate
+                        </a>
+                        {% endif %}
                         {% if enrolment.status == 'Active' %}
                         <a href="#courseCurriculum" class="btn btn-primary btn-lg w-100">
                             Continue Learning
@@ -85,6 +90,36 @@
                     <span class="text-muted">{{ rating_summary.review_count }} approved review{{ rating_summary.review_count|pluralize }}</span>
                 </div>
                 <div class="text-muted mb-4">{{ course.full_description|linebreaks }}</div>
+
+                {% if completion_result %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                            <div>
+                                <h3 class="h5 fw-bold mb-1">Completion Checklist</h3>
+                                <p class="text-muted mb-0">Progress is calculated from published lessons, quizzes, and assignments.</p>
+                            </div>
+                            <span class="badge {% if completion_result.completed %}bg-success{% else %}bg-primary{% endif %}">{{ completion_result.progress_percentage }}%</span>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" style="width: {{ completion_result.progress_percentage }}%">{{ completion_result.progress_percentage }}%</div>
+                        </div>
+                        {% if completion_result.completed %}
+                        <div class="alert alert-success mb-0">
+                            Course completed. Your certificate is ready from the certificate area.
+                        </div>
+                        {% else %}
+                        <ul class="learning-check-list mb-0">
+                            {% for item in completion_result.missing_requirements %}
+                            <li>{{ item }}</li>
+                            {% empty %}
+                            <li>Continue learning to complete this course.</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="row g-4 mb-4">
                     {% if course.outcome_list %}

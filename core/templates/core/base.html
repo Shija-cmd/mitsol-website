@@ -254,6 +254,11 @@
             My Reviews
         </a>
 
+        <a href="{% url 'learning:certificate_list' %}" class="learning-sidebar-link {% if '/learn/certificates/' in request.path and '/verify/' not in request.path %}active{% endif %}">
+            <i class="fas fa-certificate"></i>
+            My Certificates
+        </a>
+
         <a href="{% url 'learning:announcements' %}" class="learning-sidebar-link {% if '/learn/announcements/' in request.path %}active{% endif %}">
             <i class="fas fa-bullhorn"></i>
             Announcements
@@ -325,6 +330,11 @@
             Course Reviews
         </a>
 
+        <a href="{% url 'learning:instructor_certificate_list' %}" class="learning-sidebar-link {% if '/learn/instructor/certificates/' in request.path %}active{% endif %}">
+            <i class="fas fa-award"></i>
+            Certificates
+        </a>
+
         {% endif %}
 
         {% if request.user.is_staff %}
@@ -346,6 +356,11 @@
         <a href="{% url 'learning:admin_review_list' %}" class="learning-sidebar-link {% if '/learn/admin/reviews/' in request.path %}active{% endif %}">
             <i class="fas fa-star"></i>
             Moderate Reviews
+        </a>
+
+        <a href="{% url 'learning:admin_certificate_list' %}" class="learning-sidebar-link {% if '/learn/admin/certificates/' in request.path %}active{% endif %}">
+            <i class="fas fa-certificate"></i>
+            Manage Certificates
         </a>
 
         <a href="{% url 'admin:index' %}" class="learning-sidebar-link">

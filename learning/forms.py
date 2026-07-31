@@ -939,3 +939,37 @@ class ReviewModerationReasonForm(BootstrapFormMixin, forms.Form):
 
         super().__init__(*args, **kwargs)
         self.apply_bootstrap_styles()
+
+
+class CertificateVerificationForm(BootstrapFormMixin, forms.Form):
+
+    certificate_number_or_code = forms.CharField(
+        max_length=140,
+        label='Certificate number or verification code'
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
+
+    def clean_certificate_number_or_code(self):
+
+        value = self.cleaned_data.get('certificate_number_or_code', '').strip()
+
+        if len(value) < 6:
+            raise forms.ValidationError('Enter a valid certificate number or verification code.')
+
+        return value
+
+
+class CertificateRevocationForm(BootstrapFormMixin, forms.Form):
+
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4})
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()

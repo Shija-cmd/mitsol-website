@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
@@ -6,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,6 +19,8 @@ from .forms import (
     AssignmentGradingForm,
     AssignmentRevisionForm,
     AssignmentSubmissionForm,
+    CertificateRevocationForm,
+    CertificateVerificationForm,
     ChoiceForm,
     CourseAnnouncementForm,
     CourseReviewForm,
@@ -37,6 +40,7 @@ from .models import (
     Assignment,
     AssignmentSubmission,
     Choice,
+    Certificate,
     Course,
     CourseAnnouncement,
     CourseCategory,
@@ -58,6 +62,7 @@ from .services import (
     approve_course_review,
     attach_rating_summaries,
     can_student_review_course,
+    certificate_verification_url,
     confirm_payment,
     create_course_review,
     enrol_student_in_course,
@@ -67,6 +72,9 @@ from .services import (
     get_course_payable_amount,
     get_learning_payment_settings,
     get_course_rating_summary,
+    find_certificate,
+    generate_certificate_pdf,
+    evaluate_course_completion,
     grade_assignment_submission,
     grade_short_answers,
     mark_lesson_complete,
@@ -80,11 +88,14 @@ from .services import (
     reject_course_review,
     save_assignment_draft,
     hide_course_review,
+    restore_certificate,
+    revoke_certificate,
     start_quiz_attempt,
     submit_assignment,
     submit_course_payment,
     submit_quiz_attempt,
     update_course_review,
+    user_can_manage_certificates,
 )
 
 
@@ -230,6 +241,19 @@ def course_detail(request, slug):
             status=Payment.Status.PENDING
         ).first()
         latest_payment = enrolment.payments.first()
+        if enrolment.status in [
+            Enrolment.Status.ACTIVE,
+            Enrolment.Status.COMPLETED,
+        ]:
+            try:
+                completion_result = evaluate_course_completion(enrolment)
+                enrolment = completion_result.enrolment
+            except ValidationError:
+                completion_result = None
+        else:
+            completion_result = None
+    else:
+        completion_result = None
 
     if request.user.is_authenticated:
 
@@ -292,6 +316,7 @@ def course_detail(request, slug):
             'rating_summary': get_course_rating_summary(course),
             'review_page': review_page,
             'review_sort': review_sort,
+            'completion_result': completion_result,
         }
     )
 
@@ -444,6 +469,12 @@ def student_dashboard(request):
         student=request.user
     )
 
+    certificates = Certificate.objects.select_related(
+        'course'
+    ).filter(
+        student=request.user
+    )
+
     reviews = CourseReview.objects.select_related(
         'course'
     ).filter(
@@ -494,6 +525,9 @@ def student_dashboard(request):
             'approved_review_count': reviews.filter(status=CourseReview.Status.APPROVED).count(),
             'rejected_review_count': reviews.filter(status=CourseReview.Status.REJECTED).count(),
             'eligible_review_courses': eligible_courses[:5],
+            'certificate_count': certificates.filter(is_valid=True).count(),
+            'revoked_certificate_count': certificates.filter(is_valid=False).count(),
+            'recent_certificates': certificates[:3],
         }
     )
 
@@ -667,6 +701,9 @@ def instructor_dashboard(request):
         status=CourseReview.Status.APPROVED,
         is_approved=True
     )
+    certificates = Certificate.objects.filter(
+        course__in=courses
+    )
 
     return render(
         request,
@@ -712,6 +749,9 @@ def instructor_dashboard(request):
             'approved_review_count': approved_reviews.count(),
             'low_rating_count': approved_reviews.filter(rating__in=[1, 2]).count(),
             'recent_reviews': approved_reviews.select_related('student', 'course')[:5],
+            'certificate_count': certificates.filter(is_valid=True).count(),
+            'revoked_certificate_count': certificates.filter(is_valid=False).count(),
+            'recent_certificates': certificates.select_related('student', 'course')[:5],
         }
     )
 
@@ -3050,6 +3090,150 @@ def admin_review_hide(request, pk):
     return redirect('learning:admin_review_detail', pk=pk)
 
 
+@instructor_required
+def instructor_certificate_list(request):
+
+    certificates = instructor_certificates(request.user).select_related(
+        'student',
+        'course',
+        'enrolment',
+    )
+
+    return render(
+        request,
+        'learning/instructor/certificate_list.html',
+        {
+            'certificates': certificates,
+        }
+    )
+
+
+@staff_member_required
+def admin_certificate_list(request):
+
+    if not user_can_manage_certificates(request.user):
+        raise PermissionDenied('You cannot view certificates.')
+
+    certificates = Certificate.objects.select_related(
+        'student',
+        'course',
+        'course__instructor',
+        'enrolment',
+        'revoked_by',
+    )
+    status = request.GET.get('status', '')
+    course_id = request.GET.get('course', '')
+    instructor_id = request.GET.get('instructor', '')
+    q = request.GET.get('q', '').strip()
+
+    if status == 'valid':
+        certificates = certificates.filter(is_valid=True)
+    elif status == 'revoked':
+        certificates = certificates.filter(is_valid=False)
+    if course_id:
+        certificates = certificates.filter(course_id=course_id)
+    if instructor_id:
+        certificates = certificates.filter(course__instructor_id=instructor_id)
+    if q:
+        certificates = certificates.filter(
+            Q(certificate_number__icontains=q)
+            | Q(verification_code__icontains=q)
+            | Q(student__username__icontains=q)
+            | Q(student__first_name__icontains=q)
+            | Q(student__last_name__icontains=q)
+            | Q(course__title__icontains=q)
+        )
+
+    paginator = Paginator(certificates, 25)
+    certificate_page = paginator.get_page(request.GET.get('page'))
+    all_certificates = Certificate.objects.all()
+
+    return render(
+        request,
+        'learning/admin/certificates/certificate_list.html',
+        {
+            'certificates': certificate_page,
+            'courses': Course.objects.filter(certificates__isnull=False).distinct().order_by('title'),
+            'instructors': User.objects.filter(learning_courses__certificates__isnull=False).distinct().order_by('first_name', 'last_name', 'username'),
+            'selected': {
+                'status': status,
+                'course': course_id,
+                'instructor': instructor_id,
+                'q': q,
+            },
+            'totals': {
+                'total': all_certificates.count(),
+                'valid': all_certificates.filter(is_valid=True).count(),
+                'revoked': all_certificates.filter(is_valid=False).count(),
+            }
+        }
+    )
+
+
+@staff_member_required
+def admin_certificate_detail(request, pk):
+
+    if not user_can_manage_certificates(request.user):
+        raise PermissionDenied('You cannot view certificates.')
+
+    certificate = get_object_or_404(
+        Certificate.objects.select_related('student', 'course', 'course__instructor', 'enrolment', 'revoked_by', 'restored_by'),
+        pk=pk
+    )
+
+    return render(
+        request,
+        'learning/admin/certificates/certificate_detail.html',
+        {
+            'certificate': certificate,
+            'verification_url': certificate_verification_url(certificate, request),
+            'revocation_form': CertificateRevocationForm(),
+        }
+    )
+
+
+@staff_member_required
+def admin_certificate_download(request, pk):
+
+    if not user_can_manage_certificates(request.user):
+        raise PermissionDenied('You cannot download certificates.')
+
+    certificate = get_object_or_404(Certificate, pk=pk)
+    pdf = generate_certificate_pdf(certificate, request)
+    filename = re.sub(r'[^A-Za-z0-9_.-]+', '-', certificate.certificate_number)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="MITSOL-Certificate-{filename}.pdf"'
+    return response
+
+
+@staff_member_required
+@require_POST
+def admin_certificate_revoke(request, pk):
+
+    certificate = get_object_or_404(Certificate, pk=pk)
+    form = CertificateRevocationForm(request.POST)
+    if form.is_valid():
+        try:
+            revoke_certificate(certificate, request.user, form.cleaned_data['reason'])
+            messages.success(request, 'Certificate revoked.')
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_certificate_detail', pk=pk)
+
+
+@staff_member_required
+@require_POST
+def admin_certificate_restore(request, pk):
+
+    certificate = get_object_or_404(Certificate, pk=pk)
+    try:
+        restore_certificate(certificate, request.user)
+        messages.success(request, 'Certificate restored.')
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_certificate_detail', pk=pk)
+
+
 def register_student(request):
 
     if request.method == 'POST':
@@ -3097,19 +3281,102 @@ def register_student(request):
 
 
 @login_required
-def certificates_placeholder(request):
+def certificate_list(request):
+
+    certificates = Certificate.objects.select_related(
+        'course',
+        'enrolment',
+    ).filter(
+        student=request.user
+    )
 
     return render(
         request,
-        'learning/certificates.html'
+        'learning/certificates/certificate_list.html',
+        {
+            'certificates': certificates,
+        }
     )
 
 
-def certificate_verify_placeholder(request):
+@login_required
+def certificate_detail(request, pk):
+
+    certificate = get_object_or_404(
+        Certificate.objects.select_related('student', 'course', 'enrolment'),
+        pk=pk,
+        student=request.user
+    )
 
     return render(
         request,
-        'learning/certificate_verify.html'
+        'learning/certificates/certificate_detail.html',
+        {
+            'certificate': certificate,
+            'verification_url': certificate_verification_url(certificate, request),
+        }
+    )
+
+
+@login_required
+def certificate_download(request, pk):
+
+    certificate = get_object_or_404(
+        Certificate.objects.select_related('student', 'course', 'enrolment'),
+        pk=pk,
+        student=request.user
+    )
+
+    if not certificate.is_valid:
+        raise Http404
+
+    pdf = generate_certificate_pdf(certificate, request)
+    filename = re.sub(r'[^A-Za-z0-9_.-]+', '-', certificate.certificate_number)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="MITSOL-Certificate-{filename}.pdf"'
+    return response
+
+
+def certificate_verify(request):
+
+    certificate = None
+    searched = False
+
+    if request.method == 'POST':
+        form = CertificateVerificationForm(request.POST)
+        if form.is_valid():
+            searched = True
+            certificate = find_certificate(
+                form.cleaned_data['certificate_number_or_code']
+            )
+    else:
+        form = CertificateVerificationForm()
+
+    return render(
+        request,
+        'learning/certificates/certificate_verify.html',
+        {
+            'form': form,
+            'certificate': certificate,
+            'searched': searched,
+        }
+    )
+
+
+def certificate_verify_code(request, verification_code):
+
+    certificate = find_certificate(
+        verification_code
+    )
+
+    return render(
+        request,
+        'learning/certificates/certificate_verify.html',
+        {
+            'form': CertificateVerificationForm(),
+            'certificate': certificate,
+            'searched': True,
+        }
     )
 
 
@@ -3283,6 +3550,16 @@ def instructor_reviews(user):
         return reviews
 
     return reviews.filter(course__instructor=user)
+
+
+def instructor_certificates(user):
+
+    certificates = Certificate.objects.all()
+
+    if user.is_staff:
+        return certificates
+
+    return certificates.filter(course__instructor=user)
 
 
 def choice_rule_warning(question):

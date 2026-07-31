@@ -1,18 +1,27 @@
+import re
+import secrets
+from dataclasses import dataclass
+from io import BytesIO
 from decimal import Decimal
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models, transaction
 from django.db.models import Avg, Count, Max, Q
+from django.http import HttpRequest
+from django.contrib.staticfiles import finders
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
     Assignment,
     AssignmentSubmission,
+    Certificate,
     CourseAnnouncement,
     CourseReview,
     Enrolment,
+    Lesson,
     LessonProgress,
     Notification,
     Payment,
@@ -32,51 +41,122 @@ COURSE_REVIEW_MINIMUM_COMMENT_LENGTH = 10
 COURSE_REVIEW_MAXIMUM_COMMENT_LENGTH = 2000
 
 
-def recalculate_enrolment_progress(enrolment):
+@dataclass
+class CompletionResult:
 
-    compulsory_lessons = enrolment.course.modules.filter(
+    completed: bool
+    progress_percentage: int
+    missing_requirements: list
+    certificate: object = None
+    changed: bool = False
+    enrolment: object = None
+
+
+def lesson_is_content(lesson):
+
+    return lesson.lesson_type not in [
+        Lesson.LessonType.QUIZ,
+        Lesson.LessonType.ASSIGNMENT,
+    ]
+
+
+def quiz_lesson_completed(enrolment, lesson):
+
+    quiz = getattr(
+        lesson,
+        'quiz',
+        None
+    )
+
+    if not quiz or not quiz.is_published:
+        return False
+
+    return QuizAttempt.objects.filter(
+        student=enrolment.student,
+        enrolment=enrolment,
+        quiz=quiz,
+        status=QuizAttempt.Status.GRADED,
+        passed=True,
+    ).exists()
+
+
+def assignment_lesson_completed(enrolment, lesson):
+
+    assignment = getattr(
+        lesson,
+        'assignment',
+        None
+    )
+
+    if not assignment or not assignment.is_published:
+        return False
+
+    return AssignmentSubmission.objects.filter(
+        student=enrolment.student,
+        enrolment=enrolment,
+        assignment=assignment,
+        status=AssignmentSubmission.Status.GRADED,
+        passed=True,
+    ).exists()
+
+
+def content_lesson_completed(enrolment, lesson):
+
+    return LessonProgress.objects.filter(
+        student=enrolment.student,
+        enrolment=enrolment,
+        lesson=lesson,
+        is_completed=True,
+    ).exists()
+
+
+def lesson_requirement_completed(enrolment, lesson):
+
+    if lesson.lesson_type == Lesson.LessonType.QUIZ:
+        return quiz_lesson_completed(enrolment, lesson)
+
+    if lesson.lesson_type == Lesson.LessonType.ASSIGNMENT:
+        return assignment_lesson_completed(enrolment, lesson)
+
+    return content_lesson_completed(enrolment, lesson)
+
+
+def trackable_lessons(enrolment):
+
+    return Lesson.objects.select_related(
+        'module'
+    ).filter(
+        module__course=enrolment.course,
+        module__is_published=True,
         is_published=True,
-        lessons__is_published=True,
-        lessons__is_compulsory=True
-    ).values_list(
-        'lessons__id',
-        flat=True
+    ).order_by(
+        'module__order',
+        'order',
+        'title',
     )
 
-    total_lessons = compulsory_lessons.count()
 
-    if total_lessons == 0:
+def calculate_enrolment_progress(enrolment):
 
-        progress = 0
+    lessons = list(trackable_lessons(enrolment))
 
-    else:
+    if not lessons:
+        return 0
 
-        completed_lessons = LessonProgress.objects.filter(
-            enrolment=enrolment,
-            lesson_id__in=compulsory_lessons,
-            is_completed=True
-        ).count()
-
-        progress = round(
-            completed_lessons * 100 / total_lessons
-        )
-
-    enrolment.progress_percentage = progress
-
-    if progress >= 100 and enrolment.status == Enrolment.Status.ACTIVE:
-
-        enrolment.status = Enrolment.Status.COMPLETED
-        enrolment.completed_at = timezone.now()
-
-    enrolment.save(
-        update_fields=[
-            'progress_percentage',
-            'status',
-            'completed_at',
-        ]
+    completed = sum(
+        1
+        for lesson in lessons
+        if lesson_requirement_completed(enrolment, lesson)
     )
 
-    return enrolment
+    return min(
+        100,
+        round(completed * 100 / len(lessons))
+    )
+
+
+def recalculate_enrolment_progress(enrolment):
+    return evaluate_course_completion(enrolment).enrolment
 
 
 @transaction.atomic
@@ -147,13 +227,393 @@ def mark_lesson_complete(student, enrolment, lesson):
     return progress
 
 
-def evaluate_course_completion(enrolment):
+def paid_enrolment_is_confirmed(enrolment):
 
-    recalculate_enrolment_progress(
-        enrolment
+    if enrolment.course.is_free:
+        return enrolment.payment_status == Enrolment.PaymentStatus.NOT_REQUIRED
+
+    return enrolment.payment_status == Enrolment.PaymentStatus.PAID
+
+
+def course_code(course):
+
+    source = course.slug or course.title or 'COURSE'
+    code = re.sub(r'[^A-Za-z0-9]+', '', source).upper()
+    return (code[:12] or 'COURSE')
+
+
+def generate_certificate_number(course):
+
+    year = timezone.now().year
+    prefix = f'MITSOL-{year}-{course_code(course)}'
+    next_number = Certificate.objects.filter(
+        certificate_number__startswith=prefix
+    ).count() + 1
+
+    while True:
+        certificate_number = f'{prefix}-{next_number:06d}'
+        if not Certificate.objects.filter(certificate_number=certificate_number).exists():
+            return certificate_number
+        next_number += 1
+
+
+def generate_verification_code():
+
+    while True:
+        code = secrets.token_urlsafe(32)
+        if not Certificate.objects.filter(verification_code=code).exists():
+            return code
+
+
+def user_can_manage_certificates(user, permission='view_all_certificates'):
+
+    if not user or not user.is_authenticated:
+        return False
+
+    return (
+        user.is_superuser
+        or user.has_perm(f'learning.{permission}')
+        or user.has_perm('learning.view_all_certificates')
     )
 
-    return enrolment
+
+@transaction.atomic
+def issue_certificate(enrolment, notify=True):
+
+    enrolment = Enrolment.objects.select_for_update().select_related(
+        'student',
+        'course',
+        'course__instructor',
+    ).get(pk=enrolment.pk)
+
+    if enrolment.status != Enrolment.Status.COMPLETED:
+        raise ValidationError('Certificates can only be issued for completed enrolments.')
+
+    if not paid_enrolment_is_confirmed(enrolment):
+        raise ValidationError('Certificate issuance requires confirmed course access.')
+
+    existing = Certificate.objects.filter(enrolment=enrolment).first()
+
+    if existing:
+        return existing
+
+    certificate = Certificate.objects.create(
+        student=enrolment.student,
+        course=enrolment.course,
+        enrolment=enrolment,
+        certificate_number=generate_certificate_number(enrolment.course),
+        verification_code=generate_verification_code(),
+        issued_at=timezone.now(),
+        is_valid=True,
+    )
+
+    if notify:
+        create_notification(
+            recipient=enrolment.student,
+            title='Certificate issued',
+            message=f'Your certificate for {enrolment.course.title} is ready.',
+            notification_type=Notification.NotificationType.CERTIFICATE,
+            related_url=reverse('learning:certificate_detail', args=[certificate.pk]),
+            dedupe_key=f'certificate:{certificate.pk}:issued'
+        )
+
+    return certificate
+
+
+def certificate_verification_url(certificate, request=None):
+
+    path = certificate.verification_url_path
+
+    if isinstance(request, HttpRequest):
+        return request.build_absolute_uri(path)
+
+    return f"{settings.SITE_URL.rstrip('/')}{path}"
+
+
+def find_certificate(query):
+
+    value = (query or '').strip()
+
+    if not value or len(value) > 140:
+        return None
+
+    return Certificate.objects.select_related(
+        'student',
+        'course',
+        'course__instructor',
+        'enrolment',
+    ).filter(
+        Q(certificate_number__iexact=value)
+        | Q(verification_code=value)
+    ).first()
+
+
+def certificate_logo_path():
+
+    return finders.find('core/images/logo.png')
+
+
+def generate_certificate_pdf(certificate, request=None):
+
+    certificate = Certificate.objects.select_related(
+        'student',
+        'course',
+        'course__instructor',
+        'enrolment',
+    ).get(pk=certificate.pk)
+
+    verification_url = certificate_verification_url(certificate, request)
+
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.units import mm
+        from reportlab.pdfgen import canvas
+
+        buffer = BytesIO()
+        page_width, page_height = landscape(A4)
+        pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
+
+        pdf.setFillColor(colors.HexColor('#0d1b2a'))
+        pdf.rect(0, 0, page_width, page_height, fill=True, stroke=False)
+        pdf.setStrokeColor(colors.HexColor('#18b7d8'))
+        pdf.setLineWidth(2)
+        pdf.rect(15 * mm, 15 * mm, page_width - 30 * mm, page_height - 30 * mm)
+
+        logo = certificate_logo_path()
+        if logo:
+            try:
+                pdf.drawImage(logo, 24 * mm, page_height - 42 * mm, width=25 * mm, height=18 * mm, preserveAspectRatio=True, mask='auto')
+            except Exception:
+                pass
+
+        pdf.setFillColor(colors.white)
+        pdf.setFont('Helvetica-Bold', 22)
+        pdf.drawCentredString(page_width / 2, page_height - 35 * mm, 'MITSOL')
+        pdf.setFont('Helvetica', 11)
+        pdf.drawCentredString(page_width / 2, page_height - 42 * mm, 'Technology Solutions')
+
+        pdf.setFillColor(colors.HexColor('#18b7d8'))
+        pdf.setFont('Helvetica-Bold', 30)
+        pdf.drawCentredString(page_width / 2, page_height - 68 * mm, 'Certificate of Completion')
+
+        pdf.setFillColor(colors.white)
+        pdf.setFont('Helvetica', 13)
+        pdf.drawCentredString(page_width / 2, page_height - 86 * mm, 'This certifies that')
+        pdf.setFont('Helvetica-Bold', 25)
+        pdf.drawCentredString(page_width / 2, page_height - 101 * mm, certificate.public_student_name[:70])
+        pdf.setFont('Helvetica', 13)
+        pdf.drawCentredString(page_width / 2, page_height - 116 * mm, 'has successfully completed the course')
+        pdf.setFont('Helvetica-Bold', 20)
+        pdf.drawCentredString(page_width / 2, page_height - 131 * mm, certificate.course.title[:95])
+
+        pdf.setFont('Helvetica', 10)
+        pdf.drawString(26 * mm, 45 * mm, f'Certificate No: {certificate.certificate_number}')
+        pdf.drawString(26 * mm, 38 * mm, f'Issued: {timezone.localtime(certificate.issued_at).strftime("%B %d, %Y")}')
+        pdf.drawString(26 * mm, 31 * mm, f'Instructor: {certificate.course.instructor.get_full_name() or certificate.course.instructor.username}')
+        pdf.drawString(26 * mm, 24 * mm, f'Verify: {verification_url}')
+
+        try:
+            import qrcode
+            qr_image = qrcode.make(verification_url)
+            qr_buffer = BytesIO()
+            qr_image.save(qr_buffer, format='PNG')
+            qr_buffer.seek(0)
+            from reportlab.lib.utils import ImageReader
+            pdf.drawImage(ImageReader(qr_buffer), page_width - 52 * mm, 25 * mm, width=28 * mm, height=28 * mm)
+        except Exception:
+            pdf.setFont('Helvetica', 8)
+            pdf.drawRightString(page_width - 24 * mm, 31 * mm, 'QR unavailable')
+
+        if not certificate.is_valid:
+            pdf.saveState()
+            pdf.setFillColor(colors.Color(1, 0, 0, alpha=0.18))
+            pdf.setFont('Helvetica-Bold', 62)
+            pdf.translate(page_width / 2, page_height / 2)
+            pdf.rotate(25)
+            pdf.drawCentredString(0, 0, 'REVOKED')
+            pdf.restoreState()
+
+        pdf.showPage()
+        pdf.save()
+        return buffer.getvalue()
+
+    except Exception:
+        content = (
+            f'%PDF-1.4\n'
+            f'1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n'
+            f'2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n'
+            f'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] '
+            f'/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n'
+            f'4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n'
+        )
+        text = (
+            f'BT /F1 24 Tf 80 500 Td (MITSOL Certificate of Completion) Tj '
+            f'0 -45 Td ({certificate.public_student_name[:80]}) Tj '
+            f'0 -35 Td ({certificate.course.title[:90]}) Tj '
+            f'0 -35 Td ({certificate.certificate_number}) Tj ET'
+        )
+        stream = f'5 0 obj << /Length {len(text)} >> stream\n{text}\nendstream endobj\n'
+        trailer = 'xref\n0 6\n0000000000 65535 f \ntrailer << /Root 1 0 R /Size 6 >>\nstartxref\n0\n%%EOF'
+        return (content + stream + trailer).encode('latin-1', errors='ignore')
+
+
+@transaction.atomic
+def revoke_certificate(certificate, administrator, reason):
+
+    if not reason.strip():
+        raise ValidationError('Revocation reason is required.')
+
+    if not user_can_manage_certificates(administrator, 'revoke_certificate'):
+        raise PermissionDenied('You cannot revoke certificates.')
+
+    certificate = Certificate.objects.select_for_update().select_related('student', 'course').get(pk=certificate.pk)
+
+    if not certificate.is_valid:
+        return certificate
+
+    certificate.is_valid = False
+    certificate.revoked_by = administrator
+    certificate.revoked_at = timezone.now()
+    certificate.revocation_reason = reason.strip()
+    certificate.save(update_fields=['is_valid', 'revoked_by', 'revoked_at', 'revocation_reason', 'updated_at'])
+
+    create_notification(
+        recipient=certificate.student,
+        title='Certificate revoked',
+        message=f'Your certificate for {certificate.course.title} has been revoked.',
+        notification_type=Notification.NotificationType.CERTIFICATE,
+        related_url=reverse('learning:certificate_detail', args=[certificate.pk]),
+        dedupe_key=f'certificate:{certificate.pk}:revoked'
+    )
+
+    return certificate
+
+
+@transaction.atomic
+def restore_certificate(certificate, administrator):
+
+    if not user_can_manage_certificates(administrator, 'restore_certificate'):
+        raise PermissionDenied('You cannot restore certificates.')
+
+    certificate = Certificate.objects.select_for_update().select_related('student', 'course', 'enrolment').get(pk=certificate.pk)
+
+    if certificate.is_valid:
+        return certificate
+
+    if certificate.enrolment.status != Enrolment.Status.COMPLETED:
+        raise ValidationError('Only completed enrolments can have valid certificates.')
+
+    if not paid_enrolment_is_confirmed(certificate.enrolment):
+        raise ValidationError('Cannot restore certificate while course access is invalid.')
+
+    certificate.is_valid = True
+    certificate.restored_by = administrator
+    certificate.restored_at = timezone.now()
+    certificate.save(update_fields=['is_valid', 'restored_by', 'restored_at', 'updated_at'])
+
+    create_notification(
+        recipient=certificate.student,
+        title='Certificate restored',
+        message=f'Your certificate for {certificate.course.title} has been restored.',
+        notification_type=Notification.NotificationType.CERTIFICATE,
+        related_url=reverse('learning:certificate_detail', args=[certificate.pk]),
+        dedupe_key=f'certificate:{certificate.pk}:restored'
+    )
+
+    return certificate
+
+
+def evaluate_course_completion(enrolment):
+
+    enrolment = Enrolment.objects.select_related(
+        'student',
+        'course',
+    ).get(pk=enrolment.pk)
+
+    original_status = enrolment.status
+    original_completed_at = enrolment.completed_at
+    missing = []
+    certificate = None
+    progress = calculate_enrolment_progress(enrolment)
+
+    if enrolment.status == Enrolment.Status.COMPLETED:
+        certificate = issue_certificate(enrolment)
+        if enrolment.progress_percentage != progress:
+            enrolment.progress_percentage = progress
+            enrolment.save(update_fields=['progress_percentage'])
+        return CompletionResult(
+            completed=True,
+            progress_percentage=progress,
+            missing_requirements=[],
+            certificate=certificate,
+            changed=False,
+            enrolment=enrolment,
+        )
+
+    if enrolment.status != Enrolment.Status.ACTIVE or not enrolment.is_active:
+        missing.append('Enrolment is not active.')
+
+    if not paid_enrolment_is_confirmed(enrolment):
+        missing.append('Payment or access confirmation is incomplete.')
+
+    lessons = list(trackable_lessons(enrolment))
+
+    if not lessons:
+        missing.append('Course has no published learning requirements.')
+
+    for lesson in lessons:
+        if not lesson.is_compulsory:
+            continue
+        if not lesson_requirement_completed(enrolment, lesson):
+            if lesson.lesson_type == Lesson.LessonType.QUIZ:
+                missing.append(f'Quiz not passed: {lesson.title}')
+            elif lesson.lesson_type == Lesson.LessonType.ASSIGNMENT:
+                missing.append(f'Assignment not passed: {lesson.title}')
+            else:
+                missing.append(f'Lesson incomplete: {lesson.title}')
+
+    completed = not missing
+    changed = False
+
+    enrolment.progress_percentage = progress
+
+    if completed:
+        enrolment.status = Enrolment.Status.COMPLETED
+        if not enrolment.completed_at:
+            enrolment.completed_at = timezone.now()
+        changed = (
+            original_status != enrolment.status
+            or original_completed_at != enrolment.completed_at
+        )
+
+    enrolment.save(
+        update_fields=[
+            'progress_percentage',
+            'status',
+            'completed_at',
+        ]
+    )
+
+    if completed:
+        create_notification(
+            recipient=enrolment.student,
+            title='Course completed',
+            message=f'You have completed {enrolment.course.title}.',
+            notification_type=Notification.NotificationType.COURSE_COMPLETION,
+            related_url=enrolment.course.get_absolute_url(),
+            dedupe_key=f'enrolment:{enrolment.pk}:completed'
+        )
+        certificate = issue_certificate(enrolment)
+
+    return CompletionResult(
+        completed=completed,
+        progress_percentage=progress,
+        missing_requirements=missing,
+        certificate=certificate,
+        changed=changed,
+        enrolment=enrolment,
+    )
 
 
 def create_notification(

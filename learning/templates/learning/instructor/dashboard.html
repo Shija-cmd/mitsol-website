@@ -54,6 +54,11 @@
             <div class="col-md-4"><div class="learning-stat-card"><strong>{{ low_rating_count }}</strong><span>Low Ratings</span></div></div>
         </div>
 
+        <div class="row g-4 mb-5">
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ certificate_count }}</strong><span>Valid Certificates</span></div></div>
+            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ revoked_certificate_count }}</strong><span>Revoked Certificates</span></div></div>
+        </div>
+
         <div class="row g-4">
             <div class="col-lg-7">
                 <h2 class="fw-bold mb-3">Recent Courses</h2>
@@ -86,6 +91,26 @@
                 </div>
                 {% empty %}
                 <div class="alert alert-info">Recent enrolments will appear here.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 fw-bold mb-0">Recent Certificates</h2>
+                    <a href="{% url 'learning:instructor_certificate_list' %}" class="btn btn-outline-primary btn-sm">Open Certificates</a>
+                </div>
+                {% for certificate in recent_certificates %}
+                <div class="learning-list-item mb-2">
+                    <i class="fas fa-certificate"></i>
+                    <div>
+                        <strong>{{ certificate.public_student_name }}</strong>
+                        <span>{{ certificate.course.title }} / {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info mb-0">Course completion certificates will appear here.</div>
                 {% endfor %}
             </div>
         </div>

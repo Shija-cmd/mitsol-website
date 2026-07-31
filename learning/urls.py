@@ -162,13 +162,28 @@ urlpatterns = [
     ),
     path(
         'certificates/',
-        views.certificates_placeholder,
-        name='certificates'
+        views.certificate_list,
+        name='certificate_list'
+    ),
+    path(
+        'certificates/<int:pk>/',
+        views.certificate_detail,
+        name='certificate_detail'
+    ),
+    path(
+        'certificates/<int:pk>/download/',
+        views.certificate_download,
+        name='certificate_download'
     ),
     path(
         'certificates/verify/',
-        views.certificate_verify_placeholder,
+        views.certificate_verify,
         name='certificate_verify'
+    ),
+    path(
+        'certificates/verify/<str:verification_code>/',
+        views.certificate_verify_code,
+        name='certificate_verify_code'
     ),
     path(
         'announcements/',
@@ -232,6 +247,7 @@ urlpatterns = [
     ),
     path('instructor/payments/', views.instructor_payment_list, name='instructor_payment_list'),
     path('instructor/reviews/', views.instructor_review_list, name='instructor_review_list'),
+    path('instructor/certificates/', views.instructor_certificate_list, name='instructor_certificate_list'),
     path(
         'instructor/quizzes/',
         views.instructor_quiz_list,
@@ -308,6 +324,11 @@ urlpatterns = [
     path('admin/reviews/<int:pk>/approve/', views.admin_review_approve, name='admin_review_approve'),
     path('admin/reviews/<int:pk>/reject/', views.admin_review_reject, name='admin_review_reject'),
     path('admin/reviews/<int:pk>/hide/', views.admin_review_hide, name='admin_review_hide'),
+    path('admin/certificates/', views.admin_certificate_list, name='admin_certificate_list'),
+    path('admin/certificates/<int:pk>/', views.admin_certificate_detail, name='admin_certificate_detail'),
+    path('admin/certificates/<int:pk>/download/', views.admin_certificate_download, name='admin_certificate_download'),
+    path('admin/certificates/<int:pk>/revoke/', views.admin_certificate_revoke, name='admin_certificate_revoke'),
+    path('admin/certificates/<int:pk>/restore/', views.admin_certificate_restore, name='admin_certificate_restore'),
     path(
         'notifications/',
         views.notification_list,

@@ -2385,3 +2385,154 @@ class CourseReview(models.Model):
             ]
             and self.enrolment.payment_status == Enrolment.PaymentStatus.PAID
         )
+
+
+class Certificate(models.Model):
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='learning_certificates'
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.PROTECT,
+        related_name='certificates'
+    )
+
+    enrolment = models.OneToOneField(
+        Enrolment,
+        on_delete=models.PROTECT,
+        related_name='certificate'
+    )
+
+    certificate_number = models.CharField(
+        max_length=80,
+        unique=True
+    )
+
+    verification_code = models.CharField(
+        max_length=120,
+        unique=True
+    )
+
+    issued_at = models.DateTimeField(
+        default=timezone.now
+    )
+
+    certificate_file = models.FileField(
+        upload_to='learning/certificates/',
+        blank=True,
+        null=True
+    )
+
+    is_valid = models.BooleanField(
+        default=True
+    )
+
+    revoked_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='revoked_learning_certificates',
+        blank=True,
+        null=True
+    )
+
+    revocation_reason = models.TextField(
+        blank=True
+    )
+
+    restored_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    restored_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='restored_learning_certificates',
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-issued_at',
+        )
+
+        indexes = (
+            models.Index(fields=('student', 'issued_at'), name='learning_ce_student_4b4964_idx'),
+            models.Index(fields=('course', 'issued_at'), name='learning_ce_course_91f7d8_idx'),
+            models.Index(fields=('is_valid', 'issued_at'), name='learning_ce_is_vali_ea0667_idx'),
+            models.Index(fields=('verification_code',), name='learning_ce_verific_b1899d_idx'),
+        )
+
+        permissions = (
+            ('view_all_certificates', 'Can view all learning certificates'),
+            ('revoke_certificate', 'Can revoke learning certificate'),
+            ('restore_certificate', 'Can restore learning certificate'),
+            ('regenerate_certificate', 'Can regenerate learning certificate PDF'),
+            ('view_course_certificates', 'Can view course certificates'),
+        )
+
+    def __str__(self):
+
+        return self.certificate_number
+
+    def clean(self):
+
+        errors = {}
+
+        if self.enrolment_id:
+            if self.student_id and self.enrolment.student_id != self.student_id:
+                errors['student'] = 'Certificate student must match enrolment student.'
+            if self.course_id and self.enrolment.course_id != self.course_id:
+                errors['course'] = 'Certificate course must match enrolment course.'
+            if self.enrolment.status != Enrolment.Status.COMPLETED:
+                errors['enrolment'] = 'Certificate enrolment must be completed.'
+            if (
+                self.course_id
+                and not self.course.is_free
+                and self.enrolment.payment_status != Enrolment.PaymentStatus.PAID
+            ):
+                errors['enrolment'] = 'Paid-course certificate requires confirmed payment.'
+
+        if not self.is_valid and not (self.revoked_at and self.revoked_by_id and self.revocation_reason.strip()):
+            errors['revocation_reason'] = 'Revoked certificates require revocation audit details.'
+
+        if self.is_valid and self.revoked_at and not self.restored_at:
+            errors['is_valid'] = 'A restored valid certificate requires restoration audit details.'
+
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def public_student_name(self):
+
+        full_name = self.student.get_full_name().strip()
+        return full_name or 'Verified Learner'
+
+    @property
+    def verification_url_path(self):
+
+        return reverse(
+            'learning:certificate_verify_code',
+            args=[
+                self.verification_code,
+            ]
+        )
