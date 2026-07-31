@@ -72,11 +72,6 @@ INSTALLED_APPS = [
 ]
 
 if CLOUDINARY_ENABLED:
-
-    INSTALLED_APPS.insert(
-        INSTALLED_APPS.index('django.contrib.staticfiles'),
-        'cloudinary_storage'
-    )
     INSTALLED_APPS.append('cloudinary')
 
 MIDDLEWARE = [
@@ -161,9 +156,6 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = (
-    'whitenoise.storage.CompressedManifestStaticFilesStorage'
-)
 
 EMAIL_BACKEND=config(
     'EMAIL_BACKEND'
@@ -205,32 +197,30 @@ DJANGO_ADMIN_URL = config(
     default='admin/'
 ).strip('/')
 
-MEDIA_URL = '/media/'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
-MEDIA_ROOT = config(
-    'MEDIA_ROOT',
-    default=str(BASE_DIR / 'media')
-)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 if CLOUDINARY_ENABLED:
-
     CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': config('CLOUDINARY_API_KEY'),
-        'API_SECRET': config('CLOUDINARY_API_SECRET'),
-        'SECURE': True,
+        "CLOUD_NAME": config("CLOUDINARY_CLOUD_NAME"),
+        "API_KEY": config("CLOUDINARY_API_KEY"),
+        "API_SECRET": config("CLOUDINARY_API_SECRET"),
+        "SECURE": True,
     }
 
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-    STORAGES = {
-        'default': {
-            'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
-        },
-        'staticfiles': {
-            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-        },
+    STORAGES["default"] = {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }
+    
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True
