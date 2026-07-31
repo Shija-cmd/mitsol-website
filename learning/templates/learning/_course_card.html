@@ -12,7 +12,7 @@
     </div>
 
     <div class="card-body d-flex flex-column">
-        <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="learning-course-meta">
             <span class="badge bg-primary">{{ course.level }}</span>
             <span class="badge bg-light text-dark border">{{ course.delivery_mode }}</span>
             <span class="badge {% if course.is_free %}bg-success{% else %}bg-info text-dark{% endif %}">
@@ -20,7 +20,7 @@
             </span>
         </div>
 
-        <h3 class="h5 fw-bold">
+        <h3 class="learning-course-title">
             {{ course.title }}
         </h3>
 
@@ -42,7 +42,7 @@
             {% endif %}
         </p>
 
-        <div class="d-grid gap-2">
+        <div class="learning-course-footer d-grid gap-2">
             <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-primary">
                 View Course
             </a>
