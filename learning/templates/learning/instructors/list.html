@@ -21,7 +21,7 @@
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center position-relative overflow-hidden flex-shrink-0" style="width: 72px; height: 72px;">
                                 <i class="fas fa-user-graduate fa-lg"></i>
                                 {% if profile.photo %}
-                                <img src="{{ profile.photo.url }}" alt="" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;" onerror="this.remove();">
+                                <img src="{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}" alt="" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;" onerror="this.remove();">
                                 {% endif %}
                             </div>
                             <div>
