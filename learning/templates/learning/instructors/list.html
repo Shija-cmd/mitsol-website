@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero centered">
+    <div class="container text-center">
+        <span class="section-kicker">MITSOL Learning</span>
+        <h1 class="fw-bold mt-3">Instructors</h1>
+        <p class="lead">Meet the practitioners who deliver MITSOL professional technology training.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            {% for profile in instructors %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            {% if profile.photo %}
+                            <img src="{{ profile.photo.url }}" alt="{{ profile.display_name }}" class="rounded-circle" style="width: 72px; height: 72px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+                                <i class="fas fa-user-graduate fa-lg"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h2 class="h5 fw-bold mb-1">{{ profile.display_name }}</h2>
+                                <p class="text-muted mb-0">{{ profile.title|default:"MITSOL instructor" }}</p>
+                            </div>
+                        </div>
+                        {% if profile.bio %}
+                        <p class="text-muted">{{ profile.bio|truncatewords:24 }}</p>
+                        {% endif %}
+                        {% if profile.expertise_list %}
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            {% for item in profile.expertise_list|slice:":4" %}
+                            <span class="badge bg-light text-dark border">{{ item }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between align-items-center gap-3">
+                            <span class="small text-muted">{{ profile.course_count }} course{{ profile.course_count|pluralize }}</span>
+                            <a href="{% url 'learning:instructor_profile' profile.user.username %}" class="btn btn-outline-primary btn-sm">View Profile</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">Instructor profiles will appear here when published courses are available.</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% endblock %}

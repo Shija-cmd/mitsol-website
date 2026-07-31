@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 
-from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, CourseReview, Lesson, Module, Payment, Question, Quiz
+from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, CourseReview, InstructorProfile, Lesson, Module, Payment, Question, Quiz
 from .services import proof_required_for_method, validate_assignment_file, validate_payment_proof, validate_review_comment
 
 
@@ -122,6 +122,28 @@ class StudentRegistrationForm(UserCreationForm):
         )
         self.fields['password1'].help_text = ''
         self.fields['password2'].help_text = ''
+
+
+class InstructorProfileForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+
+        model = InstructorProfile
+        fields = (
+            'title',
+            'bio',
+            'expertise',
+            'photo',
+            'is_active',
+        )
+        widgets = {
+            'bio': forms.Textarea(attrs={'rows': 5}),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_styles()
 
 
 class CourseForm(BootstrapFormMixin, forms.ModelForm):

@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Instructor Workspace</span>
+        <h1 class="fw-bold mt-3">My Instructor Profile</h1>
+        <p class="lead">Manage the profile learners see on public course and instructor pages.</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <form method="post" enctype="multipart/form-data" class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        {% csrf_token %}
+                        {% for field in form %}
+                        <div class="{% if field.field.widget.input_type == 'checkbox' %}form-check mb-3{% else %}mb-3{% endif %}">
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                            {{ field }}
+                            <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% else %}
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% endif %}
+                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        {% endfor %}
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary">Save Profile</button>
+                            {% if profile.is_active %}
+                            <a href="{% url 'learning:instructor_profile' request.user.username %}" class="btn btn-outline-primary">View Public Profile</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold">Profile Preview</h2>
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            {% if profile.photo %}
+                            <img src="{{ profile.photo.url }}" alt="{{ profile.display_name }}" class="rounded-circle" style="width: 72px; height: 72px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+                                <i class="fas fa-user-graduate fa-lg"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ profile.display_name }}</strong>
+                                <p class="text-muted mb-0">{{ profile.title|default:"MITSOL instructor" }}</p>
+                            </div>
+                        </div>
+                        <p class="text-muted mb-0">Use a clear title, short bio, and comma-separated expertise areas so learners can understand your teaching focus quickly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

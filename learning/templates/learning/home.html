@@ -192,16 +192,21 @@
             <div class="col-lg-6">
                 <h2 class="fw-bold">Popular Instructors</h2>
                 {% for instructor in instructors %}
-                <div class="learning-list-item">
+                <a href="{% url 'learning:instructor_profile' instructor.user.username %}" class="learning-list-item text-decoration-none">
+                    {% if instructor.photo %}
+                    <img src="{{ instructor.photo.url }}" alt="{{ instructor.display_name }}" class="rounded-circle" style="width: 42px; height: 42px; object-fit: cover;">
+                    {% else %}
                     <i class="fas fa-user-graduate"></i>
+                    {% endif %}
                     <div>
-                        <strong>{{ instructor.instructor__first_name }} {{ instructor.instructor__last_name|default:instructor.instructor__username }}</strong>
+                        <strong>{{ instructor.display_name }}</strong>
                         <span>{{ instructor.course_count }} courses</span>
                     </div>
-                </div>
+                </a>
                 {% empty %}
                 <p class="text-muted">Instructor profiles will appear when courses are published.</p>
                 {% endfor %}
+                <a href="{% url 'learning:instructor_list' %}" class="btn btn-outline-primary mt-3">View Instructors</a>
             </div>
             <div class="col-lg-6">
                 <h2 class="fw-bold">Student Testimonials</h2>

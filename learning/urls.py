@@ -33,6 +33,16 @@ urlpatterns = [
         name='category'
     ),
     path(
+        'instructors/',
+        views.instructor_list,
+        name='instructor_list'
+    ),
+    path(
+        'instructors/<str:username>/',
+        views.instructor_profile_detail,
+        name='instructor_profile'
+    ),
+    path(
         'enrol/<slug:slug>/',
         views.enrol_course,
         name='enrol'
@@ -134,6 +144,11 @@ urlpatterns = [
         'instructor/',
         views.instructor_dashboard,
         name='instructor_dashboard'
+    ),
+    path(
+        'instructor/profile/',
+        views.instructor_profile_manage,
+        name='instructor_profile_manage'
     ),
     path(
         'instructor/courses/',

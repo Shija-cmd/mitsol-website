@@ -228,6 +228,15 @@ class InstructorProfile(models.Model):
 
         return full_name or self.user.username
 
+    @property
+    def expertise_list(self):
+
+        return [
+            item.strip()
+            for item in self.expertise.split(',')
+            if item.strip()
+        ]
+
 
 class Course(models.Model):
 

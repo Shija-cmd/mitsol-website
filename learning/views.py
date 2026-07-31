@@ -25,6 +25,7 @@ from .forms import (
     CourseAnnouncementForm,
     CourseReviewForm,
     CourseForm,
+    InstructorProfileForm,
     LessonForm,
     ManualQuizGradingForm,
     ModuleForm,
@@ -46,6 +47,7 @@ from .models import (
     CourseCategory,
     CourseReview,
     Enrolment,
+    InstructorProfile,
     Lesson,
     LessonProgress,
     Notification,
@@ -116,13 +118,18 @@ def learning_home(request):
         )
     )[:8]
 
-    instructors = published_courses().values(
-        'instructor__id',
-        'instructor__first_name',
-        'instructor__last_name',
-        'instructor__username',
+    instructors = InstructorProfile.objects.select_related(
+        'user'
+    ).filter(
+        is_active=True,
+        user__learning_courses__is_published=True,
+        user__learning_courses__status=Course.Status.PUBLISHED,
     ).annotate(
-        course_count=Count('id')
+        course_count=Count('user__learning_courses', distinct=True)
+    ).order_by(
+        'user__first_name',
+        'user__last_name',
+        'user__username',
     )[:4]
 
     stats = {
@@ -211,6 +218,54 @@ def category_courses(request, slug):
     )
 
 
+def instructor_list(request):
+
+    instructors = InstructorProfile.objects.select_related(
+        'user'
+    ).filter(
+        is_active=True,
+        user__learning_courses__is_published=True,
+        user__learning_courses__status=Course.Status.PUBLISHED,
+    ).annotate(
+        course_count=Count('user__learning_courses', distinct=True)
+    ).order_by(
+        'user__first_name',
+        'user__last_name',
+        'user__username',
+    )
+
+    return render(
+        request,
+        'learning/instructors/list.html',
+        {
+            'instructors': instructors,
+        }
+    )
+
+
+def instructor_profile_detail(request, username):
+
+    profile = get_object_or_404(
+        InstructorProfile.objects.select_related('user'),
+        user__username=username,
+        is_active=True,
+    )
+    courses = attach_rating_summaries(
+        published_courses().filter(
+            instructor=profile.user
+        )
+    )
+
+    return render(
+        request,
+        'learning/instructors/detail.html',
+        {
+            'profile': profile,
+            'courses': courses,
+        }
+    )
+
+
 def course_detail(request, slug):
 
     course = get_object_or_404(
@@ -232,6 +287,10 @@ def course_detail(request, slug):
     pending_payment = None
     latest_payment = None
     existing_review = None
+    instructor_profile = InstructorProfile.objects.filter(
+        user=course.instructor,
+        is_active=True,
+    ).first()
     can_review = False
     review_reason = ''
 
@@ -317,6 +376,7 @@ def course_detail(request, slug):
             'review_page': review_page,
             'review_sort': review_sort,
             'completion_result': completion_result,
+            'instructor_profile': instructor_profile,
         }
     )
 
@@ -752,6 +812,43 @@ def instructor_dashboard(request):
             'certificate_count': certificates.filter(is_valid=True).count(),
             'revoked_certificate_count': certificates.filter(is_valid=False).count(),
             'recent_certificates': certificates.select_related('student', 'course')[:5],
+        }
+    )
+
+
+@instructor_required
+def instructor_profile_manage(request):
+
+    profile, created = InstructorProfile.objects.get_or_create(
+        user=request.user
+    )
+
+    if request.method == 'POST':
+        form = InstructorProfileForm(
+            request.POST,
+            request.FILES,
+            instance=profile
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'Your instructor profile has been updated.'
+            )
+            return redirect(
+                'learning:instructor_profile_manage'
+            )
+    else:
+        form = InstructorProfileForm(
+            instance=profile
+        )
+
+    return render(
+        request,
+        'learning/instructor/profile_form.html',
+        {
+            'form': form,
+            'profile': profile,
         }
     )
 

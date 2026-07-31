@@ -256,8 +256,25 @@
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body">
                         <h2 class="h4 fw-bold">Instructor</h2>
-                        <p class="mb-1">{{ course.instructor.get_full_name|default:course.instructor.username }}</p>
-                        <p class="text-muted mb-0">MITSOL learning instructor</p>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if instructor_profile.photo %}
+                            <img src="{{ instructor_profile.photo.url }}" alt="{{ instructor_profile.display_name }}" class="rounded-circle" style="width: 58px; height: 58px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <p class="fw-bold mb-1">{{ course.instructor.get_full_name|default:course.instructor.username }}</p>
+                                <p class="text-muted mb-0">{{ instructor_profile.title|default:"MITSOL learning instructor" }}</p>
+                            </div>
+                        </div>
+                        {% if instructor_profile.bio %}
+                        <p class="text-muted mt-3 mb-0">{{ instructor_profile.bio|truncatewords:24 }}</p>
+                        {% endif %}
+                        {% if instructor_profile %}
+                        <a href="{% url 'learning:instructor_profile' course.instructor.username %}" class="btn btn-outline-primary btn-sm mt-3">View Profile</a>
+                        {% endif %}
                     </div>
                 </div>
                 {% if course.target_audience_list %}

@@ -225,6 +225,11 @@
             Courses
         </a>
 
+        <a href="{% url 'learning:instructor_list' %}" class="learning-sidebar-link {% if '/learn/instructors/' in request.path %}active{% endif %}">
+            <i class="fas fa-user-graduate"></i>
+            Instructors
+        </a>
+
         {% if request.user.is_authenticated %}
 
         <div class="learning-sidebar-section">
@@ -280,6 +285,11 @@
         <a href="{% url 'learning:instructor_dashboard' %}" class="learning-sidebar-link {% if request.path == '/learn/instructor/' %}active{% endif %}">
             <i class="fas fa-chalkboard-user"></i>
             Instructor Dashboard
+        </a>
+
+        <a href="{% url 'learning:instructor_profile_manage' %}" class="learning-sidebar-link {% if '/learn/instructor/profile/' in request.path %}active{% endif %}">
+            <i class="fas fa-id-card"></i>
+            My Profile
         </a>
 
         <a href="{% url 'learning:instructor_courses' %}" class="learning-sidebar-link {% if '/learn/instructor/courses/' in request.path and '/create/' not in request.path %}active{% endif %}">
