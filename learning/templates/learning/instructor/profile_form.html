@@ -53,7 +53,7 @@
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center position-relative overflow-hidden flex-shrink-0" style="width: 72px; height: 72px; aspect-ratio: 1 / 1;">
                                 <i class="fas fa-user-graduate fa-lg"></i>
                                 {% if profile.photo %}
-                                <img src="{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}" alt="" class="position-absolute top-0 start-0 w-100 h-100 rounded-circle" style="object-fit: cover; object-position: center;" onerror="this.remove();">
+                                <span class="position-absolute top-0 start-0 w-100 h-100 rounded-circle" style="background-image: url('{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></span>
                                 {% endif %}
                             </div>
                             <div>
