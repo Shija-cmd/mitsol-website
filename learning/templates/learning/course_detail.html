@@ -18,16 +18,11 @@
             </div>
             <div class="col-lg-4">
                 <div class="card border-0 shadow">
-                    <div class="learning-course-cover">
-                        <div class="learning-course-cover-fallback">
-                            <i class="fas fa-graduation-cap"></i>
-                            <span>{{ course.category.name }}</span>
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <span class="badge bg-primary">{{ course.level }}</span>
+                            <span class="badge bg-light text-dark border">{{ course.delivery_mode }}</span>
                         </div>
-                        {% if course.cover_image %}
-                        <div class="learning-course-cover-photo" style="background-image: url('{{ course.cover_image.url }}?v={{ course.updated_at|date:'U' }}');"></div>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
                         <p class="text-muted mb-1">Course price</p>
                         <h2 class="fw-bold text-success">{{ course.display_price }}</h2>
                         {% if enrolment %}
@@ -173,8 +168,8 @@
                                             <i class="fas fa-play-circle me-2 text-primary"></i>
                                             {{ lesson.title }}
                                         </span>
-                                        <span class="badge {% if lesson.is_preview %}bg-success{% else %}bg-secondary{% endif %}">
-                                            {% if lesson.is_preview %}Preview{% else %}Enrolled{% endif %}
+                                        <span class="badge {% if lesson.is_preview %}bg-success{% elif enrolment %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {% if lesson.is_preview %}Preview{% elif enrolment %}Enrolled{% else %}Locked{% endif %}
                                         </span>
                                     </a>
                                     {% endif %}
