@@ -193,12 +193,12 @@
                 <h2 class="fw-bold">Popular Instructors</h2>
                 {% for instructor in instructors %}
                 <a href="{% url 'learning:instructor_profile' instructor.user.username %}" class="learning-list-item text-decoration-none">
-                    <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center position-relative overflow-hidden flex-shrink-0" style="width: 42px; height: 42px; aspect-ratio: 1 / 1;">
+                    <div class="learning-avatar learning-avatar-sm">
                         <i class="fas fa-user-graduate"></i>
                         {% if instructor.photo %}
-                        <span class="position-absolute top-0 start-0 w-100 h-100 rounded-circle" style="background-image: url('{{ instructor.photo.url }}?v={{ instructor.updated_at|date:'U' }}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></span>
+                        <div class="learning-avatar-photo" style="background-image: url('{{ instructor.photo.url }}?v={{ instructor.updated_at|date:'U' }}');"></div>
                         {% endif %}
-                    </span>
+                    </div>
                     <div>
                         <strong>{{ instructor.display_name }}</strong>
                         <span>{{ instructor.course_count }} courses</span>

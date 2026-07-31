@@ -257,10 +257,10 @@
                     <div class="card-body">
                         <h2 class="h4 fw-bold">Instructor</h2>
                         <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center position-relative overflow-hidden flex-shrink-0" style="width: 58px; height: 58px; aspect-ratio: 1 / 1;">
+                            <div class="learning-avatar learning-avatar-md">
                                 <i class="fas fa-user-graduate"></i>
                                 {% if instructor_profile.photo %}
-                                <span class="position-absolute top-0 start-0 w-100 h-100 rounded-circle" style="background-image: url('{{ instructor_profile.photo.url }}?v={{ instructor_profile.updated_at|date:'U' }}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></span>
+                                <div class="learning-avatar-photo" style="background-image: url('{{ instructor_profile.photo.url }}?v={{ instructor_profile.updated_at|date:'U' }}');"></div>
                                 {% endif %}
                             </div>
                             <div>

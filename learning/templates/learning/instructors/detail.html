@@ -18,10 +18,10 @@
                 {% endif %}
             </div>
             <div class="col-lg-4 text-center text-lg-end">
-                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow position-relative overflow-hidden" style="width: 180px; height: 180px; aspect-ratio: 1 / 1;">
+                <div class="learning-avatar learning-avatar-xl shadow d-inline-flex">
                     <i class="fas fa-user-graduate fa-4x"></i>
                     {% if profile.photo %}
-                    <span class="position-absolute top-0 start-0 w-100 h-100 rounded-circle" style="background-image: url('{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></span>
+                    <div class="learning-avatar-photo" style="background-image: url('{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}');"></div>
                     {% endif %}
                 </div>
             </div>

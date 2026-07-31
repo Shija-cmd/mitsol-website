@@ -1027,6 +1027,64 @@ body.learning-page > footer{
 
 }
 
+.learning-avatar{
+
+    align-items:center;
+    aspect-ratio:1 / 1;
+    background:var(--mitsol-blue);
+    border-radius:50%;
+    color:#fff;
+    display:flex;
+    flex:0 0 auto;
+    justify-content:center;
+    overflow:hidden;
+    position:relative;
+
+}
+
+.learning-avatar-sm{
+
+    height:42px;
+    width:42px;
+
+}
+
+.learning-avatar-md{
+
+    height:58px;
+    width:58px;
+
+}
+
+.learning-avatar-lg{
+
+    height:72px;
+    width:72px;
+
+}
+
+.learning-avatar-xl{
+
+    height:180px;
+    width:180px;
+
+}
+
+.learning-avatar-photo{
+
+    background-position:center top;
+    background-repeat:no-repeat;
+    background-size:cover;
+    border-radius:50%;
+    bottom:0;
+    display:block;
+    left:0;
+    position:absolute;
+    right:0;
+    top:0;
+
+}
+
 .learning-check-list{
 
     list-style:none;
