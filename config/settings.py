@@ -28,6 +28,13 @@ DEBUG = config(
 )
 
 
+CLOUDINARY_ENABLED = config(
+    'CLOUDINARY_ENABLED',
+    default=False,
+    cast=bool
+)
+
+
 ALLOWED_HOSTS = [
 
     'mitsol.com.se',
@@ -63,6 +70,14 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django.contrib.humanize',
 ]
+
+if CLOUDINARY_ENABLED:
+
+    INSTALLED_APPS.insert(
+        INSTALLED_APPS.index('django.contrib.staticfiles'),
+        'cloudinary_storage'
+    )
+    INSTALLED_APPS.append('cloudinary')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -185,12 +200,37 @@ SITE_URL = config(
     default='https://www.mitsol.com.se'
 )
 
+DJANGO_ADMIN_URL = config(
+    'DJANGO_ADMIN_URL',
+    default='admin/'
+).strip('/')
+
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = config(
     'MEDIA_ROOT',
     default=str(BASE_DIR / 'media')
 )
+
+if CLOUDINARY_ENABLED:
+
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': config('CLOUDINARY_API_KEY'),
+        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+        'SECURE': True,
+    }
+
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True

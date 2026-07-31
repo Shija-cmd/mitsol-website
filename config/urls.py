@@ -4,6 +4,7 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
+from django.http import Http404
 from django.views.static import serve
 from core.sitemaps import (
     LearningCategorySitemap,
@@ -26,10 +27,15 @@ sitemaps = {
 }
 
 
+def disabled_default_admin(request, *args, **kwargs):
+
+    raise Http404
+
+
 urlpatterns = [
 
     path(
-        'admin/',
+        f'{settings.DJANGO_ADMIN_URL}/',
         admin.site.urls
     ),
 
@@ -114,14 +120,24 @@ urlpatterns = [
 
 ]
 
-if settings.DEBUG:
+if settings.DJANGO_ADMIN_URL != 'admin':
+
+    urlpatterns += [
+        path(
+            'admin/',
+            disabled_default_admin,
+            name='disabled_default_admin'
+        ),
+    ]
+
+if settings.DEBUG and not getattr(settings, 'CLOUDINARY_ENABLED', False):
 
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
 
-else:
+elif not getattr(settings, 'CLOUDINARY_ENABLED', False):
 
     urlpatterns += [
         re_path(

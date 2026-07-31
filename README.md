@@ -72,10 +72,18 @@ Common optional environment variables:
 ```text
 DEBUG=False
 MEDIA_ROOT=/var/data/media
+DJANGO_ADMIN_URL=admin
+
+# Optional production media storage using Cloudinary.
+# Keep CLOUDINARY_ENABLED=False locally if you want uploads saved to MEDIA_ROOT.
+CLOUDINARY_ENABLED=True
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 SECURE_SSL_REDIRECT=True
 ```
 
-For uploaded research PDFs, images, and product screenshots on Render, configure persistent storage and point `MEDIA_ROOT` to that mounted disk path. For larger production usage, use external media storage such as S3-compatible storage or Cloudinary.
+For uploaded research PDFs, images, course files, certificates, and product screenshots on Render, use persistent storage through `MEDIA_ROOT` or enable Cloudinary with the environment variables above. When `CLOUDINARY_ENABLED=True`, uploaded media is saved to Cloudinary and Django does not serve `/media/` from local disk.
 
 ## Useful Checks
 
@@ -115,7 +123,7 @@ Late-submission policy:
 
 File validation:
 - The server validates extension, file size, empty files, filename length, dangerous executable extensions, and assignment-specific allowed extensions.
-- Public `MEDIA_URL` serving is not true private storage. The learning UI uses an authorized download view for assignment files, but Render local media is not reliably persistent unless persistent disk or external object storage is configured.
+- When Cloudinary is disabled, public `MEDIA_URL` serving is not true private storage. The learning UI uses authorized download views for protected files, but Render local media is not reliably persistent unless persistent disk or external object storage is configured.
 
 # MITSOL Learning Manual Payments
 
