@@ -1,9 +1,15 @@
 {% load humanize %}
 
 <div class="card learning-course-card h-100">
-    {% if course.cover_image %}
-    <img src="{{ course.cover_image.url }}" class="card-img-top" alt="{{ course.title }}">
-    {% endif %}
+    <div class="learning-course-cover">
+        <div class="learning-course-cover-fallback">
+            <i class="fas fa-graduation-cap"></i>
+            <span>{{ course.category.name }}</span>
+        </div>
+        {% if course.cover_image %}
+        <div class="learning-course-cover-photo" style="background-image: url('{{ course.cover_image.url }}?v={{ course.updated_at|date:'U' }}');"></div>
+        {% endif %}
+    </div>
 
     <div class="card-body d-flex flex-column">
         <div class="d-flex flex-wrap gap-2 mb-3">

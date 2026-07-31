@@ -18,9 +18,15 @@
             </div>
             <div class="col-lg-4">
                 <div class="card border-0 shadow">
-                    {% if course.cover_image %}
-                    <img src="{{ course.cover_image.url }}" class="card-img-top" alt="{{ course.title }}">
-                    {% endif %}
+                    <div class="learning-course-cover">
+                        <div class="learning-course-cover-fallback">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>{{ course.category.name }}</span>
+                        </div>
+                        {% if course.cover_image %}
+                        <div class="learning-course-cover-photo" style="background-image: url('{{ course.cover_image.url }}?v={{ course.updated_at|date:'U' }}');"></div>
+                        {% endif %}
+                    </div>
                     <div class="card-body">
                         <p class="text-muted mb-1">Course price</p>
                         <h2 class="fw-bold text-success">{{ course.display_price }}</h2>

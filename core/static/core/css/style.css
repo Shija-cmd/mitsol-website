@@ -916,6 +916,55 @@ body.learning-page > footer{
 
 }
 
+.learning-course-cover{
+
+    align-items:center;
+    aspect-ratio:16 / 9;
+    background:linear-gradient(135deg, var(--mitsol-navy), var(--mitsol-blue));
+    border-top-left-radius:8px;
+    border-top-right-radius:8px;
+    color:#fff;
+    display:flex;
+    justify-content:center;
+    min-height:170px;
+    overflow:hidden;
+    position:relative;
+
+}
+
+.learning-course-cover-photo{
+
+    background-position:center;
+    background-repeat:no-repeat;
+    background-size:cover;
+    bottom:0;
+    display:block;
+    left:0;
+    position:absolute;
+    right:0;
+    top:0;
+
+}
+
+.learning-course-cover-fallback{
+
+    align-items:center;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    opacity:.85;
+    position:relative;
+    text-align:center;
+    z-index:1;
+
+}
+
+.learning-course-cover-fallback i{
+
+    font-size:2rem;
+
+}
+
 .learning-category-card{
 
     align-items:flex-start;

@@ -49,9 +49,15 @@
                     {% for course in courses %}
                     <div class="col-md-6">
                         <div class="card border-0 shadow-sm h-100">
-                            {% if course.cover_image %}
-                            <img src="{{ course.cover_image.url }}" class="card-img-top" alt="{{ course.title }}">
-                            {% endif %}
+                            <div class="learning-course-cover">
+                                <div class="learning-course-cover-fallback">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <span>{{ course.category.name }}</span>
+                                </div>
+                                {% if course.cover_image %}
+                                <div class="learning-course-cover-photo" style="background-image: url('{{ course.cover_image.url }}?v={{ course.updated_at|date:'U' }}');"></div>
+                                {% endif %}
+                            </div>
                             <div class="card-body">
                                 <span class="badge bg-primary mb-2">{{ course.category.name }}</span>
                                 <h3 class="h5 fw-bold">{{ course.title }}</h3>
