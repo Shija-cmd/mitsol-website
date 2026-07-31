@@ -18,10 +18,10 @@
                 {% endif %}
             </div>
             <div class="col-lg-4 text-center text-lg-end">
-                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow position-relative overflow-hidden" style="width: 180px; height: 180px;">
+                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow position-relative overflow-hidden" style="width: 180px; height: 180px; aspect-ratio: 1 / 1;">
                     <i class="fas fa-user-graduate fa-4x"></i>
                     {% if profile.photo %}
-                    <img src="{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}" alt="" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;" onerror="this.remove();">
+                    <img src="{{ profile.photo.url }}?v={{ profile.updated_at|date:'U' }}" alt="" class="position-absolute top-0 start-0 w-100 h-100 rounded-circle" style="object-fit: cover; object-position: center;" onerror="this.remove();">
                     {% endif %}
                 </div>
             </div>
