@@ -193,11 +193,12 @@
                 <h2 class="fw-bold">Popular Instructors</h2>
                 {% for instructor in instructors %}
                 <a href="{% url 'learning:instructor_profile' instructor.user.username %}" class="learning-list-item text-decoration-none">
-                    {% if instructor.photo %}
-                    <img src="{{ instructor.photo.url }}" alt="{{ instructor.display_name }}" class="rounded-circle" style="width: 42px; height: 42px; object-fit: cover;">
-                    {% else %}
-                    <i class="fas fa-user-graduate"></i>
-                    {% endif %}
+                    <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center position-relative overflow-hidden flex-shrink-0" style="width: 42px; height: 42px;">
+                        <i class="fas fa-user-graduate"></i>
+                        {% if instructor.photo %}
+                        <img src="{{ instructor.photo.url }}" alt="" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;" onerror="this.remove();">
+                        {% endif %}
+                    </span>
                     <div>
                         <strong>{{ instructor.display_name }}</strong>
                         <span>{{ instructor.course_count }} courses</span>

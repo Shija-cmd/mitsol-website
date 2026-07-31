@@ -257,13 +257,12 @@
                     <div class="card-body">
                         <h2 class="h4 fw-bold">Instructor</h2>
                         <div class="d-flex align-items-center gap-3">
-                            {% if instructor_profile.photo %}
-                            <img src="{{ instructor_profile.photo.url }}" alt="{{ instructor_profile.display_name }}" class="rounded-circle" style="width: 58px; height: 58px; object-fit: cover;">
-                            {% else %}
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center position-relative overflow-hidden flex-shrink-0" style="width: 58px; height: 58px;">
                                 <i class="fas fa-user-graduate"></i>
+                                {% if instructor_profile.photo %}
+                                <img src="{{ instructor_profile.photo.url }}" alt="" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;" onerror="this.remove();">
+                                {% endif %}
                             </div>
-                            {% endif %}
                             <div>
                                 <p class="fw-bold mb-1">{{ course.instructor.get_full_name|default:course.instructor.username }}</p>
                                 <p class="text-muted mb-0">{{ instructor_profile.title|default:"MITSOL learning instructor" }}</p>
