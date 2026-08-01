@@ -17,6 +17,7 @@ from .models import (
     Module,
     Notification,
     Payment,
+    PaymentAuditLog,
     Choice,
     Question,
     Quiz,
@@ -376,6 +377,30 @@ class LearningPaymentSettingsAdmin(admin.ModelAdmin):
     )
 
 
+class PaymentAuditLogInline(admin.TabularInline):
+
+    model = PaymentAuditLog
+
+    extra = 0
+
+    can_delete = False
+
+    readonly_fields = (
+        'action',
+        'previous_status',
+        'new_status',
+        'note',
+        'actor',
+        'created_at',
+    )
+
+    fields = readonly_fields
+
+    def has_add_permission(self, request, obj=None):
+
+        return False
+
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
 
@@ -485,6 +510,10 @@ class PaymentAdmin(admin.ModelAdmin):
         'confirm_selected_payments',
     )
 
+    inlines = (
+        PaymentAuditLogInline,
+    )
+
     def confirm_selected_payments(self, request, queryset):
 
         confirmed = 0
@@ -503,6 +532,44 @@ class PaymentAdmin(admin.ModelAdmin):
         )
 
     confirm_selected_payments.short_description = 'Confirm selected pending payments'
+
+
+@admin.register(PaymentAuditLog)
+class PaymentAuditLogAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'payment',
+        'action',
+        'previous_status',
+        'new_status',
+        'actor',
+        'created_at',
+    )
+
+    list_filter = (
+        'action',
+        'new_status',
+        'created_at',
+    )
+
+    search_fields = (
+        'payment__transaction_reference',
+        'payment__student__username',
+        'payment__student__first_name',
+        'payment__student__last_name',
+        'payment__course__title',
+        'note',
+    )
+
+    readonly_fields = (
+        'payment',
+        'action',
+        'previous_status',
+        'new_status',
+        'note',
+        'actor',
+        'created_at',
+    )
 
 
 @admin.register(CourseReview)

@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#f6f9fc;font-family:Segoe UI,Arial,sans-serif;color:#1e293b;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f9fc;padding:24px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;width:100%;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                    <tr>
+                        <td style="background:#0b1f3a;color:#ffffff;padding:24px 28px;">
+                            <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#10bbd5;font-weight:700;">MITSOL Learning</div>
+                            <h1 style="margin:8px 0 0;font-size:24px;line-height:1.3;">
+                                {% if event == 'submitted' %}Payment Submitted{% elif event == 'confirmed' %}Course Access Activated{% elif event == 'rejected' %}Payment Needs Attention{% elif event == 'refunded' %}Payment Refunded{% endif %}
+                            </h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:28px;">
+                            <p style="margin-top:0;">Dear {{ student_name }},</p>
+
+                            {% if event == 'submitted' %}
+                            <p>Your payment for <strong>{{ payment.course.title }}</strong> has been received and is awaiting verification by MITSOL.</p>
+                            <p>We will notify you once your payment is confirmed or if more information is needed.</p>
+                            {% elif event == 'confirmed' %}
+                            <p>Your payment for <strong>{{ payment.course.title }}</strong> has been confirmed successfully.</p>
+                            <p>Your course access is now active. You can continue learning from your dashboard.</p>
+                            {% elif event == 'rejected' %}
+                            <p>Your payment for <strong>{{ payment.course.title }}</strong> could not be verified.</p>
+                            {% if payment.administrator_notes %}
+                            <p><strong>Reason:</strong><br>{{ payment.administrator_notes|linebreaksbr }}</p>
+                            {% endif %}
+                            <p>Please review the payment details and submit a corrected reference or proof of payment.</p>
+                            {% elif event == 'refunded' %}
+                            <p>Your payment for <strong>{{ payment.course.title }}</strong> has been marked as refunded.</p>
+                            {% if payment.refund_reason %}
+                            <p><strong>Reason:</strong><br>{{ payment.refund_reason|linebreaksbr }}</p>
+                            {% endif %}
+                            <p>Your paid course access has been suspended for this enrolment.</p>
+                            {% endif %}
+
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:22px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+                                <tr><td style="padding:14px 18px;"><strong>Course:</strong> {{ payment.course.title }}</td></tr>
+                                <tr><td style="padding:0 18px 14px;"><strong>Amount:</strong> {{ payment.currency }} {{ payment.amount }}</td></tr>
+                                <tr><td style="padding:0 18px 14px;"><strong>Reference:</strong> {{ payment.transaction_reference }}</td></tr>
+                                <tr><td style="padding:0 18px 14px;"><strong>Status:</strong> {{ payment.status }}</td></tr>
+                            </table>
+
+                            <p style="margin:24px 0;">
+                                <a href="{{ payment_url }}" style="background:#0077ff;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700;display:inline-block;">View Payment</a>
+                                {% if event == 'confirmed' %}
+                                <a href="{{ course_url }}" style="background:#ffffff;color:#0077ff;text-decoration:none;padding:11px 18px;border:1px solid #0077ff;border-radius:6px;font-weight:700;display:inline-block;margin-left:8px;">Open Course</a>
+                                {% endif %}
+                            </p>
+
+                            <p style="margin-bottom:0;">Thank you for learning with MITSOL Company Limited.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:18px 28px;background:#f8fafc;color:#64748b;font-size:13px;">
+                            Website: {{ site_url }}<br>
+                            Email: info@mitsol.com.se
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

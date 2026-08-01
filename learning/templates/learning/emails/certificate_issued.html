@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#f6f9fc;font-family:Segoe UI,Arial,sans-serif;color:#1e293b;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f9fc;padding:24px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;width:100%;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                    <tr>
+                        <td style="background:#0b1f3a;color:#ffffff;padding:24px 28px;">
+                            <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#10bbd5;font-weight:700;">MITSOL Learning</div>
+                            <h1 style="margin:8px 0 0;font-size:24px;line-height:1.3;">Your Certificate Is Ready</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:28px;">
+                            <p style="margin-top:0;">Dear {{ student_name }},</p>
+                            <p>Congratulations. Your certificate for <strong>{{ certificate.course.title }}</strong> has been issued.</p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:22px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+                                <tr><td style="padding:14px 18px;"><strong>Certificate No:</strong> {{ certificate.certificate_number }}</td></tr>
+                                <tr><td style="padding:0 18px 14px;"><strong>Issued:</strong> {{ certificate.issued_at|date:"M d, Y" }}</td></tr>
+                                <tr><td style="padding:0 18px 14px;"><strong>Status:</strong> {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</td></tr>
+                            </table>
+                            <p style="margin:24px 0;">
+                                <a href="{{ certificate_url }}" style="background:#0077ff;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700;display:inline-block;">View Certificate</a>
+                                <a href="{{ verification_url }}" style="background:#ffffff;color:#0077ff;text-decoration:none;padding:11px 18px;border:1px solid #0077ff;border-radius:6px;font-weight:700;display:inline-block;margin-left:8px;">Verify Certificate</a>
+                            </p>
+                            <p style="margin-bottom:0;">Thank you for learning with MITSOL Company Limited.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:18px 28px;background:#f8fafc;color:#64748b;font-size:13px;">
+                            Website: {{ site_url }}<br>
+                            Email: info@mitsol.com.se
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

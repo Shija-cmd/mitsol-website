@@ -7,11 +7,14 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.mail import EmailMultiAlternatives
 from django.db import models, transaction
 from django.db.models import Avg, Count, Max, Q
 from django.http import HttpRequest
 from django.contrib.staticfiles import finders
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import strip_tags
 from django.utils import timezone
 
 from .models import (
@@ -25,6 +28,7 @@ from .models import (
     LessonProgress,
     Notification,
     Payment,
+    PaymentAuditLog,
     LearningPaymentSettings,
     PAYMENT_PROOF_EXTENSIONS,
     DANGEROUS_PAYMENT_EXTENSIONS,
@@ -39,6 +43,87 @@ from .permissions import ensure_course_owner
 COURSE_REVIEW_MINIMUM_PROGRESS = 25
 COURSE_REVIEW_MINIMUM_COMMENT_LENGTH = 10
 COURSE_REVIEW_MAXIMUM_COMMENT_LENGTH = 2000
+
+
+def absolute_site_url(path=''):
+
+    site_url = getattr(
+        settings,
+        'SITE_URL',
+        ''
+    ).rstrip('/')
+
+    if not path:
+        return site_url
+
+    if path.startswith('http://') or path.startswith('https://'):
+        return path
+
+    return f'{site_url}{path}'
+
+
+def log_payment_audit(payment, action, actor=None, previous_status='', note=''):
+
+    return PaymentAuditLog.objects.create(
+        payment=payment,
+        action=action,
+        previous_status=previous_status or '',
+        new_status=payment.status,
+        note=note or '',
+        actor=actor,
+    )
+
+
+def send_learning_email(subject, template_name, recipient, context):
+
+    if not recipient:
+        return False
+
+    html_body = render_to_string(
+        template_name,
+        context
+    )
+    text_body = strip_tags(html_body)
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+        to=[recipient],
+    )
+    email.attach_alternative(
+        html_body,
+        'text/html'
+    )
+    email.send(fail_silently=True)
+    return True
+
+
+def send_payment_lifecycle_email(payment, event, recipient=None):
+
+    recipient = recipient or payment.student.email
+
+    if not recipient:
+        return False
+
+    subjects = {
+        'submitted': f'Payment Received for Verification - {payment.course.title}',
+        'confirmed': f'Course Access Activated - {payment.course.title}',
+        'rejected': f'Payment Needs Attention - {payment.course.title}',
+        'refunded': f'Payment Refunded - {payment.course.title}',
+    }
+    return send_learning_email(
+        subjects[event],
+        'learning/emails/payment_status.html',
+        recipient,
+        {
+            'payment': payment,
+            'event': event,
+            'student_name': payment.student.get_full_name() or payment.student.username,
+            'course_url': absolute_site_url(payment.course.get_absolute_url()),
+            'payment_url': absolute_site_url(reverse('learning:payment_detail', args=[payment.pk])),
+            'site_url': getattr(settings, 'SITE_URL', ''),
+        }
+    )
 
 
 @dataclass
@@ -315,6 +400,18 @@ def issue_certificate(enrolment, notify=True):
             notification_type=Notification.NotificationType.CERTIFICATE,
             related_url=reverse('learning:certificate_detail', args=[certificate.pk]),
             dedupe_key=f'certificate:{certificate.pk}:issued'
+        )
+        send_learning_email(
+            f'Your MITSOL Certificate Is Ready - {enrolment.course.title}',
+            'learning/emails/certificate_issued.html',
+            enrolment.student.email,
+            {
+                'certificate': certificate,
+                'student_name': enrolment.student.get_full_name() or enrolment.student.username,
+                'certificate_url': absolute_site_url(reverse('learning:certificate_detail', args=[certificate.pk])),
+                'verification_url': certificate_verification_url(certificate),
+                'site_url': getattr(settings, 'SITE_URL', ''),
+            }
         )
 
     return certificate
@@ -1245,6 +1342,14 @@ def submit_course_payment(student, enrolment, cleaned_data):
         submitted_at=timezone.now()
     )
 
+    log_payment_audit(
+        payment,
+        PaymentAuditLog.Action.SUBMITTED,
+        actor=student,
+        previous_status='',
+        note='Payment submitted by learner.'
+    )
+
     if (
         enrolment.status != Enrolment.Status.PENDING
         or enrolment.payment_status != Enrolment.PaymentStatus.PENDING
@@ -1280,6 +1385,11 @@ def submit_course_payment(student, enrolment, cleaned_data):
             dedupe_key=f'learning-payment:{payment.pk}:submitted-admin:{admin_user.pk}'
         )
 
+    send_payment_lifecycle_email(
+        payment,
+        'submitted'
+    )
+
     return payment
 
 
@@ -1301,6 +1411,7 @@ def confirm_payment(payment, administrator):
     if payment.amount != get_course_payable_amount(payment.course):
         raise ValidationError('Payment amount does not match the current course amount.')
 
+    previous_status = payment.status
     payment.status = Payment.Status.PAID
     payment.verified_by = administrator
     payment.verified_at = timezone.now()
@@ -1308,6 +1419,14 @@ def confirm_payment(payment, administrator):
     payment.rejected_at = None
     payment.administrator_notes = ''
     payment.save()
+
+    log_payment_audit(
+        payment,
+        PaymentAuditLog.Action.CONFIRMED,
+        actor=administrator,
+        previous_status=previous_status,
+        note='Payment confirmed and enrolment activated.'
+    )
 
     enrolment.payment_status = Enrolment.PaymentStatus.PAID
     if enrolment.status != Enrolment.Status.COMPLETED:
@@ -1324,6 +1443,11 @@ def confirm_payment(payment, administrator):
         notification_type=Notification.NotificationType.PAYMENT,
         related_url=payment.course.get_absolute_url(),
         dedupe_key=f'learning-payment:{payment.pk}:confirmed'
+    )
+
+    send_payment_lifecycle_email(
+        payment,
+        'confirmed'
     )
 
     return payment
@@ -1346,11 +1470,20 @@ def reject_payment(payment, administrator, reason):
     if payment.status != Payment.Status.PENDING:
         raise ValidationError('Only pending payments can be rejected.')
 
+    previous_status = payment.status
     payment.status = Payment.Status.REJECTED
     payment.administrator_notes = reason
     payment.rejected_by = administrator
     payment.rejected_at = timezone.now()
     payment.save()
+
+    log_payment_audit(
+        payment,
+        PaymentAuditLog.Action.REJECTED,
+        actor=administrator,
+        previous_status=previous_status,
+        note=reason
+    )
 
     enrolment = payment.enrolment
     enrolment.payment_status = Enrolment.PaymentStatus.REJECTED
@@ -1365,6 +1498,11 @@ def reject_payment(payment, administrator, reason):
         notification_type=Notification.NotificationType.PAYMENT,
         related_url=reverse('learning:payment_detail', args=[payment.pk]),
         dedupe_key=f'learning-payment:{payment.pk}:rejected'
+    )
+
+    send_payment_lifecycle_email(
+        payment,
+        'rejected'
     )
 
     return payment
@@ -1387,11 +1525,20 @@ def mark_payment_refunded(payment, administrator, reason):
     if payment.status != Payment.Status.PAID:
         raise ValidationError('Only paid payments can be refunded.')
 
+    previous_status = payment.status
     payment.status = Payment.Status.REFUNDED
     payment.refund_reason = reason
     payment.refunded_by = administrator
     payment.refunded_at = timezone.now()
     payment.save()
+
+    log_payment_audit(
+        payment,
+        PaymentAuditLog.Action.REFUNDED,
+        actor=administrator,
+        previous_status=previous_status,
+        note=reason
+    )
 
     enrolment = payment.enrolment
     enrolment.payment_status = Enrolment.PaymentStatus.REFUNDED
@@ -1406,6 +1553,11 @@ def mark_payment_refunded(payment, administrator, reason):
         notification_type=Notification.NotificationType.PAYMENT,
         related_url=reverse('learning:payment_detail', args=[payment.pk]),
         dedupe_key=f'learning-payment:{payment.pk}:refunded'
+    )
+
+    send_payment_lifecycle_email(
+        payment,
+        'refunded'
     )
 
     return payment

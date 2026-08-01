@@ -2838,8 +2838,24 @@ def admin_payment_list(request):
 @staff_member_required
 def admin_payment_detail(request, pk):
 
-    payment = get_object_or_404(Payment.objects.select_related('student', 'course', 'enrolment'), pk=pk)
-    return render(request, 'learning/admin/payments/payment_detail.html', {'payment': payment, 'reason_form': PaymentReasonForm()})
+    payment = get_object_or_404(
+        Payment.objects.select_related(
+            'student',
+            'course',
+            'enrolment'
+        ).prefetch_related(
+            'audit_logs__actor'
+        ),
+        pk=pk
+    )
+    return render(
+        request,
+        'learning/admin/payments/payment_detail.html',
+        {
+            'payment': payment,
+            'reason_form': PaymentReasonForm(),
+        }
+    )
 
 
 @staff_member_required

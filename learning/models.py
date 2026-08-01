@@ -2194,6 +2194,68 @@ class Payment(models.Model):
             raise ValidationError(errors)
 
 
+class PaymentAuditLog(models.Model):
+
+    class Action(models.TextChoices):
+
+        SUBMITTED = 'Submitted', 'Submitted'
+        CONFIRMED = 'Confirmed', 'Confirmed'
+        REJECTED = 'Rejected', 'Rejected'
+        REFUNDED = 'Refunded', 'Refunded'
+        UPDATED = 'Updated', 'Updated'
+
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name='audit_logs'
+    )
+
+    action = models.CharField(
+        max_length=30,
+        choices=Action.choices
+    )
+
+    previous_status = models.CharField(
+        max_length=30,
+        blank=True
+    )
+
+    new_status = models.CharField(
+        max_length=30
+    )
+
+    note = models.TextField(
+        blank=True
+    )
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='learning_payment_audit_logs',
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        ordering = (
+            '-created_at',
+        )
+
+        indexes = (
+            models.Index(fields=('payment', 'created_at'), name='learning_pa_audit_pay_6e0a_idx'),
+            models.Index(fields=('action',), name='learning_pa_audit_act_225f_idx'),
+        )
+
+    def __str__(self):
+
+        return f'{self.payment_id} - {self.action} - {self.new_status}'
+
+
 class CourseReview(models.Model):
 
     class Status(models.TextChoices):
