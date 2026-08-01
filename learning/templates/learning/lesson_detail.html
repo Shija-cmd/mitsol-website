@@ -6,7 +6,7 @@
     <div class="container">
         <span class="section-kicker">{{ course.title }}</span>
         <h1 class="fw-bold mt-3">{{ lesson.title }}</h1>
-        <p class="lead">{{ lesson.lesson_type }} lesson{% if lesson.duration_minutes %} • {{ lesson.duration_minutes }} minutes{% endif %}</p>
+        <p class="lead">{{ lesson.lesson_type }} lesson{% if lesson.duration_minutes %} &bull; {{ lesson.duration_minutes }} minutes{% endif %}</p>
     </div>
 </section>
 
@@ -39,22 +39,22 @@
                 {% endif %}
 
                 {% if lesson.written_content %}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body">
+                <div class="learning-dashboard-card mb-4">
+                    <span class="section-kicker">Lesson Notes</span>
+                    <div class="mt-3">
                         {{ lesson.written_content|linebreaks }}
                     </div>
                 </div>
                 {% endif %}
 
                 {% if quiz %}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <span class="badge bg-info text-dark mb-2">Quiz</span>
+                <div class="learning-record-card mb-4">
+                        <span class="badge bg-info text-dark mb-2"><i class="fa-solid fa-circle-question me-1"></i>Quiz</span>
                         <h2 class="h4 fw-bold">{{ quiz.title }}</h2>
                         <p class="text-muted">{{ quiz.instructions|truncatewords:32 }}</p>
                         {% if latest_quiz_attempt %}
                         <div class="alert {% if latest_quiz_attempt.passed %}alert-success{% elif latest_quiz_attempt.status == 'Awaiting Manual Grading' %}alert-info{% else %}alert-warning{% endif %}">
-                            Latest attempt: {{ latest_quiz_attempt.status }}{% if latest_quiz_attempt.status == 'Graded' %} • {{ latest_quiz_attempt.percentage }}%{% endif %}
+                            Latest attempt: {{ latest_quiz_attempt.status }}{% if latest_quiz_attempt.status == 'Graded' %} &bull; {{ latest_quiz_attempt.percentage }}%{% endif %}
                         </div>
                         {% endif %}
                         {% if quiz.is_published %}
@@ -64,19 +64,17 @@
                         {% else %}
                         <div class="alert alert-secondary mb-0">This quiz is not published yet.</div>
                         {% endif %}
-                    </div>
                 </div>
                 {% endif %}
 
                 {% if assignment %}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <span class="badge bg-warning text-dark mb-2">Assignment</span>
+                <div class="learning-record-card mb-4">
+                        <span class="badge bg-warning text-dark mb-2"><i class="fa-solid fa-file-pen me-1"></i>Assignment</span>
                         <h2 class="h4 fw-bold">{{ assignment.title }}</h2>
                         <p class="text-muted">{{ assignment.instructions|truncatewords:32 }}</p>
                         {% if latest_assignment_submission %}
                         <div class="alert {% if latest_assignment_submission.passed %}alert-success{% elif latest_assignment_submission.status == 'Returned for Revision' %}alert-warning{% else %}alert-info{% endif %}">
-                            Latest submission: {{ latest_assignment_submission.status }}{% if latest_assignment_submission.score %} • {{ latest_assignment_submission.score }} / {{ assignment.maximum_score }}{% endif %}
+                            Latest submission: {{ latest_assignment_submission.status }}{% if latest_assignment_submission.score %} &bull; {{ latest_assignment_submission.score }} / {{ assignment.maximum_score }}{% endif %}
                         </div>
                         {% endif %}
                         {% if assignment.is_published %}
@@ -86,11 +84,10 @@
                         {% else %}
                         <div class="alert alert-secondary mb-0">This assignment is not published yet.</div>
                         {% endif %}
-                    </div>
                 </div>
                 {% endif %}
 
-                <div class="d-flex flex-wrap gap-2">
+                <div class="d-flex flex-wrap gap-2 mt-4">
                     {% if lesson.downloadable_file %}
                     <a class="btn btn-outline-primary" href="{{ lesson.downloadable_file.url }}" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-file-download me-2"></i>
@@ -112,11 +109,13 @@
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h2 class="h4 fw-bold">Lesson Progress</h2>
+                <div class="learning-dashboard-card">
+                        <span class="section-kicker">Progress</span>
+                        <h2 class="h4 fw-bold mt-2">Lesson Progress</h2>
                         {% if enrolment %}
-                        <p class="text-muted">Course progress: {{ enrolment.progress_percentage }}%</p>
+                        <div class="learning-record-meta">
+                            <span><i class="fa-solid fa-chart-simple"></i>{{ enrolment.progress_percentage }}% course progress</span>
+                        </div>
                         <div class="progress mb-3">
                             <div class="progress-bar" style="width: {{ enrolment.progress_percentage }}%"></div>
                         </div>
@@ -136,7 +135,6 @@
                         <div class="alert alert-info">This is a preview lesson. Enrol to track progress.</div>
                         {% endif %}
                         <a href="{% url 'learning:course_detail' course.slug %}" class="btn btn-outline-secondary w-100 mt-2">Back to Course</a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -144,3 +142,4 @@
 </section>
 
 {% endblock %}
+

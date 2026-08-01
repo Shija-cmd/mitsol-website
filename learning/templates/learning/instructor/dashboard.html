@@ -6,192 +6,233 @@
     <div class="container">
         <span class="section-kicker">Instructor Dashboard</span>
         <h1 class="fw-bold mt-3">Manage Your MITSOL Courses</h1>
-        <p class="lead">Create courses, manage modules and lessons, and monitor enrolments for the courses you own.</p>
+        <p class="lead">Create courses, manage learning content, monitor learner activity, and respond to grading or payment work that needs attention.</p>
         <div class="page-hero-actions">
-            <a href="{% url 'learning:instructor_course_create' %}" class="btn btn-primary btn-lg">Create Course</a>
-            <a href="{% url 'learning:instructor_courses' %}" class="btn btn-outline-light btn-lg">Manage Courses</a>
-            <a href="{% url 'learning:instructor_quizzes' %}" class="btn btn-outline-light btn-lg">Quizzes</a>
-            <a href="{% url 'learning:instructor_announcements' %}" class="btn btn-outline-light btn-lg">Announcements</a>
+            <a href="{% url 'learning:instructor_course_create' %}" class="btn btn-primary btn-lg">
+                <i class="fa-solid fa-plus me-2"></i>Create Course
+            </a>
+            <a href="{% url 'learning:instructor_courses' %}" class="btn btn-outline-light btn-lg">
+                <i class="fa-solid fa-book-open me-2"></i>Manage Courses
+            </a>
+            <a href="{% url 'learning:instructor_quiz_attempts' %}" class="btn btn-outline-light btn-lg">
+                <i class="fa-solid fa-clipboard-check me-2"></i>Grading Queue
+            </a>
         </div>
     </div>
 </section>
 
 <section class="py-5 bg-light">
     <div class="container">
-        <div class="row g-4 mb-5">
-            <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ total_courses }}</strong><span>Total Courses</span></div></div>
-            <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ published_courses }}</strong><span>Published</span></div></div>
-            <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ draft_courses }}</strong><span>Drafts</span></div></div>
-            <div class="col-lg-3 col-md-6"><div class="learning-stat-card"><strong>{{ total_students }}</strong><span>Students</span></div></div>
+        <div class="learning-stat-grid mb-5">
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-layer-group"></i></div><div><strong>{{ total_courses }}</strong><span>Total Courses</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div><strong>{{ published_courses }}</strong><span>Published</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-pen-ruler"></i></div><div><strong>{{ draft_courses }}</strong><span>Draft Courses</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-users"></i></div><div><strong>{{ total_students }}</strong><span>Learners</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-circle-question"></i></div><div><strong>{{ total_quiz_attempts }}</strong><span>Quiz Attempts</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-file-pen"></i></div><div><strong>{{ pending_assignment_grading_count }}</strong><span>Assignments to Grade</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-receipt"></i></div><div><strong>{{ pending_payment_count }}</strong><span>Pending Payments</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-star"></i></div><div><strong>{{ average_review_rating|floatformat:1 }}</strong><span>Average Rating</span></div></div>
         </div>
 
-        <div class="row g-4 mb-5">
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ total_quiz_attempts }}</strong><span>Quiz Attempts</span></div></div>
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ pending_grading_count }}</strong><span>Awaiting Grading</span></div></div>
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ average_quiz_score|default:'0' }}</strong><span>Average Score</span></div></div>
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ total_assignment_submissions }}</strong><span>Assignment Submissions</span></div></div>
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ pending_assignment_grading_count }}</strong><span>Pending Assignment Grades</span></div></div>
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ late_assignment_count }}</strong><span>Late Submissions</span></div></div>
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ returned_assignment_count }}</strong><span>Returned</span></div></div>
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ pending_payment_count }}</strong><span>Pending Course Payments</span></div></div>
-            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ paid_payment_count }}</strong><span>Confirmed Course Payments</span></div></div>
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ pending_paid_enrolment_count }}</strong><span>Pending Paid Enrolments</span></div></div>
-            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ active_paid_enrolment_count }}</strong><span>Active Paid Students</span></div></div>
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ average_review_rating|floatformat:1 }}</strong><span>Average Rating</span></div></div>
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ approved_review_count }}</strong><span>Approved Reviews</span></div></div>
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ low_rating_count }}</strong><span>Low Ratings</span></div></div>
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ certificate_count }}</strong><span>Valid Certificates</span></div></div>
-            <div class="col-md-6"><div class="learning-stat-card"><strong>{{ revoked_certificate_count }}</strong><span>Revoked Certificates</span></div></div>
+        <div class="mb-5">
+            <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+                <div>
+                    <span class="section-kicker">Quick Actions</span>
+                    <h2 class="fw-bold mb-0">Teaching Workspace</h2>
+                </div>
+            </div>
+            <div class="learning-action-grid">
+                <a href="{% url 'learning:instructor_courses' %}" class="learning-action-tile">
+                    <i class="fa-solid fa-book-open"></i>
+                    <div><strong>Courses</strong><span>Edit course details, content and publishing.</span></div>
+                </a>
+                <a href="{% url 'learning:instructor_quizzes' %}" class="learning-action-tile">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <div><strong>Quizzes</strong><span>Create quizzes and manage questions.</span></div>
+                </a>
+                <a href="{% url 'learning:instructor_assignment_list' %}" class="learning-action-tile">
+                    <i class="fa-solid fa-file-pen"></i>
+                    <div><strong>Assignments</strong><span>Review submissions and return feedback.</span></div>
+                </a>
+                <a href="{% url 'learning:instructor_announcements' %}" class="learning-action-tile">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <div><strong>Announcements</strong><span>Update learners about course activity.</span></div>
+                </a>
+            </div>
         </div>
 
         <div class="row g-4">
             <div class="col-lg-7">
-                <h2 class="fw-bold mb-3">Recent Courses</h2>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <span class="section-kicker">Course Management</span>
+                        <h2 class="fw-bold mb-0">Recent Courses</h2>
+                    </div>
+                    <a href="{% url 'learning:instructor_courses' %}" class="btn btn-outline-primary">View All</a>
+                </div>
                 {% for course in courses %}
-                <div class="card border-0 shadow-sm mb-3">
-                    <div class="card-body d-flex flex-wrap justify-content-between gap-3">
+                <div class="learning-record-card mb-3">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
                         <div>
                             <h3 class="h5 fw-bold">{{ course.title }}</h3>
-                            <p class="text-muted mb-0">{{ course.status }} / {{ course.category.name }}</p>
+                            <div class="learning-record-meta">
+                                <span><i class="fa-solid fa-signal"></i>{{ course.status }}</span>
+                                <span><i class="fa-solid fa-folder"></i>{{ course.category.name }}</span>
+                                <span><i class="fa-solid fa-eye"></i>{% if course.is_published %}Published{% else %}Not Published{% endif %}</span>
+                            </div>
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-wrap gap-2 align-content-start">
                             <a href="{% url 'learning:instructor_course_edit' course.pk %}" class="btn btn-outline-primary btn-sm">Edit</a>
                             <a href="{% url 'learning:instructor_course_modules' course.pk %}" class="btn btn-primary btn-sm">Modules</a>
                         </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="alert alert-info">Create your first course to start teaching.</div>
+                <div class="learning-empty-state">Create your first course to start teaching.</div>
                 {% endfor %}
             </div>
+
             <div class="col-lg-5">
-                <h2 class="fw-bold mb-3">Recent Enrolments</h2>
-                {% for enrolment in recent_enrolments %}
-                <div class="learning-list-item">
-                    <i class="fas fa-user-check"></i>
-                    <div>
-                        <strong>{{ enrolment.student.get_full_name|default:enrolment.student.username }}</strong>
-                        <span>{{ enrolment.course.title }}</span>
+                <div class="learning-dashboard-card">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <h2 class="h4 fw-bold mb-0">Recent Enrolments</h2>
+                        <span class="badge bg-primary">{{ total_students }} learners</span>
                     </div>
+                    {% for enrolment in recent_enrolments %}
+                    <div class="learning-list-item mb-2">
+                        <i class="fas fa-user-check"></i>
+                        <div>
+                            <strong>{{ enrolment.student.get_full_name|default:enrolment.student.username }}</strong>
+                            <span>{{ enrolment.course.title }} / {{ enrolment.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Recent enrolments will appear here.</p>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="alert alert-info">Recent enrolments will appear here.</div>
-                {% endfor %}
+
+                <div class="learning-dashboard-card mt-4">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <h2 class="h4 fw-bold mb-0">Payments</h2>
+                        <a href="{% url 'learning:instructor_payment_list' %}" class="btn btn-outline-primary btn-sm">Open</a>
+                    </div>
+                    <div class="learning-record-meta mb-3">
+                        <span><i class="fa-solid fa-clock"></i>{{ pending_payment_count }} pending</span>
+                        <span><i class="fa-solid fa-circle-check"></i>{{ paid_payment_count }} confirmed</span>
+                    </div>
+                    {% for payment in recent_payments %}
+                    <div class="learning-list-item mb-2">
+                        <i class="fas fa-money-check-dollar"></i>
+                        <div>
+                            <strong>{{ payment.student.get_full_name|default:payment.student.username }}</strong>
+                            <span>{{ payment.course.title }} / {{ payment.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Course payment activity will appear here.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 fw-bold mb-0">Recent Certificates</h2>
-                    <a href="{% url 'learning:instructor_certificate_list' %}" class="btn btn-outline-primary btn-sm">Open Certificates</a>
-                </div>
-                {% for certificate in recent_certificates %}
-                <div class="learning-list-item mb-2">
-                    <i class="fas fa-certificate"></i>
-                    <div>
-                        <strong>{{ certificate.public_student_name }}</strong>
-                        <span>{{ certificate.course.title }} / {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span>
+        <div class="row g-4 mt-1">
+            <div class="col-lg-6">
+                <div class="learning-dashboard-card h-100">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <h2 class="h4 fw-bold mb-0">Quiz Attempts</h2>
+                        <a href="{% url 'learning:instructor_quiz_attempts' %}" class="btn btn-outline-primary btn-sm">Open Queue</a>
                     </div>
+                    <div class="learning-record-meta mb-3">
+                        <span><i class="fa-solid fa-clipboard-check"></i>{{ pending_grading_count }} awaiting grading</span>
+                        <span><i class="fa-solid fa-chart-line"></i>{{ average_quiz_score|default:'0' }} average score</span>
+                    </div>
+                    {% for attempt in recent_quiz_attempts %}
+                    <div class="learning-list-item mb-2">
+                        <i class="fas fa-clipboard-check"></i>
+                        <div>
+                            <strong>{{ attempt.student.get_full_name|default:attempt.student.username }}</strong>
+                            <span>{{ attempt.quiz.title }} / {{ attempt.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Quiz submissions will appear here.</p>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="alert alert-info mb-0">Course completion certificates will appear here.</div>
-                {% endfor %}
+            </div>
+
+            <div class="col-lg-6">
+                <div class="learning-dashboard-card h-100">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <h2 class="h4 fw-bold mb-0">Assignment Submissions</h2>
+                        <a href="{% url 'learning:instructor_submission_list' %}" class="btn btn-outline-primary btn-sm">Open Queue</a>
+                    </div>
+                    <div class="learning-record-meta mb-3">
+                        <span><i class="fa-solid fa-file-pen"></i>{{ total_assignment_submissions }} submissions</span>
+                        <span><i class="fa-solid fa-clock"></i>{{ pending_assignment_grading_count }} pending</span>
+                        <span><i class="fa-solid fa-rotate-left"></i>{{ returned_assignment_count }} returned</span>
+                    </div>
+                    {% for submission in recent_assignment_submissions %}
+                    <div class="learning-list-item mb-2">
+                        <i class="fas fa-file-pen"></i>
+                        <div>
+                            <strong>{{ submission.student.get_full_name|default:submission.student.username }}</strong>
+                            <span>{{ submission.assignment.title }} / {{ submission.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Assignment submissions will appear here.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 fw-bold mb-0">Recent Approved Reviews</h2>
-                    <a href="{% url 'learning:instructor_review_list' %}" class="btn btn-outline-primary btn-sm">Open Reviews</a>
-                </div>
-                {% for review in recent_reviews %}
-                <div class="learning-list-item mb-2">
-                    <i class="fas fa-star"></i>
-                    <div>
-                        <strong>{{ review.safe_reviewer_name }}</strong>
-                        <span>{{ review.course.title }} / {{ review.rating }} out of 5</span>
+        <div class="row g-4 mt-1">
+            <div class="col-lg-6">
+                <div class="learning-dashboard-card h-100">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <h2 class="h4 fw-bold mb-0">Certificates</h2>
+                        <a href="{% url 'learning:instructor_certificate_list' %}" class="btn btn-outline-primary btn-sm">Open</a>
                     </div>
+                    <div class="learning-record-meta mb-3">
+                        <span><i class="fa-solid fa-award"></i>{{ certificate_count }} valid</span>
+                        <span><i class="fa-solid fa-ban"></i>{{ revoked_certificate_count }} revoked</span>
+                    </div>
+                    {% for certificate in recent_certificates %}
+                    <div class="learning-list-item mb-2">
+                        <i class="fas fa-certificate"></i>
+                        <div>
+                            <strong>{{ certificate.public_student_name }}</strong>
+                            <span>{{ certificate.course.title }} / {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Course completion certificates will appear here.</p>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="alert alert-info mb-0">Approved learner reviews will appear here.</div>
-                {% endfor %}
             </div>
-        </div>
 
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 fw-bold mb-0">Recent Payments</h2>
-                    <a href="{% url 'learning:instructor_payment_list' %}" class="btn btn-outline-primary btn-sm">Open Payments</a>
-                </div>
-                {% for payment in recent_payments %}
-                <div class="learning-list-item mb-2">
-                    <i class="fas fa-money-check-dollar"></i>
-                    <div>
-                        <strong>{{ payment.student.get_full_name|default:payment.student.username }}</strong>
-                        <span>{{ payment.course.title }} / {{ payment.status }}</span>
+            <div class="col-lg-6">
+                <div class="learning-dashboard-card h-100">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <h2 class="h4 fw-bold mb-0">Approved Reviews</h2>
+                        <a href="{% url 'learning:instructor_review_list' %}" class="btn btn-outline-primary btn-sm">Open</a>
                     </div>
-                </div>
-                {% empty %}
-                <div class="alert alert-info mb-0">Course payment activity will appear here.</div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 fw-bold mb-0">Recent Quiz Attempts</h2>
-                    <a href="{% url 'learning:instructor_quiz_attempts' %}" class="btn btn-outline-primary btn-sm">Open Grading Queue</a>
-                </div>
-                {% for attempt in recent_quiz_attempts %}
-                <div class="learning-list-item mb-2">
-                    <i class="fas fa-clipboard-check"></i>
-                    <div>
-                        <strong>{{ attempt.student.get_full_name|default:attempt.student.username }}</strong>
-                        <span>{{ attempt.quiz.title }} / {{ attempt.status }}</span>
+                    <div class="learning-record-meta mb-3">
+                        <span><i class="fa-solid fa-star"></i>{{ approved_review_count }} approved</span>
+                        <span><i class="fa-solid fa-triangle-exclamation"></i>{{ low_rating_count }} low ratings</span>
                     </div>
-                </div>
-                {% empty %}
-                <div class="alert alert-info mb-0">Quiz submissions will appear here.</div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h4 fw-bold mb-0">Recent Assignment Submissions</h2>
-                    <a href="{% url 'learning:instructor_submission_list' %}" class="btn btn-outline-primary btn-sm">Open Submission Queue</a>
-                </div>
-                {% for submission in recent_assignment_submissions %}
-                <div class="learning-list-item mb-2">
-                    <i class="fas fa-file-pen"></i>
-                    <div>
-                        <strong>{{ submission.student.get_full_name|default:submission.student.username }}</strong>
-                        <span>{{ submission.assignment.title }} / {{ submission.status }}</span>
+                    {% for review in recent_reviews %}
+                    <div class="learning-list-item mb-2">
+                        <i class="fas fa-star"></i>
+                        <div>
+                            <strong>{{ review.safe_reviewer_name }}</strong>
+                            <span>{{ review.course.title }} / {{ review.rating }} out of 5</span>
+                        </div>
                     </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Approved learner reviews will appear here.</p>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="alert alert-info mb-0">Assignment submissions will appear here.</div>
-                {% endfor %}
             </div>
         </div>
     </div>
