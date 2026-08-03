@@ -59,6 +59,9 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <h2 class="h4 fw-bold">Add Lesson</h2>
+                        <div class="alert alert-info">
+                            Video lessons use YouTube links only. Upload videos to YouTube, then paste the video URL in the lesson form.
+                        </div>
                         <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="lesson">

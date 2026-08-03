@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
+from urllib.parse import urlparse
 
 from .models import Assignment, AssignmentSubmission, Choice, Course, CourseAnnouncement, CourseReview, InstructorProfile, Lesson, Module, Payment, Question, Quiz
 from .services import proof_required_for_method, validate_assignment_file, validate_payment_proof, validate_review_comment
@@ -261,7 +262,6 @@ class LessonForm(BootstrapFormMixin, forms.ModelForm):
             'lesson_type',
             'written_content',
             'video_url',
-            'video_file',
             'downloadable_file',
             'source_code_file',
             'external_resource_url',
@@ -293,7 +293,54 @@ class LessonForm(BootstrapFormMixin, forms.ModelForm):
 
             self.fields['module'].queryset = course.modules.all()
 
+        self.fields['video_url'].label = 'YouTube video URL'
+        self.fields['video_url'].help_text = (
+            'Paste a YouTube video link, for example https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID. '
+            'Do not upload course videos to the website server.'
+        )
+        self.fields['downloadable_file'].help_text = (
+            'Use this only for small documents such as PDF notes, worksheets, or slides.'
+        )
+
         self.apply_bootstrap_styles()
+
+    def clean_video_url(self):
+
+        video_url = self.cleaned_data.get('video_url', '').strip()
+
+        if not video_url:
+            return video_url
+
+        youtube_hosts = {
+            'youtube.com',
+            'www.youtube.com',
+            'm.youtube.com',
+            'youtu.be',
+            'www.youtu.be',
+        }
+        parsed = urlparse(video_url)
+        host = parsed.netloc.lower()
+
+        if host not in youtube_hosts:
+            raise forms.ValidationError(
+                'Please use a YouTube video link instead of uploading a video file.'
+            )
+
+        return video_url
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+        lesson_type = cleaned_data.get('lesson_type')
+        video_url = cleaned_data.get('video_url')
+
+        if lesson_type == Lesson.LessonType.VIDEO and not video_url:
+            self.add_error(
+                'video_url',
+                'Video lessons should use a YouTube video URL.'
+            )
+
+        return cleaned_data
 
 
 class CourseAnnouncementForm(BootstrapFormMixin, forms.ModelForm):

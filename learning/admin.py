@@ -270,6 +270,48 @@ class LessonAdmin(admin.ModelAdmin):
         'updated_at',
     )
 
+    fieldsets = (
+        (
+            'Lesson',
+            {
+                'fields': (
+                    'module',
+                    'title',
+                    'slug',
+                    'lesson_type',
+                    'written_content',
+                )
+            }
+        ),
+        (
+            'Video and Resources',
+            {
+                'description': 'Use YouTube links for course videos. The uploaded video file field is kept only for legacy records or exceptional admin recovery.',
+                'fields': (
+                    'video_url',
+                    'video_file',
+                    'downloadable_file',
+                    'source_code_file',
+                    'external_resource_url',
+                )
+            }
+        ),
+        (
+            'Publishing',
+            {
+                'fields': (
+                    'duration_minutes',
+                    'order',
+                    'is_preview',
+                    'is_compulsory',
+                    'is_published',
+                    'created_at',
+                    'updated_at',
+                )
+            }
+        ),
+    )
+
 
 @admin.register(Enrolment)
 class EnrolmentAdmin(admin.ModelAdmin):
