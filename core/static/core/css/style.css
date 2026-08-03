@@ -1517,6 +1517,116 @@ body.learning-page > footer{
 
 }
 
+.learning-admin-stat{
+
+    align-items:center;
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+    display:flex;
+    gap:14px;
+    padding:20px;
+
+}
+
+.learning-admin-stat-icon{
+
+    align-items:center;
+    background:#ecfeff;
+    border:1px solid #bae6fd;
+    border-radius:8px;
+    color:var(--mitsol-blue);
+    display:flex;
+    flex:0 0 auto;
+    font-size:1.2rem;
+    height:48px;
+    justify-content:center;
+    width:48px;
+
+}
+
+.learning-admin-stat strong{
+
+    color:var(--mitsol-ink);
+    display:block;
+    font-size:1.75rem;
+    line-height:1.1;
+
+}
+
+.learning-admin-stat span{
+
+    color:var(--mitsol-muted);
+    display:block;
+    font-weight:700;
+    margin-top:3px;
+
+}
+
+.learning-admin-panel{
+
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+    padding:24px;
+
+}
+
+.learning-admin-panel.compact{
+
+    padding:18px;
+
+}
+
+.learning-admin-panel-title{
+
+    align-items:flex-start;
+    display:flex;
+    gap:12px;
+    margin-bottom:18px;
+
+}
+
+.learning-admin-panel-title i{
+
+    align-items:center;
+    background:#ecfeff;
+    border-radius:8px;
+    color:var(--mitsol-blue);
+    display:flex;
+    flex:0 0 auto;
+    height:40px;
+    justify-content:center;
+    width:40px;
+
+}
+
+.learning-admin-panel-title h2,
+.learning-admin-panel-title h3{
+
+    margin-bottom:2px;
+
+}
+
+.learning-admin-panel-title p{
+
+    color:var(--mitsol-muted);
+    margin-bottom:0;
+
+}
+
+.learning-admin-filter{
+
+    background:#fff;
+    border:1px solid var(--mitsol-border);
+    border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+    padding:20px;
+
+}
+
 .learning-feature i,
 .learning-list-item i{
 

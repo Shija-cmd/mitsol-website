@@ -12,9 +12,16 @@
 
 <section class="py-5 bg-light">
     <div class="container">
-        <div class="card border-0 shadow-sm">
+        <div class="learning-admin-panel-title">
+            <i class="fa-solid fa-bullhorn"></i>
+            <div>
+                <h2 class="h4 fw-bold">Platform Announcements</h2>
+                <p>Monitor messages published by instructors across all learning courses.</p>
+            </div>
+        </div>
+        <div class="learning-table-card">
             <div class="table-responsive">
-                <table class="table align-middle mb-0">
+                <table class="table align-middle">
                     <thead>
                         <tr>
                             <th>Title</th>
@@ -31,8 +38,8 @@
                             <td><strong>{{ announcement.title }}</strong></td>
                             <td>{{ announcement.course.title }}</td>
                             <td>{{ announcement.author.get_full_name|default:announcement.author.username }}</td>
-                            <td>{{ announcement.is_published|yesno:"Yes,No" }}</td>
-                            <td>{{ announcement.notifications_sent|yesno:"Sent,Not sent" }}</td>
+                            <td><span class="badge {% if announcement.is_published %}bg-success{% else %}bg-secondary{% endif %}">{{ announcement.is_published|yesno:"Published,Draft" }}</span></td>
+                            <td><span class="badge {% if announcement.notifications_sent %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">{{ announcement.notifications_sent|yesno:"Sent,Not sent" }}</span></td>
                             <td>{{ announcement.created_at|date:"M d, Y" }}</td>
                         </tr>
                         {% empty %}

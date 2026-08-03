@@ -13,34 +13,46 @@
 
 <section class="py-5 bg-light">
     <div class="container">
-        <div class="row g-4 mb-4">
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.pending }}</strong><span>Pending</span></div></div>
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.paid }}</strong><span>Paid</span></div></div>
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.rejected }}</strong><span>Rejected</span></div></div>
-            <div class="col-md-3"><div class="learning-stat-card"><strong>{{ totals.refunded }}</strong><span>Refunded</span></div></div>
+        <div class="learning-stat-grid mb-4">
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-clock"></i></div><div><strong>{{ totals.pending }}</strong><span>Pending</span></div></div>
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div><strong>{{ totals.paid }}</strong><span>Paid</span></div></div>
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-circle-xmark"></i></div><div><strong>{{ totals.rejected }}</strong><span>Rejected</span></div></div>
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-rotate-left"></i></div><div><strong>{{ totals.refunded }}</strong><span>Refunded</span></div></div>
         </div>
 
         <div class="row g-4 mb-4">
             <div class="col-md-6">
-                <div class="learning-stat-card">
+                <div class="learning-admin-stat">
+                    <div class="learning-admin-stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                    <div>
                     <strong>
                         {% for row in pending_totals %}{{ row.currency }} {{ row.total|floatformat:0|intcomma }}{% if not forloop.last %}<br>{% endif %}{% empty %}0{% endfor %}
                     </strong>
                     <span>Pending Amount</span>
+                    </div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="learning-stat-card">
+                <div class="learning-admin-stat">
+                    <div class="learning-admin-stat-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div>
                     <strong>
                         {% for row in confirmed_totals %}{{ row.currency }} {{ row.total|floatformat:0|intcomma }}{% if not forloop.last %}<br>{% endif %}{% empty %}0{% endfor %}
                     </strong>
                     <span>Confirmed Revenue</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <form method="get" class="card filter-card border-0 shadow-sm mb-4">
-            <div class="card-body">
+        <form method="get" class="learning-admin-filter mb-4">
+            <div class="learning-admin-panel-title">
+                <i class="fa-solid fa-filter"></i>
+                <div>
+                    <h2 class="h5 fw-bold">Filter Payments</h2>
+                    <p>Find payments by status, course, instructor, date, or transaction reference.</p>
+                </div>
+            </div>
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label" for="status">Status</label>
@@ -97,13 +109,11 @@
                         <a class="btn btn-outline-secondary" href="{% url 'learning:admin_payment_list' %}">Clear</a>
                     </div>
                 </div>
-            </div>
         </form>
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-0">
+        <div class="learning-table-card">
                 <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+                    <table class="table align-middle">
                         <thead>
                             <tr>
                                 <th>Student</th>
@@ -138,7 +148,6 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
         </div>
     </div>
 </section>

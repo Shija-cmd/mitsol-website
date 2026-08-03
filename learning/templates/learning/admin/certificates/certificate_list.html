@@ -19,13 +19,19 @@
         {% endif %}
 
         <div class="row g-4 mb-4">
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ totals.total }}</strong><span>Total Certificates</span></div></div>
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ totals.valid }}</strong><span>Valid Certificates</span></div></div>
-            <div class="col-md-4"><div class="learning-stat-card"><strong>{{ totals.revoked }}</strong><span>Revoked Certificates</span></div></div>
+            <div class="col-md-4"><div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-award"></i></div><div><strong>{{ totals.total }}</strong><span>Total Certificates</span></div></div></div>
+            <div class="col-md-4"><div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-shield-check"></i></div><div><strong>{{ totals.valid }}</strong><span>Valid Certificates</span></div></div></div>
+            <div class="col-md-4"><div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-ban"></i></div><div><strong>{{ totals.revoked }}</strong><span>Revoked Certificates</span></div></div></div>
         </div>
 
-        <form method="get" class="card filter-card border-0 shadow-sm mb-4">
-            <div class="card-body">
+        <form method="get" class="learning-admin-filter mb-4">
+            <div class="learning-admin-panel-title">
+                <i class="fa-solid fa-filter"></i>
+                <div>
+                    <h2 class="h5 fw-bold">Filter Certificates</h2>
+                    <p>Search certificates by status, course, instructor, certificate number, or student.</p>
+                </div>
+            </div>
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label" for="status">Status</label>
@@ -61,13 +67,11 @@
                         <button class="btn btn-primary w-100">Filter</button>
                     </div>
                 </div>
-            </div>
         </form>
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-0">
+        <div class="learning-table-card">
                 <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+                    <table class="table align-middle">
                         <thead>
                             <tr>
                                 <th>Certificate</th>
@@ -96,7 +100,6 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
         </div>
 
         {% if certificates.paginator.num_pages > 1 %}

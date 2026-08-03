@@ -20,9 +20,14 @@
 
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h2 class="h4 fw-bold">Certificate Details</h2>
+                <div class="learning-admin-panel">
+                        <div class="learning-admin-panel-title">
+                            <i class="fa-solid fa-award"></i>
+                            <div>
+                                <h2 class="h4 fw-bold">Certificate Details</h2>
+                                <p>Issued credential, learner information, verification, and revocation status.</p>
+                            </div>
+                        </div>
                         <dl class="row mb-0">
                             <dt class="col-md-4">Student</dt><dd class="col-md-8">{{ certificate.student.get_full_name|default:certificate.student.username }}{% if certificate.student.email %} ({{ certificate.student.email }}){% endif %}</dd>
                             <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ certificate.course.title }}</dd>
@@ -40,38 +45,54 @@
                             <dt class="col-md-4">Restored</dt><dd class="col-md-8">{{ certificate.restored_at|date:"M d, Y H:i" }} by {{ certificate.restored_by.get_full_name|default:certificate.restored_by.username }}</dd>
                             {% endif %}
                         </dl>
-                    </div>
                 </div>
             </div>
 
             <div class="col-lg-4">
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold">Actions</h2>
+                <div class="learning-admin-panel mb-4">
+                        <div class="learning-admin-panel-title">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            <div>
+                                <h2 class="h5 fw-bold">Certificate Actions</h2>
+                                <p>Download, verify, or return to the certificate queue.</p>
+                            </div>
+                        </div>
                         <div class="d-grid gap-2">
                             <a href="{% url 'learning:admin_certificate_download' certificate.pk %}" class="btn btn-primary">Download PDF</a>
                             <a href="{% url 'learning:certificate_verify_code' certificate.verification_code %}" class="btn btn-outline-primary">Public Verification</a>
                             <a href="{% url 'learning:admin_certificate_list' %}" class="btn btn-outline-secondary">All Certificates</a>
                         </div>
-                    </div>
                 </div>
 
                 {% if certificate.is_valid %}
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold">Revoke Certificate</h2>
+                <div class="learning-admin-panel">
+                        <div class="learning-admin-panel-title">
+                            <i class="fa-solid fa-ban"></i>
+                            <div>
+                                <h2 class="h5 fw-bold">Revoke Certificate</h2>
+                                <p>Invalidate this credential and record the reason.</p>
+                            </div>
+                        </div>
                         <form method="post" action="{% url 'learning:admin_certificate_revoke' certificate.pk %}" onsubmit="return confirm('Revoke this certificate?');">
                             {% csrf_token %}
                             {{ revocation_form.reason }}
                             <button class="btn btn-outline-danger w-100 mt-3">Revoke Certificate</button>
                         </form>
-                    </div>
                 </div>
                 {% else %}
-                <form method="post" action="{% url 'learning:admin_certificate_restore' certificate.pk %}" onsubmit="return confirm('Restore this certificate?');">
-                    {% csrf_token %}
-                    <button class="btn btn-success w-100">Restore Certificate</button>
-                </form>
+                <div class="learning-admin-panel">
+                    <div class="learning-admin-panel-title">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <div>
+                            <h2 class="h5 fw-bold">Restore Certificate</h2>
+                            <p>Restore this credential if the revocation has been resolved.</p>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'learning:admin_certificate_restore' certificate.pk %}" onsubmit="return confirm('Restore this certificate?');">
+                        {% csrf_token %}
+                        <button class="btn btn-success w-100">Restore Certificate</button>
+                    </form>
+                </div>
                 {% endif %}
             </div>
         </div>

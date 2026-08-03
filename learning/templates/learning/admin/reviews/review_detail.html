@@ -20,9 +20,14 @@
 
         <div class="row g-4">
             <div class="col-lg-7">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h2 class="h4 fw-bold">Review Details</h2>
+                <div class="learning-admin-panel">
+                        <div class="learning-admin-panel-title">
+                            <i class="fa-solid fa-star"></i>
+                            <div>
+                                <h2 class="h4 fw-bold">Review Details</h2>
+                                <p>Learner review, enrolment context, and moderation status.</p>
+                            </div>
+                        </div>
                         <dl class="row">
                             <dt class="col-md-4">Learner</dt><dd class="col-md-8">{{ review.safe_reviewer_name }}</dd>
                             <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ review.course.title }}</dd>
@@ -39,13 +44,17 @@
                         {% if review.moderation_notes %}
                         <div class="alert alert-info">{{ review.moderation_notes|linebreaksbr }}</div>
                         {% endif %}
-                    </div>
                 </div>
             </div>
             <div class="col-lg-5">
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold">Actions</h2>
+                <div class="learning-admin-panel mb-4">
+                        <div class="learning-admin-panel-title">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                            <div>
+                                <h2 class="h5 fw-bold">Moderation Actions</h2>
+                                <p>Approve useful public feedback or reject with a reason.</p>
+                            </div>
+                        </div>
                         {% if review.status != 'Approved' %}
                         <form method="post" action="{% url 'learning:admin_review_approve' review.pk %}" onsubmit="return confirm('Approve this review publicly?');">
                             {% csrf_token %}
@@ -59,18 +68,21 @@
                             <button class="btn btn-outline-danger w-100 mt-3">Reject Review</button>
                         </form>
                         {% endif %}
-                    </div>
                 </div>
                 {% if review.status == 'Approved' %}
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold">Hide Approved Review</h2>
+                <div class="learning-admin-panel">
+                        <div class="learning-admin-panel-title">
+                            <i class="fa-solid fa-eye-slash"></i>
+                            <div>
+                                <h2 class="h5 fw-bold">Hide Approved Review</h2>
+                                <p>Remove a public review without deleting its record.</p>
+                            </div>
+                        </div>
                         <form method="post" action="{% url 'learning:admin_review_hide' review.pk %}" onsubmit="return confirm('Hide this public review?');">
                             {% csrf_token %}
                             {{ reason_form.reason }}
                             <button class="btn btn-outline-warning w-100 mt-3">Hide Review</button>
                         </form>
-                    </div>
                 </div>
                 {% endif %}
             </div>
