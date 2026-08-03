@@ -286,10 +286,9 @@ class LessonAdmin(admin.ModelAdmin):
         (
             'Video and Resources',
             {
-                'description': 'Use YouTube links for course videos. The uploaded video file field is kept only for legacy records or exceptional admin recovery.',
+                'description': 'Use YouTube links for course videos. Video uploads are intentionally hidden to avoid storing course videos on the Render server.',
                 'fields': (
                     'video_url',
-                    'video_file',
                     'downloadable_file',
                     'source_code_file',
                     'external_resource_url',

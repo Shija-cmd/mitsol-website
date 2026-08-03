@@ -1,0 +1,65 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="section-kicker">Course Builder</span>
+        <h1 class="fw-bold mt-3">{{ title }}</h1>
+        <p class="lead">{{ course.title }} / {{ lesson.title }}</p>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="learning-dashboard-card">
+                    <div class="learning-admin-panel-title">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <div>
+                            <h2 class="h4 fw-bold">Lesson Materials</h2>
+                            <p>Edit lesson content, YouTube video link, documents, resources, and publishing settings.</p>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        Video lessons use YouTube links only. Upload the video to YouTube, then paste the video URL here.
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% include 'core/includes/form_fields.html' with form=form %}
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary" type="submit">Save Lesson</button>
+                            <a href="{% url 'learning:instructor_course_modules' course.pk %}" class="btn btn-outline-secondary">Back to Modules</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="learning-dashboard-card">
+                    <div class="learning-admin-panel-title">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div>
+                            <h2 class="h5 fw-bold">Material Guide</h2>
+                            <p>Keep large media outside the Render server.</p>
+                        </div>
+                    </div>
+                    <ul class="learning-check-list mb-0">
+                        <li>Use YouTube URL for video lessons.</li>
+                        <li>Use downloadable file only for small PDFs or notes.</li>
+                        <li>Use external resource URL for links, datasets, or reading material.</li>
+                        <li>Set lesson type to Video when the main content is a video.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

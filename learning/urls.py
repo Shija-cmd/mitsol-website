@@ -171,6 +171,11 @@ urlpatterns = [
         name='instructor_course_modules'
     ),
     path(
+        'instructor/lessons/<int:pk>/edit/',
+        views.instructor_lesson_edit,
+        name='instructor_lesson_edit'
+    ),
+    path(
         'register/',
         views.register_student,
         name='register'

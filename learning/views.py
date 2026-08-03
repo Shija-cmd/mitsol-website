@@ -1053,6 +1053,78 @@ def instructor_course_modules(request, pk):
     )
 
 
+@instructor_required
+def instructor_lesson_edit(request, pk):
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related(
+            'module',
+            'module__course'
+        ),
+        pk=pk
+    )
+    course = lesson.module.course
+
+    ensure_course_owner(
+        request.user,
+        course
+    )
+
+    if request.method == 'POST':
+
+        form = LessonForm(
+            request.POST,
+            request.FILES,
+            instance=lesson,
+            course=course
+        )
+
+        if form.is_valid():
+
+            updated_lesson = form.save(
+                commit=False
+            )
+
+            if updated_lesson.module.course_id != course.id:
+
+                messages.error(
+                    request,
+                    'Invalid module selected.'
+                )
+
+            else:
+
+                updated_lesson.save()
+
+                messages.success(
+                    request,
+                    'Lesson updated successfully.'
+                )
+
+                return redirect(
+                    'learning:instructor_course_modules',
+                    pk=course.pk
+                )
+
+    else:
+
+        form = LessonForm(
+            instance=lesson,
+            course=course
+        )
+
+    return render(
+        request,
+        'learning/instructor/lesson_form.html',
+        {
+            'form': form,
+            'course': course,
+            'lesson': lesson,
+            'title': 'Edit Lesson',
+        }
+    )
+
+
 @login_required
 def announcement_list(request):
 
