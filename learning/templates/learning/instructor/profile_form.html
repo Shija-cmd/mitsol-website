@@ -46,9 +46,14 @@
                 </form>
             </div>
             <div class="col-lg-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold">Profile Preview</h2>
+                <div class="learning-dashboard-card">
+                    <div class="learning-admin-panel-title">
+                        <i class="fa-solid fa-id-card"></i>
+                        <div>
+                            <h2 class="h5 fw-bold">Profile Preview</h2>
+                            <p>This is the public-facing information learners will see.</p>
+                        </div>
+                    </div>
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <div class="learning-avatar learning-avatar-lg">
                                 <i class="fas fa-user-graduate fa-lg"></i>
@@ -61,8 +66,20 @@
                                 <p class="text-muted mb-0">{{ profile.title|default:"MITSOL instructor" }}</p>
                             </div>
                         </div>
-                        <p class="text-muted mb-0">Use a clear title, short bio, and comma-separated expertise areas so learners can understand your teaching focus quickly.</p>
-                    </div>
+                        {% if profile.bio %}
+                        <p class="text-muted">{{ profile.bio|truncatewords:28 }}</p>
+                        {% else %}
+                        <p class="text-muted">Your short bio will appear here after you save it.</p>
+                        {% endif %}
+                        {% if profile.expertise_list %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for item in profile.expertise_list|slice:":6" %}
+                            <span class="badge bg-light text-dark border">{{ item }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info mb-0">Add expertise areas such as Python, Cybersecurity, Machine Learning, or Django.</div>
+                        {% endif %}
                 </div>
             </div>
         </div>
