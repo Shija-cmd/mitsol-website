@@ -389,30 +389,87 @@ def issue_certificate(enrolment, notify=True):
         certificate_number=generate_certificate_number(enrolment.course),
         verification_code=generate_verification_code(),
         issued_at=timezone.now(),
-        is_valid=True,
+        approval_status=Certificate.ApprovalStatus.PENDING,
+        is_valid=False,
     )
 
     if notify:
         create_notification(
             recipient=enrolment.student,
-            title='Certificate issued',
-            message=f'Your certificate for {enrolment.course.title} is ready.',
+            title='Certificate awaiting approval',
+            message=f'Your certificate for {enrolment.course.title} has been generated and is awaiting MITSOL approval.',
             notification_type=Notification.NotificationType.CERTIFICATE,
             related_url=reverse('learning:certificate_detail', args=[certificate.pk]),
-            dedupe_key=f'certificate:{certificate.pk}:issued'
+            dedupe_key=f'certificate:{certificate.pk}:pending-approval'
         )
-        send_learning_email(
-            f'Your MITSOL Certificate Is Ready - {enrolment.course.title}',
-            'learning/emails/certificate_issued.html',
-            enrolment.student.email,
-            {
-                'certificate': certificate,
-                'student_name': enrolment.student.get_full_name() or enrolment.student.username,
-                'certificate_url': absolute_site_url(reverse('learning:certificate_detail', args=[certificate.pk])),
-                'verification_url': certificate_verification_url(certificate),
-                'site_url': getattr(settings, 'SITE_URL', ''),
-            }
-        )
+
+    return certificate
+
+
+@transaction.atomic
+def approve_certificate(certificate, administrator):
+
+    if not user_can_manage_certificates(administrator, 'approve_certificate'):
+        raise PermissionDenied('You cannot approve certificates.')
+
+    certificate = Certificate.objects.select_for_update().select_related(
+        'student',
+        'course',
+        'enrolment',
+    ).get(pk=certificate.pk)
+
+    if certificate.approval_status == Certificate.ApprovalStatus.APPROVED and certificate.is_valid:
+        return certificate
+
+    if certificate.approval_status == Certificate.ApprovalStatus.REVOKED:
+        raise ValidationError('Revoked certificates must be restored before approval.')
+
+    if certificate.enrolment.status != Enrolment.Status.COMPLETED:
+        raise ValidationError('Only completed enrolments can have approved certificates.')
+
+    if not paid_enrolment_is_confirmed(certificate.enrolment):
+        raise ValidationError('Cannot approve certificate while course access is invalid.')
+
+    certificate.approval_status = Certificate.ApprovalStatus.APPROVED
+    certificate.is_valid = True
+    certificate.approved_by = administrator
+    certificate.approved_at = timezone.now()
+    certificate.revoked_by = None
+    certificate.revoked_at = None
+    certificate.revocation_reason = ''
+    certificate.save(
+        update_fields=[
+            'approval_status',
+            'is_valid',
+            'approved_by',
+            'approved_at',
+            'revoked_by',
+            'revoked_at',
+            'revocation_reason',
+            'updated_at',
+        ]
+    )
+
+    create_notification(
+        recipient=certificate.student,
+        title='Certificate approved',
+        message=f'Your certificate for {certificate.course.title} is approved and ready to download.',
+        notification_type=Notification.NotificationType.CERTIFICATE,
+        related_url=reverse('learning:certificate_detail', args=[certificate.pk]),
+        dedupe_key=f'certificate:{certificate.pk}:approved'
+    )
+    send_learning_email(
+        f'Your MITSOL Certificate Is Ready - {certificate.course.title}',
+        'learning/emails/certificate_issued.html',
+        certificate.student.email,
+        {
+            'certificate': certificate,
+            'student_name': certificate.student.get_full_name() or certificate.student.username,
+            'certificate_url': absolute_site_url(reverse('learning:certificate_detail', args=[certificate.pk])),
+            'verification_url': certificate_verification_url(certificate),
+            'site_url': getattr(settings, 'SITE_URL', ''),
+        }
+    )
 
     return certificate
 
@@ -439,6 +496,11 @@ def find_certificate(query):
         'course',
         'course__instructor',
         'enrolment',
+    ).filter(
+        approval_status__in=[
+            Certificate.ApprovalStatus.APPROVED,
+            Certificate.ApprovalStatus.REVOKED,
+        ],
     ).filter(
         Q(certificate_number__iexact=value)
         | Q(verification_code=value)
@@ -566,14 +628,18 @@ def revoke_certificate(certificate, administrator, reason):
 
     certificate = Certificate.objects.select_for_update().select_related('student', 'course').get(pk=certificate.pk)
 
+    if certificate.approval_status == Certificate.ApprovalStatus.PENDING:
+        raise ValidationError('Pending certificates must be approved before they can be revoked.')
+
     if not certificate.is_valid:
         return certificate
 
     certificate.is_valid = False
+    certificate.approval_status = Certificate.ApprovalStatus.REVOKED
     certificate.revoked_by = administrator
     certificate.revoked_at = timezone.now()
     certificate.revocation_reason = reason.strip()
-    certificate.save(update_fields=['is_valid', 'revoked_by', 'revoked_at', 'revocation_reason', 'updated_at'])
+    certificate.save(update_fields=['is_valid', 'approval_status', 'revoked_by', 'revoked_at', 'revocation_reason', 'updated_at'])
 
     create_notification(
         recipient=certificate.student,
@@ -595,6 +661,9 @@ def restore_certificate(certificate, administrator):
 
     certificate = Certificate.objects.select_for_update().select_related('student', 'course', 'enrolment').get(pk=certificate.pk)
 
+    if certificate.approval_status == Certificate.ApprovalStatus.PENDING:
+        raise ValidationError('Pending certificates must be approved, not restored.')
+
     if certificate.is_valid:
         return certificate
 
@@ -604,10 +673,13 @@ def restore_certificate(certificate, administrator):
     if not paid_enrolment_is_confirmed(certificate.enrolment):
         raise ValidationError('Cannot restore certificate while course access is invalid.')
 
+    certificate.approval_status = Certificate.ApprovalStatus.APPROVED
     certificate.is_valid = True
     certificate.restored_by = administrator
     certificate.restored_at = timezone.now()
-    certificate.save(update_fields=['is_valid', 'restored_by', 'restored_at', 'updated_at'])
+    certificate.approved_by = administrator
+    certificate.approved_at = timezone.now()
+    certificate.save(update_fields=['approval_status', 'is_valid', 'restored_by', 'restored_at', 'approved_by', 'approved_at', 'updated_at'])
 
     create_notification(
         recipient=certificate.student,

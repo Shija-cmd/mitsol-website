@@ -21,9 +21,13 @@
                             <dt class="col-md-4">Course</dt><dd class="col-md-8">{{ certificate.course.title }}</dd>
                             <dt class="col-md-4">Completed</dt><dd class="col-md-8">{{ certificate.enrolment.completed_at|date:"M d, Y" }}</dd>
                             <dt class="col-md-4">Issued</dt><dd class="col-md-8">{{ certificate.issued_at|date:"M d, Y" }}</dd>
-                            <dt class="col-md-4">Status</dt><dd class="col-md-8"><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></dd>
+                            <dt class="col-md-4">Status</dt><dd class="col-md-8"><span class="badge {% if certificate.approval_status == 'Approved' %}bg-success{% elif certificate.approval_status == 'Pending Approval' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ certificate.approval_status }}</span></dd>
+                            {% if certificate.is_approved %}
                             <dt class="col-md-4">Verification URL</dt><dd class="col-md-8"><a href="{{ verification_url }}">{{ verification_url }}</a></dd>
-                            {% if not certificate.is_valid %}
+                            {% else %}
+                            <dt class="col-md-4">Availability</dt><dd class="col-md-8">This certificate is awaiting MITSOL admin approval before download and public verification.</dd>
+                            {% endif %}
+                            {% if certificate.approval_status == 'Revoked' %}
                             <dt class="col-md-4">Revoked</dt><dd class="col-md-8">{{ certificate.revoked_at|date:"M d, Y" }}</dd>
                             <dt class="col-md-4">Reason</dt><dd class="col-md-8">{{ certificate.revocation_reason|linebreaksbr }}</dd>
                             {% endif %}
@@ -36,8 +40,10 @@
                     <div class="card-body p-4">
                         <h2 class="h5 fw-bold">Actions</h2>
                         <div class="d-grid gap-2">
-                            {% if certificate.is_valid %}<a href="{% url 'learning:certificate_download' certificate.pk %}" class="btn btn-primary">Download PDF</a>{% endif %}
+                            {% if certificate.is_approved %}<a href="{% url 'learning:certificate_download' certificate.pk %}" class="btn btn-primary">Download PDF</a>{% endif %}
+                            {% if certificate.is_approved %}
                             <a href="{% url 'learning:certificate_verify_code' certificate.verification_code %}" class="btn btn-outline-primary">Public Verification</a>
+                            {% endif %}
                             <a href="{% url 'learning:certificate_list' %}" class="btn btn-outline-secondary">All Certificates</a>
                         </div>
                     </div>

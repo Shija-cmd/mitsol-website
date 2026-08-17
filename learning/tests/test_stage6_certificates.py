@@ -21,6 +21,7 @@ from learning.models import (
     QuizAttempt,
 )
 from learning.services import (
+    approve_certificate,
     evaluate_course_completion,
     generate_certificate_pdf,
     issue_certificate,
@@ -235,10 +236,15 @@ class StageSixCertificateTests(TestCase):
 
         self.assertEqual(certificate.pk, duplicate.pk)
         self.assertEqual(Certificate.objects.count(), 1)
+        self.assertEqual(
+            certificate.approval_status,
+            Certificate.ApprovalStatus.PENDING,
+        )
+        self.assertFalse(certificate.is_valid)
         self.assertTrue(
             Notification.objects.filter(
                 recipient=self.student,
-                title='Certificate issued'
+                title='Certificate awaiting approval'
             ).exists()
         )
 
@@ -269,6 +275,7 @@ class StageSixCertificateTests(TestCase):
         self.complete_all_requirements()
         result = evaluate_course_completion(self.enrolment)
         certificate = result.certificate
+        approve_certificate(certificate, self.admin)
 
         pdf = generate_certificate_pdf(certificate)
         self.assertTrue(pdf.startswith(b'%PDF'))
@@ -289,6 +296,12 @@ class StageSixCertificateTests(TestCase):
         response = self.client.get(
             reverse('learning:certificate_download', args=[certificate.pk])
         )
+        self.assertEqual(response.status_code, 404)
+
+        certificate = approve_certificate(certificate, self.admin)
+        response = self.client.get(
+            reverse('learning:certificate_download', args=[certificate.pk])
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
 
@@ -301,6 +314,7 @@ class StageSixCertificateTests(TestCase):
     def test_revoked_certificate_is_visible_but_not_publicly_downloadable(self):
         self.complete_all_requirements()
         certificate = evaluate_course_completion(self.enrolment).certificate
+        certificate = approve_certificate(certificate, self.admin)
 
         revoked = revoke_certificate(certificate, self.admin, 'Issued in error.')
         self.assertFalse(revoked.is_valid)
@@ -322,6 +336,7 @@ class StageSixCertificateTests(TestCase):
     def test_only_admin_can_revoke_restore_certificates(self):
         self.complete_all_requirements()
         certificate = evaluate_course_completion(self.enrolment).certificate
+        certificate = approve_certificate(certificate, self.admin)
 
         with self.assertRaises(PermissionDenied):
             revoke_certificate(certificate, self.instructor, 'Invalid.')
@@ -349,6 +364,25 @@ class StageSixCertificateTests(TestCase):
 
         response = self.client.get(reverse('learning:admin_certificate_list'))
         self.assertContains(response, certificate.certificate_number)
+
+        response = self.client.get(
+            reverse('learning:admin_certificate_download', args=[certificate.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.post(
+            reverse('learning:admin_certificate_approve', args=[certificate.pk])
+        )
+        self.assertRedirects(
+            response,
+            reverse('learning:admin_certificate_detail', args=[certificate.pk])
+        )
+        certificate.refresh_from_db()
+        self.assertEqual(
+            certificate.approval_status,
+            Certificate.ApprovalStatus.APPROVED,
+        )
+        self.assertTrue(certificate.is_valid)
 
         response = self.client.get(
             reverse('learning:admin_certificate_download', args=[certificate.pk])
@@ -386,4 +420,4 @@ class StageSixCertificateTests(TestCase):
         call_command('issue_missing_certificates', stdout=output)
 
         self.assertEqual(Certificate.objects.count(), 1)
-        self.assertIn('Issued', output.getvalue())
+        self.assertIn('Generated pending certificate', output.getvalue())

@@ -29,11 +29,13 @@
                             <td class="fw-bold">{{ certificate.course.title }}</td>
                             <td>{{ certificate.certificate_number }}</td>
                             <td>{{ certificate.issued_at|date:"M d, Y" }}</td>
-                            <td><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></td>
+                            <td><span class="badge {% if certificate.approval_status == 'Approved' %}bg-success{% elif certificate.approval_status == 'Pending Approval' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ certificate.approval_status }}</span></td>
                             <td class="text-end">
                                 <a href="{% url 'learning:certificate_detail' certificate.pk %}" class="btn btn-outline-primary btn-sm">View</a>
-                                {% if certificate.is_valid %}<a href="{% url 'learning:certificate_download' certificate.pk %}" class="btn btn-primary btn-sm">Download</a>{% endif %}
+                                {% if certificate.is_approved %}<a href="{% url 'learning:certificate_download' certificate.pk %}" class="btn btn-primary btn-sm">Download</a>{% endif %}
+                                {% if certificate.is_approved %}
                                 <a href="{% url 'learning:certificate_verify_code' certificate.verification_code %}" class="btn btn-outline-secondary btn-sm">Verify</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}

@@ -202,7 +202,7 @@
                         <i class="fas fa-certificate"></i>
                         <div>
                             <strong>{{ certificate.public_student_name }}</strong>
-                            <span>{{ certificate.course.title }} / {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span>
+                            <span>{{ certificate.course.title }} / {{ certificate.approval_status }}</span>
                         </div>
                     </div>
                     {% empty %}

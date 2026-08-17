@@ -2460,6 +2460,12 @@ class CourseReview(models.Model):
 
 class Certificate(models.Model):
 
+    class ApprovalStatus(models.TextChoices):
+
+        PENDING = 'Pending Approval', 'Pending Approval'
+        APPROVED = 'Approved', 'Approved'
+        REVOKED = 'Revoked', 'Revoked'
+
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -2499,7 +2505,26 @@ class Certificate(models.Model):
     )
 
     is_valid = models.BooleanField(
-        default=True
+        default=False
+    )
+
+    approval_status = models.CharField(
+        max_length=30,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.PENDING
+    )
+
+    approved_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='approved_learning_certificates',
+        blank=True,
+        null=True
     )
 
     revoked_at = models.DateTimeField(
@@ -2550,11 +2575,13 @@ class Certificate(models.Model):
             models.Index(fields=('student', 'issued_at'), name='learning_ce_student_4b4964_idx'),
             models.Index(fields=('course', 'issued_at'), name='learning_ce_course_91f7d8_idx'),
             models.Index(fields=('is_valid', 'issued_at'), name='learning_ce_is_vali_ea0667_idx'),
+            models.Index(fields=('approval_status', 'issued_at'), name='learning_ce_approv_1f41_idx'),
             models.Index(fields=('verification_code',), name='learning_ce_verific_b1899d_idx'),
         )
 
         permissions = (
             ('view_all_certificates', 'Can view all learning certificates'),
+            ('approve_certificate', 'Can approve learning certificate'),
             ('revoke_certificate', 'Can revoke learning certificate'),
             ('restore_certificate', 'Can restore learning certificate'),
             ('regenerate_certificate', 'Can regenerate learning certificate PDF'),
@@ -2583,7 +2610,20 @@ class Certificate(models.Model):
             ):
                 errors['enrolment'] = 'Paid-course certificate requires confirmed payment.'
 
-        if not self.is_valid and not (self.revoked_at and self.revoked_by_id and self.revocation_reason.strip()):
+        if self.approval_status == self.ApprovalStatus.PENDING and self.is_valid:
+            errors['is_valid'] = 'Pending certificates cannot be marked valid.'
+
+        if self.approval_status == self.ApprovalStatus.APPROVED and not (
+            self.is_valid and self.approved_at
+        ):
+            errors['approved_at'] = 'Approved certificates require approval audit details.'
+
+        if self.approval_status == self.ApprovalStatus.REVOKED and self.is_valid:
+            errors['is_valid'] = 'Revoked certificates cannot be marked valid.'
+
+        if self.approval_status == self.ApprovalStatus.REVOKED and not (
+            self.revoked_at and self.revoked_by_id and self.revocation_reason.strip()
+        ):
             errors['revocation_reason'] = 'Revoked certificates require revocation audit details.'
 
         if self.is_valid and self.revoked_at and not self.restored_at:
@@ -2597,6 +2637,14 @@ class Certificate(models.Model):
 
         full_name = self.student.get_full_name().strip()
         return full_name or 'Verified Learner'
+
+    @property
+    def is_approved(self):
+
+        return (
+            self.approval_status == self.ApprovalStatus.APPROVED
+            and self.is_valid
+        )
 
     @property
     def verification_url_path(self):

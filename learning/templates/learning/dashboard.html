@@ -16,7 +16,7 @@
             <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-book-open"></i></div><div><strong>{{ active_count }}</strong><span>Active Courses</span></div></div>
             <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-clock"></i></div><div><strong>{{ pending_count }}</strong><span>Pending Enrolments</span></div></div>
             <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div><strong>{{ completed_count }}</strong><span>Completed Courses</span></div></div>
-            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-award"></i></div><div><strong>{{ certificate_count }}</strong><span>Valid Certificates</span></div></div>
+            <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-award"></i></div><div><strong>{{ certificate_count }}</strong><span>Approved Certificates</span></div></div>
             <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-circle-question"></i></div><div><strong>{{ passed_quiz_count }}</strong><span>Passed Quizzes</span></div></div>
             <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-file-pen"></i></div><div><strong>{{ passed_assignment_count }}</strong><span>Passed Assignments</span></div></div>
             <div class="learning-stat-card compact"><div class="learning-stat-icon"><i class="fa-solid fa-receipt"></i></div><div><strong>{{ pending_payment_count }}</strong><span>Pending Payments</span></div></div>
@@ -87,7 +87,7 @@
                             <i class="fas fa-certificate"></i>
                             <div>
                                 <strong>{{ certificate.course.title }}</strong>
-                                <span>{{ certificate.certificate_number }} / {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span>
+                                <span>{{ certificate.certificate_number }} / {{ certificate.approval_status }}</span>
                             </div>
                         </a>
                         {% empty %}

@@ -18,10 +18,11 @@
         {% endfor %}
         {% endif %}
 
-        <div class="row g-4 mb-4">
-            <div class="col-md-4"><div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-award"></i></div><div><strong>{{ totals.total }}</strong><span>Total Certificates</span></div></div></div>
-            <div class="col-md-4"><div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-shield-check"></i></div><div><strong>{{ totals.valid }}</strong><span>Valid Certificates</span></div></div></div>
-            <div class="col-md-4"><div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-ban"></i></div><div><strong>{{ totals.revoked }}</strong><span>Revoked Certificates</span></div></div></div>
+        <div class="learning-stat-grid mb-4">
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-award"></i></div><div><strong>{{ totals.total }}</strong><span>Total Certificates</span></div></div>
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-clock"></i></div><div><strong>{{ totals.pending }}</strong><span>Pending Approval</span></div></div>
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-shield-check"></i></div><div><strong>{{ totals.valid }}</strong><span>Approved Certificates</span></div></div>
+            <div class="learning-admin-stat"><div class="learning-admin-stat-icon"><i class="fa-solid fa-ban"></i></div><div><strong>{{ totals.revoked }}</strong><span>Revoked Certificates</span></div></div>
         </div>
 
         <form method="get" class="learning-admin-filter mb-4">
@@ -37,7 +38,8 @@
                         <label class="form-label" for="status">Status</label>
                         <select id="status" name="status" class="form-select">
                             <option value="">All</option>
-                            <option value="valid" {% if selected.status == 'valid' %}selected{% endif %}>Valid</option>
+                            <option value="pending" {% if selected.status == 'pending' %}selected{% endif %}>Pending Approval</option>
+                            <option value="valid" {% if selected.status == 'valid' %}selected{% endif %}>Approved</option>
                             <option value="revoked" {% if selected.status == 'revoked' %}selected{% endif %}>Revoked</option>
                         </select>
                     </div>
@@ -89,7 +91,7 @@
                                 <td>{{ certificate.student.get_full_name|default:certificate.student.username }}</td>
                                 <td>{{ certificate.course.title }}</td>
                                 <td>{{ certificate.issued_at|date:"M d, Y" }}</td>
-                                <td><span class="badge {% if certificate.is_valid %}bg-success{% else %}bg-danger{% endif %}">{% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</span></td>
+                                <td><span class="badge {% if certificate.approval_status == 'Approved' %}bg-success{% elif certificate.approval_status == 'Pending Approval' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ certificate.approval_status }}</span></td>
                                 <td class="text-end">
                                     <a href="{% url 'learning:admin_certificate_detail' certificate.pk %}" class="btn btn-outline-primary btn-sm">Manage</a>
                                 </td>

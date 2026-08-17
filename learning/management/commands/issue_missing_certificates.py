@@ -5,7 +5,7 @@ from learning.services import issue_certificate
 
 
 class Command(BaseCommand):
-    help = 'Issue certificates for completed enrolments that do not yet have certificates.'
+    help = 'Generate pending certificates for completed enrolments that do not yet have certificates.'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -46,7 +46,7 @@ class Command(BaseCommand):
                 issued += 1
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'Issued {certificate.certificate_number}'
+                        f'Generated pending certificate {certificate.certificate_number}'
                     )
                 )
 
@@ -60,6 +60,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'Certificate issuance complete. Issued: {issued}. Skipped: {skipped}.'
+                f'Certificate generation complete. Pending approval: {issued}. Skipped: {skipped}.'
             )
         )

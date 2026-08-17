@@ -24,7 +24,7 @@ from .models import (
     QuizAttempt,
     StudentAnswer,
 )
-from .services import approve_course_review, confirm_payment, mark_submission_under_review, publish_announcement, restore_certificate
+from .services import approve_certificate, approve_course_review, confirm_payment, mark_submission_under_review, publish_announcement, restore_certificate
 
 
 class LessonInline(admin.TabularInline):
@@ -731,12 +731,14 @@ class CertificateAdmin(admin.ModelAdmin):
         'certificate_number',
         'student',
         'course',
+        'approval_status',
         'issued_at',
         'is_valid',
         'revoked_at',
     )
 
     list_filter = (
+        'approval_status',
         'is_valid',
         'course',
         'issued_at',
@@ -756,6 +758,7 @@ class CertificateAdmin(admin.ModelAdmin):
         'student',
         'course',
         'enrolment',
+        'approved_by',
         'revoked_by',
         'restored_by',
     )
@@ -767,8 +770,12 @@ class CertificateAdmin(admin.ModelAdmin):
         'certificate_number',
         'verification_code',
         'issued_at',
+        'approval_status',
+        'is_valid',
         'revoked_at',
         'revoked_by',
+        'approved_at',
+        'approved_by',
         'restored_at',
         'restored_by',
         'created_at',
@@ -789,7 +796,17 @@ class CertificateAdmin(admin.ModelAdmin):
                     'verification_code',
                     'issued_at',
                     'certificate_file',
+                    'approval_status',
                     'is_valid',
+                )
+            }
+        ),
+        (
+            'Approval',
+            {
+                'fields': (
+                    'approved_by',
+                    'approved_at',
                 )
             }
         ),
@@ -817,8 +834,28 @@ class CertificateAdmin(admin.ModelAdmin):
     )
 
     actions = (
+        'approve_selected_certificates',
         'restore_selected_certificates',
     )
+
+    def approve_selected_certificates(self, request, queryset):
+
+        approved = 0
+
+        for certificate in queryset:
+
+            try:
+                approve_certificate(certificate, request.user)
+                approved += 1
+            except Exception:
+                continue
+
+        self.message_user(
+            request,
+            f'{approved} certificate(s) approved.'
+        )
+
+    approve_selected_certificates.short_description = 'Approve selected pending certificates'
 
     def restore_selected_certificates(self, request, queryset):
 

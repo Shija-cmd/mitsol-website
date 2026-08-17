@@ -18,7 +18,7 @@
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:22px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
                                 <tr><td style="padding:14px 18px;"><strong>Certificate No:</strong> {{ certificate.certificate_number }}</td></tr>
                                 <tr><td style="padding:0 18px 14px;"><strong>Issued:</strong> {{ certificate.issued_at|date:"M d, Y" }}</td></tr>
-                                <tr><td style="padding:0 18px 14px;"><strong>Status:</strong> {% if certificate.is_valid %}Valid{% else %}Revoked{% endif %}</td></tr>
+                                <tr><td style="padding:0 18px 14px;"><strong>Status:</strong> {{ certificate.approval_status }}</td></tr>
                             </table>
                             <p style="margin:24px 0;">
                                 <a href="{{ certificate_url }}" style="background:#0077ff;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700;display:inline-block;">View Certificate</a>

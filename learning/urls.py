@@ -346,6 +346,7 @@ urlpatterns = [
     path('admin/reviews/<int:pk>/hide/', views.admin_review_hide, name='admin_review_hide'),
     path('admin/certificates/', views.admin_certificate_list, name='admin_certificate_list'),
     path('admin/certificates/<int:pk>/', views.admin_certificate_detail, name='admin_certificate_detail'),
+    path('admin/certificates/<int:pk>/approve/', views.admin_certificate_approve, name='admin_certificate_approve'),
     path('admin/certificates/<int:pk>/download/', views.admin_certificate_download, name='admin_certificate_download'),
     path('admin/certificates/<int:pk>/revoke/', views.admin_certificate_revoke, name='admin_certificate_revoke'),
     path('admin/certificates/<int:pk>/restore/', views.admin_certificate_restore, name='admin_certificate_restore'),

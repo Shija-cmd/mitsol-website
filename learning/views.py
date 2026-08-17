@@ -61,6 +61,7 @@ from .models import (
 from .permissions import STUDENT_GROUP, ensure_course_owner, instructor_required, is_instructor
 from .services import (
     can_access_assignment,
+    approve_certificate,
     approve_course_review,
     attach_rating_summaries,
     can_student_review_course,
@@ -585,8 +586,8 @@ def student_dashboard(request):
             'approved_review_count': reviews.filter(status=CourseReview.Status.APPROVED).count(),
             'rejected_review_count': reviews.filter(status=CourseReview.Status.REJECTED).count(),
             'eligible_review_courses': eligible_courses[:5],
-            'certificate_count': certificates.filter(is_valid=True).count(),
-            'revoked_certificate_count': certificates.filter(is_valid=False).count(),
+            'certificate_count': certificates.filter(approval_status=Certificate.ApprovalStatus.APPROVED, is_valid=True).count(),
+            'revoked_certificate_count': certificates.filter(approval_status=Certificate.ApprovalStatus.REVOKED).count(),
             'recent_certificates': certificates[:3],
         }
     )
@@ -809,8 +810,8 @@ def instructor_dashboard(request):
             'approved_review_count': approved_reviews.count(),
             'low_rating_count': approved_reviews.filter(rating__in=[1, 2]).count(),
             'recent_reviews': approved_reviews.select_related('student', 'course')[:5],
-            'certificate_count': certificates.filter(is_valid=True).count(),
-            'revoked_certificate_count': certificates.filter(is_valid=False).count(),
+            'certificate_count': certificates.filter(approval_status=Certificate.ApprovalStatus.APPROVED, is_valid=True).count(),
+            'revoked_certificate_count': certificates.filter(approval_status=Certificate.ApprovalStatus.REVOKED).count(),
             'recent_certificates': certificates.select_related('student', 'course')[:5],
         }
     )
@@ -3312,9 +3313,11 @@ def admin_certificate_list(request):
     q = request.GET.get('q', '').strip()
 
     if status == 'valid':
-        certificates = certificates.filter(is_valid=True)
+        certificates = certificates.filter(approval_status=Certificate.ApprovalStatus.APPROVED, is_valid=True)
+    elif status == 'pending':
+        certificates = certificates.filter(approval_status=Certificate.ApprovalStatus.PENDING)
     elif status == 'revoked':
-        certificates = certificates.filter(is_valid=False)
+        certificates = certificates.filter(approval_status=Certificate.ApprovalStatus.REVOKED)
     if course_id:
         certificates = certificates.filter(course_id=course_id)
     if instructor_id:
@@ -3348,8 +3351,9 @@ def admin_certificate_list(request):
             },
             'totals': {
                 'total': all_certificates.count(),
-                'valid': all_certificates.filter(is_valid=True).count(),
-                'revoked': all_certificates.filter(is_valid=False).count(),
+                'pending': all_certificates.filter(approval_status=Certificate.ApprovalStatus.PENDING).count(),
+                'valid': all_certificates.filter(approval_status=Certificate.ApprovalStatus.APPROVED, is_valid=True).count(),
+                'revoked': all_certificates.filter(approval_status=Certificate.ApprovalStatus.REVOKED).count(),
             }
         }
     )
@@ -3362,7 +3366,7 @@ def admin_certificate_detail(request, pk):
         raise PermissionDenied('You cannot view certificates.')
 
     certificate = get_object_or_404(
-        Certificate.objects.select_related('student', 'course', 'course__instructor', 'enrolment', 'revoked_by', 'restored_by'),
+        Certificate.objects.select_related('student', 'course', 'course__instructor', 'enrolment', 'approved_by', 'revoked_by', 'restored_by'),
         pk=pk
     )
 
@@ -3378,12 +3382,27 @@ def admin_certificate_detail(request, pk):
 
 
 @staff_member_required
+@require_POST
+def admin_certificate_approve(request, pk):
+
+    certificate = get_object_or_404(Certificate, pk=pk)
+    try:
+        approve_certificate(certificate, request.user)
+        messages.success(request, 'Certificate approved and learner notified.')
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, exc.messages[0] if hasattr(exc, 'messages') else str(exc))
+    return redirect('learning:admin_certificate_detail', pk=pk)
+
+
+@staff_member_required
 def admin_certificate_download(request, pk):
 
     if not user_can_manage_certificates(request.user):
         raise PermissionDenied('You cannot download certificates.')
 
     certificate = get_object_or_404(Certificate, pk=pk)
+    if not certificate.is_approved:
+        raise Http404
     pdf = generate_certificate_pdf(certificate, request)
     filename = re.sub(r'[^A-Za-z0-9_.-]+', '-', certificate.certificate_number)
     response = HttpResponse(pdf, content_type='application/pdf')
@@ -3512,7 +3531,7 @@ def certificate_download(request, pk):
         student=request.user
     )
 
-    if not certificate.is_valid:
+    if not certificate.is_approved:
         raise Http404
 
     pdf = generate_certificate_pdf(certificate, request)
